@@ -8,6 +8,23 @@ function privateRules(text){
  };
  return Object.entries(rules).filter(([,pattern])=>pattern.test(text)).map(([name])=>name);
 }
+// Exported model identifiers have no path separators. Attribution is an explicit
+// exception, not a generic exemption for arbitrary nested metadata or URLs.
+function modelPathRules(model){
+ const attribution=new Set([
+  'AgiBot GenieSimAssets CC-BY-NC-SA-4.0',
+  'AgiBot / AgiBot World · CC BY-NC-SA 4.0',
+  'https://creativecommons.org/licenses/by-nc-sa/4.0/'
+ ]);
+ const separator=s=>s.includes('/')||s.includes('\\');
+ function visit(value,isLicense=false){
+  if(typeof value==='string')return separator(value)&&!(isLicense&&attribution.has(value));
+  if(Array.isArray(value))return value.some(v=>visit(v));
+  if(value&&typeof value==='object')return Object.entries(value).some(([key,v])=>separator(key)||visit(v,key==='license'));
+  return false;
+ }
+ return visit(model)?['model-path']:[];
+}
 function scanPublic(root){
  const issues=[];
  function inspect(file){
@@ -20,11 +37,12 @@ function scanPublic(root){
   const models=file.endsWith('.b64')?[text]:Array.from(text.matchAll(/<script\b[^>]*\bid=["']g2-model["'][^>]*>([\s\S]*?)<\/script>/g),m=>m[1]);
   for(const b64 of models)try{
    const decoded=z.gunzipSync(Buffer.from(b64.trim(),'base64'),{maxOutputLength:8*1024*1024}).toString('utf8');
-   JSON.parse(decoded);
+   const model=JSON.parse(decoded);
    for(const rule of privateRules(decoded))issues.push(rel+':decoded-'+rule);
+   for(const rule of modelPathRules(model))issues.push(rel+':decoded-'+rule);
   }catch{issues.push(rel+':invalid-model');}
  }
  inspect(path.resolve(root));return issues;
 }
-module.exports={privateRules,scanPublic};
+module.exports={privateRules,modelPathRules,scanPublic};
 if(require.main===module){const issues=scanPublic(process.argv[2]||'site');console.log(issues.length?issues.join('\n'):'Public-content scan passed');process.exitCode=issues.length?1:0;}

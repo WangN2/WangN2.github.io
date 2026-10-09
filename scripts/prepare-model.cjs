@@ -1,8 +1,8 @@
-const fs=require('node:fs'),path=require('node:path'),z=require('node:zlib'),{privateRules}=require('./check-public.cjs');
+const fs=require('node:fs'),path=require('node:path'),z=require('node:zlib'),{privateRules,modelPathRules}=require('./check-public.cjs');
 function prepareModel(source){
  const keys=['root','rootTransform','joints','loops','grippers','wheels','home','meshes','rest','license'];
  const out=Object.fromEntries(keys.filter(k=>Object.hasOwn(source,k)).map(k=>[k,source[k]]));
- if(privateRules(JSON.stringify(out)).length)throw Error('Private data remains in model');
+ if(privateRules(JSON.stringify(out)).length||modelPathRules(out).length)throw Error('Private data remains in model');
  return out;
 }
 module.exports={prepareModel};
