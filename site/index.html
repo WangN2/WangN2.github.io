@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>WangN2 · 机器人技术笔记</title>
+ <meta name="description" content="记录机器人运动控制、导航与仿真的学习和实践。在浏览器里操作 G2 全身模型，理解关节角、正运动学和雅可比。">
+ <link rel="stylesheet" href="./assets/site.css">
+</head>
+<body>
+ <a class="skip" href="#lab">跳转到交互实验室</a>
+ <header class="site-header wrap"><a class="brand" href="./index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="#lab">实验室</a><a href="#notes">笔记</a><a href="https://github.com/WangN2">GitHub ↗</a></nav></header>
+ <main class="wrap">
+  <section class="hero" id="about">
+   <p class="eyebrow"><span class="dot"></span> ROBOTICS · LEARNING IN MOTION</p>
+   <h1>让机器人知识，<br><span>动起来。</span></h1>
+   <p class="intro">记录机器人运动控制、导航与仿真的学习和实践</p>
+   <p class="hero-detail">从一个关节的转动，到末端的一小步。<br>在交互中理解原理，把学习变成看得见的运动。</p>
+   <div class="hero-links"><a class="primary-link" href="#lab">开始探索 G2 <span aria-hidden="true">↓</span></a><a href="./notes/kinematics.html">先读一篇入门笔记 →</a></div>
+   <div class="hero-caption" aria-hidden="true"><span>q</span><i>→</i><span>机器人模型</span><i>→</i><span>x</span><small>关节空间 → 末端空间</small></div>
+  </section>
+  <section id="lab" class="section">
+   <div class="section-heading"><div><p class="eyebrow">01 / INTERACTIVE LAB</p><h2>G2 全身运动实验室</h2></div><a class="outline-link" href="./demos/g2/index.html">独立大屏 ↗</a></div>
+   <p class="section-intro">不需要安装仿真软件。选择部位、拖动关节，或让末端沿一个方向移动 5 cm。</p>
+   <div class="lab-guide"><span><b>①</b> 选择左臂或右臂</span><span><b>②</b> 切换「双臂屈肘观察」</span><span><b>③</b> 点击「末端 +X 5 cm」</span></div>
+   <div class="demo-shell"><iframe id="g2-demo" src="./demos/g2/index.html" title="可交互的 G2 全身关节与末端运动演示"></iframe></div>
+   <p class="callout"><strong>这是运动学教学演示。</strong>不连接真机，不模拟重力、碰撞和夹持力。末端按钮只控制位置，不约束朝向；不要将演示动作直接用于真实机器人。</p>
+  </section>
+  <section id="notes" class="section notes">
+   <div class="section-heading"><div><p class="eyebrow">02 / FIELD NOTES</p><h2>从实践出发的笔记</h2></div><span class="muted">边做，边理解。</span></div>
+   <a class="article-card" href="./notes/kinematics.html"><div class="article-index" aria-hidden="true">01</div><div><p class="eyebrow">运动学入门 · 交互学习</p><h3>从关节角到末端运动：<br class="desktop-break">正运动学与雅可比</h3><p>为什么转动一个关节，夹爪会沿弧线移动？又如何让多个关节配合，走出一段近似直线？</p><span class="read-link">阅读笔记 →</span></div><span class="card-arrow" aria-hidden="true">↗</span></a>
+  </section>
+ </main>
+ <footer class="site-footer wrap"><div><strong>WangN2 · 机器人技术笔记</strong><p>把抽象的原理，变成可探索的实验。</p></div><div><a href="https://github.com/WangN2">GitHub</a><a href="./licenses/attribution.html">模型来源与许可</a><p>模型：AgiBot / AgiBot World · CC BY-NC-SA 4.0</p></div></footer>
+ <script src="./assets/embed.cjs"></script><script src="./assets/embed-parent.js"></script>
+</body></html>
