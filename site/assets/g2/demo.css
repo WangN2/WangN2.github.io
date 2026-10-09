@@ -1,0 +1,15 @@
+:root{--viz-series-1:#1778be;--viz-series-2:#dc7b21;--viz-series-3:#7a55be;--border:#d8e1e9;color:#203145;background:#fff;font:14px/1.6 system-ui,-apple-system,"PingFang SC",sans-serif}
+*{box-sizing:border-box}body{margin:0;padding:20px;display:flow-root}h3{font-size:20px;margin:0 0 18px}a{color:#176da7}button,input,select{font:inherit}button,select{cursor:pointer}.viz-controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:12px 0}.form-label{display:flex;flex-direction:column;gap:5px;min-width:0}.form-select,.btn{border:1px solid #ced9e3;background:#fff;border-radius:8px;padding:8px 12px;color:inherit;max-width:100%}.btn:hover{background:#edf5fc}.btn-primary{background:#176da7;color:white;border-color:#176da7}.btn-primary:hover{background:#11527f}.form-check{display:flex;gap:6px;align-items:center;padding:8px 0}.form-range{width:100%;accent-color:#176da7}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #ebad44;outline-offset:2px}.text-small,footer{font-size:12px;color:#526578}.tabular-nums{font-variant-numeric:tabular-nums}.scene{background:linear-gradient(#f1f6fa,#fafcfe);border:1px solid #e0e8ef;border-radius:12px}.note{background:#ffffffd9;padding:4px 8px;border-radius:5px}.readout{font-size:14px}#g2-status{padding:8px 12px;background:#f0f5f9;border-radius:8px}#g2-status[role=alert]{color:#932b22;background:#fff0ee}footer{margin-top:20px;border-top:1px solid #e0e8ef;padding-top:12px}
+
+ #g2-whole-learning [hidden]{display:none!important}
+ #g2-whole-learning .scene{width:100%;height:460px;position:relative;touch-action:none}
+ #g2-whole-learning canvas{display:block;width:100%;height:100%}
+ #g2-whole-learning .joints{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 20px;margin-top:12px}
+ #g2-whole-learning .joint-head{display:flex;justify-content:space-between;gap:8px}
+ #g2-whole-learning .readout,#g2-whole-learning .legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:8px 0}
+ #g2-whole-learning .swatch{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px}
+ #g2-whole-learning .note{position:absolute;left:8px;bottom:8px;pointer-events:none}
+ #g2-whole-learning .joint-name{overflow-wrap:anywhere}
+ @media(max-width:480px){#g2-whole-learning .joints{grid-template-columns:1fr}#g2-whole-learning .scene{height:360px}}
+ 
+@media(max-width:480px){body{padding:12px}.viz-controls{gap:8px}.btn{padding:8px 10px}.form-label{max-width:100%}}
