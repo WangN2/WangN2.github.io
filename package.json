@@ -1,0 +1,5 @@
+{
+ "name":"wangn2-personal-site",
+ "private":true,
+ "scripts":{"test":"node --test tests/*.test.cjs","build":"node scripts/build-demo.cjs","check:public":"node scripts/check-public.cjs site"}
+}
