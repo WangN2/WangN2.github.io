@@ -2,6 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const root=path.join(__dirname,'../site');
 test('homepage has approved identity, live demo and real article',()=>{
  const s=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ for(const anchor of ['about','lab','notes'])assert.ok(s.match(/<nav[\s\S]*?<\/nav>/)[0].includes('href="#'+anchor+'"'),anchor+' navigation');
  for(const text of ['WangN2 · 机器人技术笔记','记录机器人运动控制、导航与仿真的学习和实践','id="about"','id="lab"','id="notes"','id="g2-demo"','src="./demos/g2/index.html"','href="./demos/g2/index.html"','href="./notes/kinematics.html"']) assert.ok(s.includes(text),text);
 });
 test('all HTML local resource and navigation links resolve within site',()=>{
