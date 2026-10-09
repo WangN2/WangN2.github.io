@@ -1,6 +1,6 @@
 # WangN2 · 机器人技术笔记
 
-纯静态个人主页，首页嵌入 G2 全身运动学实验室，含独立演示页和一篇入门笔记。当前仅本地预览；没有部署工作流，不自动发布。
+纯静态个人主页，首页嵌入 G2 全身运动学实验室，含独立演示页和一篇入门笔记。GitHub Pages 地址：https://wangn2.github.io/ 。
 
 ## 本地运行
 
@@ -36,7 +36,11 @@ python3 tests/browser_site.py --base-url http://127.0.0.1:8765
 
 ## 公开发布边界
 
-未来只把 site/ 作为静态发布产物；不要把整个开发目录、测试截图或原始模型目录直接上传。此版本没有开启 GitHub Pages，也没有推送。公开发布需要另行确认。
+只把 site/ 作为静态发布产物；不要把整个开发目录、测试截图或原始模型目录直接上传。
+
+仓库 Settings → Pages → Source 选择 GitHub Actions。推送 main 或手动运行 Deploy personal site，会先构建、测试并扫描，再上传 site/ 并部署。任一检查失败则不发布。工作流位于 .github/workflows/pages.yml，使用 YAML 兼容的 JSON 语法，方便用 Node 原生解析验证发布路径和权限。构建仅有内容读取权限，部署阶段才授予 Pages 写入与 OIDC 权限。
+
+部署结果在仓库 Actions 中查看。回退时以正常 revert 提交撤销有问题的改动，推送 main 重新部署；不要强制覆盖提交历史。
 
 发布前运行 npm run build、npm test、两组浏览器测试和 npm run check:public；最后人工检查来源许可与页面。扫描会检查内嵌 gzip/base64 模型，不只是可见文本，但不能代替完整的人工信息披露审查。
 
