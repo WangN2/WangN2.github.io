@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>G2 的碰撞球：有距离，为什么还停住？ · WangN2</title><meta name="description" content="旋转观察 G2 的22个碰撞球，对比底盘额外膨胀16cm与5cm，理解碰撞包络、二维地图和物理间隙的区别。"><link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/g2/collision.css"></head>
+<body><a class="skip" href="#collision-explorer">跳转到碰撞球模型</a>
+<header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 02 / 导航避障 · 交互观察</p><h1>G2 的碰撞球：<br>有距离，为什么还停住？</h1>
+ <p class="lede">机器人看起来还没碰到障碍物，导航却停住了。它检查的可能不是外壳本身，而是一层更大的几何包络。转动下面的模型，看看这些球如何包住底盘、双臂与头身。</p>
+ <section class="collision-viewer" id="collision-explorer" data-src="../assets/g2/collision-spheres.json" aria-labelledby="collision-title" data-ready="false">
+  <h2 id="collision-title">G2 整机碰撞包络 · 22 个球</h2>
+  <p class="collision-caption">站立姿态记录快照 · 机体坐标 base_link · 单位：米</p>
+  <div class="collision-controls">
+   <label>底盘额外膨胀<select data-inflation aria-label="底盘额外膨胀"><option value="0.05">候选 5 cm</option><option value="0.16">原值 16 cm</option></select></label>
+   <label>球编号<select data-sphere aria-label="球编号"><option value="15">#15 · 底盘</option></select></label>
+  </div>
+  <div class="collision-views" aria-label="观察方向"><button type="button" data-view="oblique" aria-pressed="true">立体</button><button type="button" data-view="front" aria-pressed="false">正面</button><button type="button" data-view="side" aria-pressed="false">侧面</button><button type="button" data-view="top" aria-pressed="false">俯视</button></div>
+  <p class="collision-status" data-status role="status">正在加载碰撞球记录…</p>
+  <canvas data-scene role="img" aria-label="G2站立姿态的22个碰撞球，底盘2个、左臂7个、右臂7个、头身6个。可拖动旋转，或使用观察方向与球编号控件。">浏览器不支持画布。模型由底盘2球、左臂7球、右臂7球、头身6球组成。</canvas>
+  <div class="collision-legend" data-legend></div><p class="collision-detail" aria-live="polite" data-detail></p>
+  <p class="collision-help">拖动旋转 · 点击或选择编号查看半径 · 切换膨胀量仅改变图示</p>
+  <noscript><p>此交互需要 JavaScript。快照共22个球；5 cm 指底盘额外膨胀量，不是球的总半径。</p></noscript>
+ </section>
+ <h2>1. 用球近似身体，比检查整块网格更简单</h2>
+ <p>碰撞模型可以用多个球近似机器人的各个部位。每个球只需要一个球心和一个半径，就能快速计算与障碍物的间隙。球体之间可以重叠，叠在一起形成整机包络。</p>
+ <p>本页展示一份站立姿态的记录：底盘2球、左臂7球、右臂7球、头身6球。球心和直径来自机器人发布的碰撞模型；分组按所在部位整理。编号是这份快照的标识，<strong>不是关节编号，也不代表所有 G2 配置都固定使用22个球</strong>。</p>
+ <h2>2. 5 cm 是额外膨胀，不是总半径</h2>
+ <p>选择 #15 底盘球，再切换16 cm与5 cm。它的基础几何半径约36.2 cm，因此原值下总半径约52.2 cm，候选下仍有约41.2 cm。另一底盘球对应约50.2 cm与39.2 cm。其余20个球不随这个选项变化。</p>
+ <div class="formula">碰撞球半径 = 基础几何半径 + 额外膨胀<br>约 36.2 cm + 5 cm = 41.2 cm</div>
+ <p>额外包络越大，越可能在接触真实外壳之前触发碰撞判定。反过来，缩小包络只改变其中一层检查，不能单凭这个数值推导最终停车距离。</p>
+ <h2>3. 三维机器人，不一定配上三维环境</h2>
+ <p>机器人可以用三维球表示，但导航仍然使用二维占据地图。若检查时把球投影到水平面，较高的手臂也可能受低矮障碍物的地图投影限制：地图只有“这里被占据”，没有足够的高度信息判断能否从上方越过。</p>
+ <p>因此，“缩小底盘包络”与“允许手臂越过低障碍”是两件事。后者需要高度感知的环境与整机碰撞检查，也需要区分真实墙体、地图占据边界和未知区域。仅把模型画成立体，不会自动获得这种能力。</p>
+ <h2>4. 球、轮廓、代价地图，各管哪一层？</h2>
+ <p>球体近似整机几何；底盘 footprint 描述水平轮廓；代价地图膨胀给障碍物附近的栅格赋予更高代价。导航还会检查候选轨迹与到达条件。它们会共同影响能否通行，不能把几个半径直接相加，或把代价地图的膨胀半径当成外壳到障碍物的停车距离。</p>
+ <p>通用概念可参考 <a href="https://docs.nav2.org/jazzy/configuration_and_development/configuration_guide/core_servers/costmap_2d/costmap_plugins/inflation/">Nav2 的 Inflation Layer 说明</a>。具体机器人采用哪套检查路径，仍要以实际配置和运行数据为准。</p>
+ <p class="callout"><strong>这是静态几何观察，不是在线碰撞仿真。</strong>本页不加载实时点云或地图，不计算可通行路径，也不连接机器人。5 cm 为对比候选值，不是已验收的安全配置。坐标原点与真实地面高度不能未经标定直接等同。</p>
+ <p>继续探索：<a href="./kinematics.html">从关节角到末端运动：正运动学与雅可比</a>。碰撞球快照与已有运动学实验室使用不同的数据来源，页面没有将两者自动配准。</p>
+ <a class="primary-link back" href="../index.html#notes">回到笔记列表 →</a>
+</article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+<script src="../assets/g2/collision-model.cjs"></script><script src="../assets/g2/collision-viewer.js"></script>
+</body></html>
