@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>AprilTag 交互实验室 · WangN2</title>
+ <meta name="description" content="在浏览器里旋转、破坏并解码真实 tag36h11 编码，调整相机与标签位姿，观察平面 PnP 如何恢复六自由度位姿。">
+ <link rel="stylesheet" href="../../assets/apriltag/demo.css">
+</head>
+<body>
+ <a class="skip" href="#decode-lab">跳到交互实验</a>
+ <nav class="topbar" aria-label="页面导航"><a href="../../index.html">← WangN2 首页</a><a href="../../notes/apriltag.html">阅读 AprilTag 原理笔记 →</a></nav>
+ <main class="lab" id="apriltag-lab">
+  <header class="lab-hero">
+   <p class="eyebrow">INTERACTIVE VISION LAB</p>
+   <h1>AprilTag 交互实验室</h1>
+   <p>先破坏一张标签，看看编码如何把它认回来；再改变相机与标签的空间关系，看看四个角点如何变成 6DoF 位姿。</p>
+   <div class="pipeline" aria-label="AprilTag 处理流程"><span>灰度图</span><i>→</i><span>四边形角点</span><i>→</i><span>网格采样与 ID</span><i>→</i><span>PnP 位姿</span></div>
+   <p class="boundary">本页使用标准 tag36h11 编码和合成投影。它聚焦解码与平面位姿原理，不是完整图像检测器，也不代表真实相机精度。</p>
+  </header>
+
+  <section class="lab-section" id="decode-lab">
+   <div class="section-heading"><div><p class="eyebrow">01 / DECODE &amp; ERROR CORRECTION</p><h2>旋转、翻格，再解码</h2></div><span class="section-tag">tag36h11 · 587 IDs</span></div>
+   <p class="section-intro">黑色外框内是 6×6 数据区。点击右侧任意数据格可翻转黑白；解码器会把观察图按四种朝向与全部 587 个标准编码比较。</p>
+   <div class="decode-layout">
+    <div class="tag-panel">
+     <canvas id="tag-canvas" width="520" height="520" role="img" aria-label="当前 tag36h11 标签，含白色安静区、黑色边框和可旋转数据区"></canvas>
+     <div class="legend"><span><i class="legend-box changed"></i>橙色框：被翻转的数据格</span><span>白格 = 1 · 黑格 = 0</span></div>
+    </div>
+    <div class="decode-panel">
+     <div class="button-row">
+      <label class="field">标签 ID<input id="tag-id" type="number" min="0" max="586" step="1" value="0"></label>
+      <button class="btn" id="tag-rotate" type="button">顺时针旋转 90°</button>
+      <button class="btn" id="tag-reset" type="button">清除错误</button>
+     </div>
+     <div class="bit-grid" id="bit-grid" role="group" aria-label="6×6 数据格，点击翻转"></div>
+     <div class="button-row error-tools">
+      <label class="field">随机错误<select id="error-count"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option></select> 位</label>
+      <button class="btn" id="tag-corrupt" type="button">注入错误</button>
+      <label class="range-compact">接受阈值 <output id="hamming-limit-value" for="hamming-limit">5</output> 位<input id="hamming-limit" type="range" min="0" max="5" step="1" value="5"></label>
+     </div>
+     <div class="decode-result" id="decode-result" aria-live="polite">
+      <div><span>最近编码</span><strong id="decode-id">ID 0</strong></div>
+      <div><span>汉明距离</span><strong id="decode-hamming">0</strong></div>
+      <div><span>匹配校正</span><strong id="decode-rotation">顺时针 0°</strong></div>
+      <div><span>当前判定</span><strong id="decode-status" class="status-good">接受</strong></div>
+     </div>
+     <p class="result-note" id="decode-note">观察图与标准编码完全一致。</p>
+    </div>
+   </div>
+  </section>
+
+  <section class="lab-section" id="pose-lab">
+   <div class="section-heading"><div><p class="eyebrow">02 / PROJECT &amp; SOLVE POSE</p><h2>从四个角点恢复 6DoF</h2></div><span class="section-tag">平面单应 · PnP</span></div>
+   <p class="section-intro">蓝色轮廓是标签的真实投影；橙色点模拟带噪声的角点检测，橙色虚线是由这些角点重新解算后的重投影。把噪声调回 0，可验证几何闭环。</p>
+   <div class="pose-layout">
+    <div class="pose-controls">
+     <h3>标签相对相机</h3>
+     <label class="range-row"><span>X 平移 <output id="pose-x-value">8 cm</output></span><input id="pose-x" data-pose="x" type="range" min="-30" max="30" step="1" value="8"></label>
+     <label class="range-row"><span>Y 平移 <output id="pose-y-value">−4 cm</output></span><input id="pose-y" data-pose="y" type="range" min="-20" max="20" step="1" value="-4"></label>
+     <label class="range-row"><span>深度 Z <output id="pose-z-value">0.90 m</output></span><input id="pose-z" data-pose="z" type="range" min="60" max="200" step="1" value="90"></label>
+     <label class="range-row"><span>绕 X 旋转 <output id="pose-rx-value">12°</output></span><input id="pose-rx" data-pose="rx" type="range" min="-60" max="60" step="1" value="12"></label>
+     <label class="range-row"><span>绕 Y 旋转 <output id="pose-ry-value">−18°</output></span><input id="pose-ry" data-pose="ry" type="range" min="-60" max="60" step="1" value="-18"></label>
+     <label class="range-row"><span>绕 Z 旋转 <output id="pose-rz-value">8°</output></span><input id="pose-rz" data-pose="rz" type="range" min="-180" max="180" step="1" value="8"></label>
+     <h3>相机与测量</h3>
+     <label class="range-row"><span>黑框边长 <output id="pose-size-value">16 cm</output></span><input id="pose-size" data-pose="size" type="range" min="6" max="30" step="1" value="16"></label>
+     <label class="range-row"><span>焦距 <output id="pose-focal-value">700 px</output></span><input id="pose-focal" data-pose="focal" type="range" min="400" max="1000" step="10" value="700"></label>
+     <label class="range-row"><span>角点噪声 <output id="pose-noise-value">±0.0 px</output></span><input id="pose-noise" data-pose="noise" type="range" min="0" max="30" step="1" value="0"></label>
+     <div class="button-row pose-actions"><button class="btn primary" id="pose-play" type="button" data-running="false">播放姿态动画</button><button class="btn" id="pose-reseed" type="button">重采噪声</button><button class="btn" id="pose-reset" type="button">复位</button></div>
+    </div>
+    <div class="pose-view">
+     <canvas id="pose-canvas" width="960" height="540" role="img" aria-label="合成相机画面、测量角点与重投影位姿"></canvas>
+     <div class="legend pose-legend"><span><i class="legend-line true"></i>真实投影</span><span><i class="legend-line estimated"></i>估计重投影 / 测量角点</span><span>相机：X 右 · Y 下 · Z 前</span></div>
+     <div class="pose-readout" aria-live="polite">
+      <table><thead><tr><th>位姿量</th><th>真实值</th><th>估计值</th></tr></thead><tbody>
+       <tr><th>位置 XYZ (m)</th><td id="truth-position">—</td><td id="estimated-position">—</td></tr>
+       <tr><th>旋转 Rx Ry Rz (°)</th><td id="truth-rotation">—</td><td id="estimated-rotation">—</td></tr>
+      </tbody></table>
+      <div class="error-cards"><div><span>位置误差</span><strong id="position-error">0.00 mm</strong></div><div><span>旋转误差</span><strong id="rotation-error">0.00°</strong></div><div><span>重投影 RMS</span><strong id="reprojection-error">0.00 px</strong></div></div>
+     </div>
+    </div>
+   </div>
+  </section>
+
+  <section class="next-step"><p><strong>想把它用到真实相机？</strong>还需要标定内参、畸变、标签实际尺寸和相机外参，并对 decision margin、Hamming 距离与重投影误差设置质量门限。</p><a href="../../notes/apriltag.html">回到笔记查看 Python 调用与坐标变换 →</a></section>
+ </main>
+ <footer class="lab-footer">编码数据：AprilRobotics AprilTag · <a href="../../licenses/apriltag.txt">BSD 2-Clause</a> · 浏览器本地计算，不上传数据</footer>
+ <script src="../../assets/apriltag/tag36h11.cjs"></script>
+ <script src="../../assets/apriltag/core.cjs"></script>
+ <script src="../../assets/apriltag/demo.js"></script>
+</body>
+</html>

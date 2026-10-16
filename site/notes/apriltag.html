@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>AprilTag 视觉定位详解 · WangN2</title>
+ <meta name="description" content="从 tag36h11 编码、汉明纠错到 PnP 六自由度位姿解算，配合交互实验理解 AprilTag 视觉定位。">
+ <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+ <header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a></nav></header>
+ <main class="wrap"><article class="article">
+  <p class="eyebrow">NOTE 03 / 视觉定位 · 含交互实验</p>
+  <h1>AprilTag 视觉定位详解</h1>
+  <p class="lede">贴一张黑白图案，相机看到它，就能求出标签相对相机的三维位置与朝向。AprilTag 的价值不只是“认出几号图案”，而是把一组像素角点变成可用的 6DoF 位姿。</p>
+  <div class="note-actions"><a class="primary-link" href="../demos/apriltag/index.html">打开 AprilTag 交互实验室 →</a><a class="outline-link" href="../demos/apriltag/index.html#decode-lab">直接试汉明纠错</a></div>
+  <p class="callout"><strong>建议边玩边读。</strong>实验室可以旋转标签、翻转数据格、注入角点噪声，并实时比较真实位姿与解算位姿。全部计算都在浏览器本地完成。</p>
+
+  <h2>1. AprilTag 是什么</h2>
+  <p>AprilTag 是一种视觉基准标记（fiducial marker）系统。标签外圈有黑色边框，内部是黑白编码格。把已知尺寸的标签贴在工装板或工作台上，相机检测到它后，可以得到<strong>标签相对相机的位置与朝向</strong>，也就是六自由度（6DoF）位姿。</p>
+  <div class="formula">标签角点的 3D 几何 + 图像中的 2D 角点 + 相机内参 → 标签相对相机的 R、t</div>
+  <p>典型链路是：工装板贴标签 → 相机拍摄 → 检测 ID 并解算位姿 → 通过相机外参转换到机器人坐标系 → 引导上料、插接或精对准。</p>
+
+  <h2>2. tag36h11：36 位编码与汉明距离</h2>
+  <p>AprilTag 有多个编码家族（family），<code>tag36h11</code> 是常用的标准家族之一。名字可以拆成两部分：<code>36</code> 表示 6×6 数据区共有 36 个编码位，<code>h11</code> 表示合法编码之间的最小汉明距离为 11。</p>
+  <p><strong>汉明距离</strong>就是两段二进制编码有多少位不同。距离越大，两张标签越不容易被相互认错。</p>
+  <table class="coordinates"><thead><tr><th>家族</th><th>数据网格</th><th>最小汉明距离</th><th>理论纠错位数</th><th>标签数量</th></tr></thead><tbody>
+   <tr><th>tag16h5</th><td>4×4</td><td>5</td><td>2</td><td>30</td></tr>
+   <tr><th>tag25h9</th><td>5×5</td><td>9</td><td>4</td><td>35</td></tr>
+   <tr><th>tag36h11</th><td>6×6</td><td>11</td><td>5</td><td>587</td></tr>
+  </tbody></table>
+  <div class="formula">理论最多纠错位数 = ⌊(最小汉明距离 − 1) / 2⌋ = ⌊(11 − 1) / 2⌋ = 5</div>
+  <p>在理想采样、四边形与朝向已经正确确定的前提下，与正确编码相差不超过 5 位时，最近邻解码仍能找回它。<strong>这不等于“任意遮挡或模糊 5 格都一定能检测成功”</strong>：角点提取、分辨率、运动模糊、反光和光照都会在解码之前影响结果。</p>
+  <p>tag36h11 提供 587 个 ID，数量和容错能力适合多工位场景。代价是数据格更多；远距离或小尺寸成像时，每个格子分到的像素更少。</p>
+  <p><strong>动手体验：</strong><a href="../demos/apriltag/index.html#decode-lab">在解码实验中旋转标签、翻转格子或注入 1–6 位错误</a>，观察最近编码、汉明距离、朝向和接受阈值如何变化。</p>
+
+  <h2>3. 一帧图像如何变成 ID 与位姿</h2>
+  <ol>
+   <li><strong>寻找四边形。</strong>检测器在灰度图中寻找明暗边缘与黑色边框，拟合候选四边形并细化角点。</li>
+   <li><strong>采样数据格。</strong>利用四边形的透视关系，把标签内部映射回规则网格，在 6×6 数据区读取黑白位。黑框外的白色安静区有助于把标签与背景分开。</li>
+   <li><strong>旋转匹配与纠错。</strong>将读到的编码按四种朝向与家族编码比较，选择汉明距离最近的合法 ID，同时确定标签朝向。</li>
+   <li><strong>解算位姿。</strong>已知标签四个角点在标签平面上的 3D 坐标，再对应到图像中的 2D 坐标，通过 PnP 求旋转 R 和平移 t。</li>
+  </ol>
+  <p>检测结果里的 <code>hamming</code> 和 <code>decision_margin</code> 分别反映编码纠错程度与黑白采样置信度。它们是很有用的质量门限，但<strong>不能直接当作位姿精度</strong>；位姿还应检查重投影误差和多帧稳定性。</p>
+
+  <h2>4. 为什么 PnP 离不开内参与标签尺寸</h2>
+  <p>针孔相机用内参矩阵 K 描述焦距和主点。归一化后的相机坐标才能与像素坐标相互转换：</p>
+  <div class="formula">u = fx · X/Z + cx<br>v = fy · Y/Z + cy</div>
+  <p>标签中心为原点、边长已知时，四个角点在标签坐标系中的位置就确定了。求解器要寻找一组 R、t，使这些 3D 角点投影后尽量落在检测到的 2D 角点上。</p>
+  <div class="formula">目标：最小化 Σ ‖project(K, R · Pᵢ + t) − pᵢ‖²</div>
+  <p>这里的边长通常指<strong>黑色外框的完整边长</strong>，不包含额外留白。尺寸填错会直接带来尺度和深度误差；内参或畸变处理不准确，则会让角点对应关系本身产生系统误差。</p>
+  <p>平面靶标在近正面、远距离或角点噪声较大时，还可能出现姿态歧义：两种不同的倾斜与深度组合产生相近投影。工程上可结合 IPPE 平面求解、多帧滤波、多标签或运动先验提高稳定性。</p>
+  <p><strong>动手体验：</strong><a href="../demos/apriltag/index.html#pose-lab">在位姿实验中调整 XYZ、三轴旋转、焦距、标签尺寸和角点噪声</a>。实验室用四角点求平面单应并分解 R、t，橙色虚线会显示解算后的重投影。</p>
+
+  <h2>5. pupil-apriltags 的正确调用方式</h2>
+  <p><code>pupil-apriltags</code> 是 AprilTag 3 的 Python 绑定，包名与导入名不同：安装时使用 <code>pupil-apriltags</code>，代码中导入 <code>pupil_apriltags</code>。不要与另一个名为 <code>apriltag</code> 的 Python 包混用 API。</p>
+  <pre><code>import cv2
+from pupil_apriltags import Detector
+
+detector = Detector(families="tag36h11")
+gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+detections = detector.detect(
+    gray,
+    estimate_tag_pose=True,
+    camera_params=(fx, fy, cx, cy),  # 与去畸变后的图像一致
+    tag_size=0.16,                   # 黑框边长，单位：米
+)
+
+for d in detections:
+    print(d.tag_id, d.hamming, d.decision_margin)
+    print(d.center, d.corners)
+    print(d.pose_R, d.pose_t)       # T_cam_tag 的 R 与 t</code></pre>
+  <p>只有请求位姿估计并传入正确的内参与物理尺寸，<code>pose_R</code>、<code>pose_t</code> 才有意义。<code>pose_t</code> 与 <code>tag_size</code> 使用相同的长度单位；上例中是米。</p>
+
+  <h2>6. 从相机坐标系到机器人坐标系</h2>
+  <p>检测器给出的是 <code>T_cam_tag</code>：标签在相机坐标系下的位姿。若已通过手眼或安装标定得到 <code>T_base_cam</code>，则：</p>
+  <div class="formula">T_base_tag = T_base_cam · T_cam_tag</div>
+  <p>如果标签与整块工装板之间还有固定安装关系 <code>T_tag_board</code>，继续右乘即可得到工装板在机器人基座坐标系中的位姿：</p>
+  <div class="formula">T_base_board = T_base_cam · T_cam_tag · T_tag_board</div>
+  <p>变换顺序和方向必须与所用库的约定一致。把“相机在基座中的位姿”和“基座在相机中的位姿”混用，是现场最常见的系统错误之一。</p>
+  <div class="formula">标签检测 → 质量门限 → 6DoF 位姿 → 外参变换 → 工装板定位 → 上料 / 插接 / 精对准</div>
+
+  <h2>7. 工程落地时，别只看“检测到了”</h2>
+  <table class="coordinates"><thead><tr><th>检查项</th><th>为什么重要</th></tr></thead><tbody>
+   <tr><th>内参与畸变</th><td>决定像素角点如何变成空间射线；标定分辨率和去畸变流程要一致。</td></tr>
+   <tr><th>标签实际尺寸</th><td>直接决定位姿尺度与深度，打印后要实测，不能只相信设计值。</td></tr>
+   <tr><th>像素占据与光照</th><td>标签太小、运动模糊或反光时，即使外框可见，数据格也可能不可靠。</td></tr>
+   <tr><th>Hamming 与 decision margin</th><td>用于拒绝纠错过多或黑白对比不足的检测，阈值应结合数据验证。</td></tr>
+   <tr><th>重投影与多帧稳定性</th><td>用于发现角点异常、平面姿态跳变和偶发错误位姿。</td></tr>
+   <tr><th>相机外参与时间同步</th><td>相机或机器人运动时，外参方向、标定误差和时刻错位都会进入最终位姿。</td></tr>
+  </tbody></table>
+
+  <h2>一句话总结</h2>
+  <table class="coordinates"><thead><tr><th>概念</th><th>要点</th></tr></thead><tbody>
+   <tr><th>AprilTag</th><td>视觉基准标记系统；检测标签后可解算其相对相机的 6DoF 位姿。</td></tr>
+   <tr><th>tag36h11</th><td>6×6 数据区、587 个 ID、最小汉明距离 11，理想条件下最多纠正 5 位。</td></tr>
+   <tr><th>pupil-apriltags</th><td>AprilTag 3 的 Python 绑定；检测与位姿估计要正确提供内参和黑框尺寸。</td></tr>
+   <tr><th>机器人精定位</th><td>检测只是起点，还需要外参、质量门限、重投影检查与多帧稳定性。</td></tr>
+  </tbody></table>
+  <div class="note-actions"><a class="primary-link" href="../demos/apriltag/index.html">再进实验室，亲手破坏一张标签 →</a><a class="outline-link" href="../index.html#notes">返回全部笔记</a></div>
+  <p class="references">参考：<a href="https://github.com/AprilRobotics/apriltag">AprilRobotics / AprilTag</a> · <a href="https://github.com/pupil-labs/apriltags">Pupil Labs / pupil-apriltags</a> · <a href="../licenses/attribution.html">本站来源与许可</a></p>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+</body>
+</html>
