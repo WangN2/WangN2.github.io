@@ -15,6 +15,12 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory site
 
 打开 http://127.0.0.1:8765/ 。端口占用时换一个端口；不要停止不相关服务。不要直接双击 HTML 使用 file 协议。G2 演示需支持 WebGL 和 DecompressionStream，推荐近期版本的 Chrome、Edge、Firefox 或 Safari；当前自动回归使用 Chromium。
 
+生成首屏与分享图需要 Playwright：
+
+```sh
+python3 scripts/render-figures.py --base-url http://127.0.0.1:8765
+```
+
 ## 浏览器测试
 
 ```sh
@@ -28,9 +34,18 @@ python3 tests/browser_apriltag.py --base-url http://127.0.0.1:8765
 
 也可设置 CHROME_PATH 为本机 Chrome 可执行文件。测试使用独立浏览器上下文，不读取日常浏览资料。截图和结果在被忽略的 artifacts/ 中。测试拦截第三方请求，检查桌面/360 px 手机布局、iframe 高度校验、中文错误提示、存储异常与交互。
 
+## 站点基础
+
+- site/assets/site.css：全站样式与设计令牌。`--ink`、`--muted`、`--blue` 必须保持正文 4.5:1、主文字 7:1 的对比度；`npm test` 会直接计算并拦截回退。正文内链接一律保留下划线，不靠颜色区分。
+- site/index.html 首屏右侧使用 site/assets/hero-g2.webp：由演示同一个 Three.js 与同一份模型渲染的静态图；site/assets/og.png 是 1200×630 分享卡。两者都用 `python3 scripts/render-figures.py --base-url …` 重新生成，改模型或改配色后必须重跑。
+- site/404.html：GitHub Pages 的 404 页面，样式内联、链接用根路径，因此在任意错误深度都能正常显示。
+- site/robots.txt、site/sitemap.xml：新增页面后要同时加进 sitemap；`npm test` 会校验 sitemap 与站内 HTML 一一对应。
+- 每页 head 里都有 canonical、Open Graph、Twitter Card 与 JSON-LD 结构化数据，用 `<!--meta-->` 包裹便于整体替换；新增页面需复制同一组字段并改 canonical/og:url。
+
 ## 维护入口
 
 - site/index.html：主页；site/notes/kinematics.html、collision-envelope.html、apriltag.html：技术笔记。
+- site/assets/g2/demo.js：三维场景。机身浅灰、底盘与夹爪深灰的两套材质是刻意的可读性设计；光照已按 ACES 色调映射配平，不要再叠加高亮环境光，否则白色机身会和浅色背景糊在一起。
 - site/notes/collision-envelope.html：碰撞包络笔记，入口位于首页 Notes。
 - site/assets/g2/collision-spheres.json：站立姿态的22球几何快照；collision-model.cjs：几何核心；collision-viewer.js、collision.css：独立画布交互与样式。16/5 cm 切换仅改变两个底盘球的额外膨胀，不做地图碰撞或机器人控制。选择和视角保存在独立的 wangn2:g2-collision:v1 中，存储不可用时仍可操作。
 - templates/demo.html：G2 演示 HTML 模板。修改后运行 npm run build，重新内嵌已脱敏模型。

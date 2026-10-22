@@ -1,8 +1,31 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>G2 全身运动实验室 · WangN2</title><link rel="stylesheet" href="../../assets/g2/demo.css"></head><body>
-<div id="g2-whole-learning">
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/demos/g2/index.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+ <meta property="og:type" content="website">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="G2 全身运动实验室 · WangN2">
+ <meta property="og:description" content="在浏览器中拖动 G2 全身关节，观察正运动学、雅可比预测与阻尼逆解，理解关节角如何变成末端运动。">
+ <meta property="og:url" content="https://wangn2.github.io/demos/g2/index.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="G2 全身运动实验室 · WangN2">
+ <meta name="twitter:description" content="在浏览器中拖动 G2 全身关节，观察正运动学、雅可比预测与阻尼逆解，理解关节角如何变成末端运动。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <!--/meta--><title>G2 全身运动实验室 · WangN2</title><meta name="description" content="在浏览器中拖动 G2 全身关节，观察正运动学、雅可比预测与阻尼逆解，理解关节角如何变成末端运动。"><link rel="stylesheet" href="../../assets/g2/demo.css"></head><body>
+<main id="g2-whole-learning">
 
- <h3>G2 · 全身关节与末端运动</h3>
+ <h1 class="demo-title">G2 · 全身关节与末端运动</h1>
  <div class="viz-controls">
   <label class="form-label">控制部位 <select class="form-select" id="g2-group"><option value="left">左臂 · 7 轴</option><option value="right">右臂 · 7 轴</option><option value="body">躯干 · 5 轴</option><option value="head">头部 · 3 轴</option><option value="gripper_l">左夹爪 · 联动</option><option value="gripper_r">右夹爪 · 联动</option><option value="base">全向底盘 · 4 舵轮</option></select></label>
   <label class="form-label">观察末端 <select class="form-select" id="g2-tool"><option value="l">左夹爪中心</option><option value="r">右夹爪中心</option></select></label>
@@ -20,7 +43,7 @@
  <div class="joints" id="g2-joints"></div><div id="g2-column" class="text-small joint-name"></div>
 
  <script type="application/octet-stream" id="g2-model">__MODEL__</script>
-</div>
+</main>
 <footer>运动学教学，不是物理仿真或真机控制。模型依据 AgiBot 开源资源。<a href="../../licenses/attribution.html" target="_blank" rel="noopener">来源与许可</a> · <a href="../../index.html" target="_top">返回主页</a></footer>
 <script src="../../assets/vendor/three-r128.min.js"></script>
 <script src="../../assets/g2/kinematics.cjs"></script>

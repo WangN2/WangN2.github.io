@@ -10,19 +10,25 @@
   const members=g=>model.joints.filter(j=>j.type==='revolute'&&j.name.includes(groups[g]??'NO_GROUP')).map(j=>j.name).sort();
   let group='left',names=members(group),tool='gripper_l_center_link',selected=3,q={...model.home},base=[0,0,0],sliders=[],job=null,frame=null,last=null,trace=[],prediction=null;
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(38,1,.02,40);camera.up.set(0,0,1);
-  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputEncoding=THREE.sRGBEncoding;$('g2-scene').prepend(renderer.domElement);
-  scene.add(new THREE.HemisphereLight(0xffffff,0x777777,1.1));const light=new THREE.DirectionalLight(0xffffff,.9);light.position.set(3,-3,5);scene.add(light);
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;$('g2-scene').prepend(renderer.domElement);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x7c8fa1,.5));
+  const key=new THREE.DirectionalLight(0xffffff,.9);key.position.set(3.5,-4.5,6);scene.add(key);
+  const fill=new THREE.DirectionalLight(0xd7e6f5,.45);fill.position.set(-4.5,3.5,1.5);scene.add(fill);
+  const rim=new THREE.DirectionalLight(0xffffff,.55);rim.position.set(-1.5,4.5,-3);scene.add(rim);
+  const shadowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d'),r=g.createRadialGradient(128,128,4,128,128,126);r.addColorStop(0,'rgba(23,52,77,.45)');r.addColorStop(.45,'rgba(23,52,77,.16)');r.addColorStop(1,'rgba(23,52,77,0)');g.fillStyle=r;g.fillRect(0,0,256,256);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t;})();
+  const contact=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false}));contact.position.set(0,0,.005);contact.renderOrder=-1;scene.add(contact);
   const links={},materials=[];
-  for(const mesh of model.meshes){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(mesh.vertices.flat(),3));geometry.setIndex(mesh.faces.flat());geometry.computeVertexNormals();const material=new THREE.MeshStandardMaterial({color:new THREE.Color(...mesh.color),roughness:.6,metalness:.12,side:THREE.DoubleSide});materials.push(material);const o=new THREE.Mesh(geometry,material);o.matrixAutoUpdate=false;scene.add(o);(links[mesh.link]??=[]).push(o);}
+  const tone=link=>/^(?:base_link|chassis_)/.test(link)?'#4b5763':/^gripper_/.test(link)?'#39434d':'#d9dfe5';
+  for(const mesh of model.meshes){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(mesh.vertices.flat(),3));geometry.setIndex(mesh.faces.flat());geometry.computeVertexNormals();const material=new THREE.MeshStandardMaterial({color:new THREE.Color(tone(mesh.link)).convertSRGBToLinear(),roughness:.62,metalness:.08,side:THREE.DoubleSide});materials.push(material);const o=new THREE.Mesh(geometry,material);o.matrixAutoUpdate=false;scene.add(o);(links[mesh.link]??=[]).push(o);}
   const line=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial()),predLine=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineDashedMaterial({dashSize:.01,gapSize:.006}));scene.add(line,predLine);
   const tip=new THREE.Mesh(new THREE.SphereGeometry(.014,16,12),new THREE.MeshBasicMaterial()),otherTip=new THREE.Mesh(new THREE.SphereGeometry(.01,12,8),new THREE.MeshBasicMaterial({wireframe:true})),goal=new THREE.Mesh(new THREE.SphereGeometry(.018,16,12),new THREE.MeshBasicMaterial({wireframe:true}));scene.add(tip,otherTip,goal);goal.visible=false;
   const arrow=new THREE.ArrowHelper(new THREE.Vector3(1,0,0),new THREE.Vector3(),.15,0xffffff,.03,.015),axisArrow=new THREE.ArrowHelper(new THREE.Vector3(0,0,1),new THREE.Vector3(),.22,0xffffff,.025,.012);scene.add(arrow,axisArrow);
   const grid=new THREE.GridHelper(5,25);grid.rotation.x=Math.PI/2;grid.position.z=.002;scene.add(grid);
   const color=token=>{const e=document.createElement('span');e.style.color='var('+token+')';root.appendChild(e);const c=new THREE.Color(getComputedStyle(e).color);e.remove();return c;};
   function theme(){const a=color('--viz-series-1'),b=color('--viz-series-2'),c=color('--viz-series-3');tip.material.color.copy(a);otherTip.material.color.copy(a);line.material.color.copy(a);predLine.material.color.copy(b);arrow.setColor(b);axisArrow.setColor(c);goal.material.color.copy(c);grid.material.color.copy(color('--border'));draw();}
-  let azimuth=.85,elevation=.25,radius=4.2,center=new THREE.Vector3(0,0,1),drag=null;
+  let azimuth=.9,elevation=.22,radius=3.55,center=new THREE.Vector3(0,0,1),drag=null;
   function view(){camera.position.set(center.x+radius*Math.cos(elevation)*Math.cos(azimuth),center.y+radius*Math.cos(elevation)*Math.sin(azimuth),center.z+radius*Math.sin(elevation));camera.lookAt(center);}
-  function focus(close){const f=K.fk(model,q,base);if(!close){center.set(base[0],base[1],1);radius=4.2;}else if(group.startsWith('gripper')){center.set(...K.pos(f.links['gripper_'+group.at(-1)+'_center_link']));radius=.6;}else if(group==='base'){center.set(base[0],base[1],.25);radius=1.8;}else if(group==='head'){center.set(...K.pos(f.links.head_link3));radius=1.1;}else if(group==='body'){center.set(...K.pos(f.links.body_link3));radius=2.5;}else{center.set(...K.pos(f.links[group==='left'?'arm_l_link4':'arm_r_link4']));radius=2;}view();draw();}
+  function focus(close){const f=K.fk(model,q,base);if(!close){center.set(base[0],base[1],1);radius=3.55;}else if(group.startsWith('gripper')){center.set(...K.pos(f.links['gripper_'+group.at(-1)+'_center_link']));radius=.6;}else if(group==='base'){center.set(base[0],base[1],.25);radius=1.8;}else if(group==='head'){center.set(...K.pos(f.links.head_link3));radius=1.1;}else if(group==='body'){center.set(...K.pos(f.links.body_link3));radius=2.5;}else{center.set(...K.pos(f.links[group==='left'?'arm_l_link4':'arm_r_link4']));radius=2;}view();draw();}
   renderer.domElement.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];renderer.domElement.setPointerCapture(e.pointerId);});
   renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;azimuth-=(e.clientX-drag[0])*.008;elevation=Math.max(-.3,Math.min(1.35,elevation+(e.clientY-drag[1])*.008));drag=[e.clientX,e.clientY];view();renderer.render(scene,camera);});
   for(const event of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(event,()=>drag=null);
@@ -44,6 +50,7 @@
   }
   function draw(){
    const f=K.fk(model,q,base),p=K.pos(f.links[tool]);for(const [n,objects] of Object.entries(links))for(const o of objects)o.matrix.set(...f.links[n]);
+   contact.position.set(base[0],base[1],.005);
    tip.position.set(...p);otherTip.position.set(...K.pos(f.links[tool.includes('_l_')?'gripper_r_center_link':'gripper_l_center_link']));
    arrow.visible=false;axisArrow.visible=names.length>0;
    if(names.length){const J=K.jacobian(model,q,names,tool,base),v=J.slice(0,3).map(r=>r[selected]),m=K.norm(v),a=f.frames[names[selected]];arrow.position.set(...p);arrow.visible=m>1e-7;if(arrow.visible){arrow.setDirection(new THREE.Vector3(...v).normalize());arrow.setLength(Math.min(.32,Math.max(.06,m*.3)),.028,.014);}axisArrow.position.set(...a.p);axisArrow.setDirection(new THREE.Vector3(...a.axis).normalize());$('g2-column').textContent=names[selected]+' · Jv [m/rad]：'+v.map(x=>x.toFixed(3)).join(' / ')+' · Jω：'+J.slice(3).map(r=>r[selected].toFixed(2)).join(' / ');}

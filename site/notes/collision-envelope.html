@@ -1,5 +1,29 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>G2 的碰撞球：有距离，为什么还停住？ · WangN2</title><meta name="description" content="旋转观察 G2 的22个碰撞球，对比底盘额外膨胀16cm与5cm，理解碰撞包络、二维地图和物理间隙的区别。"><link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/g2/collision.css"></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/collision-envelope.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="G2 的碰撞球：有距离，为什么还停住？ · WangN2">
+ <meta property="og:description" content="旋转观察 G2 的22个碰撞球，对比底盘额外膨胀16cm与5cm，理解碰撞包络、二维地图和物理间隙的区别。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/collision-envelope.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="G2 的碰撞球：有距离，为什么还停住？ · WangN2">
+ <meta name="twitter:description" content="旋转观察 G2 的22个碰撞球，对比底盘额外膨胀16cm与5cm，理解碰撞包络、二维地图和物理间隙的区别。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"G2 的碰撞球：有距离，为什么还停住？","description":"旋转观察 G2 的 22 个碰撞球，对比底盘额外膨胀 16 cm 与 5 cm，理解碰撞包络、二维地图和物理间隙的区别。","url":"https://wangn2.github.io/notes/collision-envelope.html","mainEntityOfPage":"https://wangn2.github.io/notes/collision-envelope.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["碰撞包络","导航避障"]}</script>
+ <!--/meta--><title>G2 的碰撞球：有距离，为什么还停住？ · WangN2</title><meta name="description" content="旋转观察 G2 的22个碰撞球，对比底盘额外膨胀16cm与5cm，理解碰撞包络、二维地图和物理间隙的区别。"><link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/g2/collision.css"></head>
 <body><a class="skip" href="#collision-explorer">跳转到碰撞球模型</a>
 <header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a></nav></header>
 <main class="wrap"><article class="article">

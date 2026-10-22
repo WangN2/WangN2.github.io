@@ -1,12 +1,47 @@
 <!doctype html>
-<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>来源与许可 · WangN2</title>
-<body><main><h1>来源与许可</h1>
-<h2>G2 模型与渲染</h2>
-<p>G2 模型发布者：AgiBot / AgiBot World。来源：<a href="https://modelscope.cn/datasets/agibot_world/GenieSimAssets">GenieSimAssets</a>，上游版本 f65609e1c2bb153947ca9eee2ae1dc7392cdf3b7。</p>
-<p>本演示进行了网格简化、运动学数据导出及交互改编。模型及其改编数据遵循 <a href="g2-model.txt">CC BY-NC-SA 4.0</a>，保留署名、非商业及相同方式共享要求。本站不提供额外商用授权，不代表发布者认可或背书。</p>
-<p>运动学实验室的浏览器渲染使用 Three.js r128，遵循 <a href="three.txt">MIT 许可</a>。运动学教学不包含真实机器人控制、碰撞、重力或夹持力验证。</p>
-<p>碰撞包络笔记单独使用一份站立姿态的球体几何记录，以 Canvas 绘制；未使用或自动配准上述运动学网格。图中的半径对比不执行在线碰撞、避障规划或真机安全验收，页面不连接机器人。</p>
-<h2>AprilTag 编码</h2>
-<p>AprilTag 实验室使用 AprilRobotics 官方 tag36h11 编码数据，来源：<a href="https://github.com/AprilRobotics/apriltag">AprilRobotics / AprilTag</a>。编码经格式打包后在浏览器本地解码，遵循 <a href="apriltag.txt">BSD 2-Clause 许可</a>。交互页仅演示编码、合成投影和平面位姿原理，不声称复现完整检测器或真实相机精度。</p>
-<p><a href="../index.html">返回主页</a></p></main></body></html>
+<html lang="zh-CN">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>来源与许可 · WangN2</title>
+ <meta name="description" content="本站 G2 模型、Three.js 渲染与 AprilTag 编码数据的来源、版本与许可说明。">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/licenses/attribution.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="website">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="来源与许可 · WangN2">
+ <meta property="og:description" content="本站 G2 模型、Three.js 渲染与 AprilTag 编码数据的来源、版本与许可说明。">
+ <meta property="og:url" content="https://wangn2.github.io/licenses/attribution.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="来源与许可 · WangN2">
+ <meta name="twitter:description" content="本站 G2 模型、Three.js 渲染与 AprilTag 编码数据的来源、版本与许可说明。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <!--/meta-->
+ <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+ <header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a></nav></header>
+ <main class="wrap"><article class="article legal">
+  <h1>来源与许可</h1>
+  <p class="lede">本站的模型、渲染库与编码数据全部在浏览器本地运行，来源与许可如下。站内不连接真机，也不调用第三方接口。</p>
+  <h2>G2 模型与渲染</h2>
+  <p>G2 模型发布者：AgiBot / AgiBot World。来源：<a href="https://modelscope.cn/datasets/agibot_world/GenieSimAssets">GenieSimAssets</a>，上游版本 f65609e1c2bb153947ca9eee2ae1dc7392cdf3b7。</p>
+  <p>本演示进行了网格简化、运动学数据导出及交互改编。模型及其改编数据遵循 <a href="g2-model.txt">CC BY-NC-SA 4.0</a>，保留署名、非商业及相同方式共享要求。本站不提供额外商用授权，不代表发布者认可或背书。</p>
+  <p>运动学实验室的浏览器渲染使用 Three.js r128，遵循 <a href="three.txt">MIT 许可</a>。运动学教学不包含真实机器人控制、碰撞、重力或夹持力验证。</p>
+  <p>碰撞包络笔记单独使用一份站立姿态的球体几何记录，以 Canvas 绘制；未使用或自动配准上述运动学网格。图中的半径对比不执行在线碰撞、避障规划或真机安全验收，页面不连接机器人。</p>
+  <h2>AprilTag 编码</h2>
+  <p>AprilTag 实验室使用 AprilRobotics 官方 tag36h11 编码数据，来源：<a href="https://github.com/AprilRobotics/apriltag">AprilRobotics / AprilTag</a>。编码经格式打包后在浏览器本地解码，遵循 <a href="apriltag.txt">BSD 2-Clause 许可</a>。交互页仅演示编码、合成投影和平面位姿原理，不声称复现完整检测器或真实相机精度。</p>
+  <p class="back"><a class="primary-link" href="../index.html">返回主页</a></p>
+ </article></main>
+ <footer class="site-footer wrap"><div><strong>WangN2 · 机器人技术笔记</strong><p>把抽象的原理，变成可探索的实验。</p></div><div><a href="https://github.com/WangN2">GitHub</a><a href="../index.html">主页</a></div></footer>
+</body></html>

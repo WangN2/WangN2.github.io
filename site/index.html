@@ -2,9 +2,33 @@
 <html lang="zh-CN">
 <head>
  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="./assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+ <meta property="og:type" content="website">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="WangN2 · 机器人技术笔记">
+ <meta property="og:description" content="记录机器人运动控制、导航与仿真的学习和实践。在浏览器里操作 G2 全身模型，理解关节角、正运动学和雅可比。">
+ <meta property="og:url" content="https://wangn2.github.io/">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="WangN2 · 机器人技术笔记">
+ <meta name="twitter:description" content="记录机器人运动控制、导航与仿真的学习和实践。在浏览器里操作 G2 全身模型，理解关节角、正运动学和雅可比。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"WangN2 · 机器人技术笔记","alternateName":"WangN2","url":"https://wangn2.github.io/","description":"记录机器人运动控制、导航与仿真的学习和实践，并在浏览器中提供 G2 全身运动学、碰撞包络与 AprilTag 视觉定位交互实验。","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"}}</script>
+ <!--/meta-->
  <title>WangN2 · 机器人技术笔记</title>
  <meta name="description" content="记录机器人运动控制、导航与仿真的学习和实践。在浏览器里操作 G2 全身模型，理解关节角、正运动学和雅可比。">
- <link rel="stylesheet" href="./assets/site.css?v=20261017">
+ <link rel="stylesheet" href="./assets/site.css?v=20261023">
 </head>
 <body>
  <a class="skip" href="#lab">跳转到交互实验室</a>
@@ -20,9 +44,9 @@
    </div>
    <div class="hero-visual" aria-hidden="true">
     <div class="caption-head"><span>FORWARD KINEMATICS</span><b>01 / MODEL</b></div>
-    <div class="caption-flow"><span>q</span><i>→</i><span>机器人模型</span><i>→</i><span>x</span></div>
+    <div class="hero-figure"><img src="./assets/hero-g2.webp" alt="" width="620" height="1371" decoding="async" fetchpriority="high"></div>
     <p class="caption-axis">关节空间 <i>→</i> 末端空间</p>
-    <div class="caption-meta"><span><small>INPUT</small>关节角度</span><span><small>OUTPUT</small>末端位姿</span></div>
+    <div class="caption-meta"><span><small>INPUT</small>关节角度 q</span><span><small>OUTPUT</small>末端位姿 x</span></div>
    </div>
   </section>
   <section id="lab" class="section">

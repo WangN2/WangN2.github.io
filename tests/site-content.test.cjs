@@ -10,7 +10,11 @@ test('all HTML local resource and navigation links resolve within site',()=>{
  for(const file of walk(root).filter(f=>f.endsWith('.html'))){
   for(const [,url] of fs.readFileSync(file,'utf8').matchAll(/(?:href|src)="([^"]+)"/g)){
    if(/^(https?:|#)/.test(url))continue;
-   const target=path.resolve(path.dirname(file),url.split(/[?#]/)[0]);
+   const [clean]=url.split(/[?#]/);
+   // Root-absolute links are only valid on the GitHub Pages user site root, and the
+   // 404 page must keep working at unknown depths, so it is the only page allowed to use them.
+   const target=clean.startsWith('/')?path.join(root,clean):path.resolve(path.dirname(file),clean);
+   if(clean.startsWith('/'))assert.equal(path.basename(file),'404.html',path.relative(root,file)+' → '+url);
    assert.ok(target.startsWith(root+path.sep),url);assert.ok(fs.existsSync(target),path.relative(root,file)+' → '+url);
   }
  }
