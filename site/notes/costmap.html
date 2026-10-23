@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/costmap.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="代价地图：把「不能去」变成「尽量别去」 · WangN2">
+ <meta property="og:description" content="占用栅格只说有没有障碍，代价地图说的是离障碍多远值多少代价。附可拖动的膨胀与代价值实验。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/costmap.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="代价地图：把「不能去」变成「尽量别去」 · WangN2">
+ <meta name="twitter:description" content="占用栅格只说有没有障碍，代价地图说的是离障碍多远值多少代价。附可拖动的膨胀与代价值实验。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-23">
+ <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:section" content="导航规划">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"代价地图：把「不能去」变成「尽量别去」","description":"占用栅格只说有没有障碍，代价地图说的是离障碍多远值多少代价。附可拖动的膨胀与代价值实验。","url":"https://wangn2.github.io/notes/costmap.html","mainEntityOfPage":"https://wangn2.github.io/notes/costmap.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["代价地图","膨胀半径","导航规划"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <!--/meta-->
+ <title>代价地图：把「不能去」变成「尽量别去」 · WangN2</title>
+ <meta name="description" content="占用栅格只说有没有障碍，代价地图说的是离障碍多远值多少代价。附可拖动的膨胀与代价值实验。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/costmap/costmap.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 07 / 导航规划 · 代价地图</p>
+ <h1>代价地图：<br>把「不能去」<br>变成「尽量别去」</h1>
+ <p class="lede">占用栅格只会说「这一格有没有障碍」。可机器人有大小的，贴着墙走也是合法的——如果不给它一点偏好，规划器凭什么离墙远一点？</p>
+  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 5 分钟</span><span>导航规划</span></div>
+
+ <p>上一篇把机器人送到了工位。从这一篇开始处理「怎么在工位之间走」：先解决地图怎么表达「哪里危险」，再解决「怎么选路」。本篇只讲前者——<strong>代价地图</strong>。</p>
+ <p class="callout"><strong>范围。</strong>本文讲二维栅格代价地图的构造与读法，不涉及全局规划算法、局部控制器的收敛性，也不涉及多机协同。文中数值是演示参数，不是某台设备的实测定值。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#the-problem">1. 为什么机器人不能当点看</a></li>
+   <li><a href="#cell-states">2. 一个格子的四种身份</a></li>
+   <li><a href="#inflation">3. 膨胀：把距离变成代价</a></li>
+   <li><a href="#not-margin">4. 膨胀半径不是安全余量</a></li>
+   <li><a href="#2d-3d">5. 二维地图上的三维机器人</a></li>
+   <li><a href="#cost-not-constraint">6. 代价不是约束</a></li>
+   <li><a href="#debug">7. 调试时先看什么</a></li>
+   </ol>
+  </nav>
+ <h2 id="the-problem">1. 为什么机器人不能当点看</h2>
+ <p>二值占用栅格把世界分成两类：有障碍、没障碍。规划器如果直接在这张图上找最短路，结果会很诚实——<strong>贴着障碍走</strong>。因为贴着走确实最短。</p>
+ <p>问题在于机器人不是一个点。它的外轮廓会扫过一个区域，而这个区域在任何一张栅格图上都只是一个点。于是「路径合法」和「机器人能通过」变成了两件事。</p>
+ <p>代价地图的做法是把这件事变成一个连续量：<strong>每个格子除了「有没有障碍」，还带一个 0–254 的代价，表示「离障碍多近、有多不想待在这是」</strong>。规划器于是有了偏好：能绕就绕，绕不开才贴着走。</p>
+
+ <h2 id="cell-states">2. 一个格子的四种身份</h2>
+ <table class="coordinates"><thead><tr><th>状态</th><th>取值范围</th><th>含义</th></tr></thead><tbody>
+  <tr><td>自由 free</td><td>0</td><td>远离一切障碍，代价为零</td></tr>
+  <tr><td>膨胀 inflated</td><td>1 – 252</td><td>离障碍还有距离，代价随距离衰减；<strong>可以通过，但要付出代价</strong></td></tr>
+  <tr><td>内切 inscribed</td><td>253</td><td>离障碍近到机器人内切圆已经压上；<strong>中心不该出现在这里</strong></td></tr>
+  <tr><td>致命 lethal</td><td>254</td><td>障碍本身</td></tr>
+ </tbody></table>
+ <p>这四个数不是随便分的：253 和 254 是<strong>两个阈值</strong>，252 是「有代价但还有救」。规划器只用后两个数做硬判断，其余全靠代价算总账。</p>
+
+ <h2 id="inflation">3. 膨胀：把距离变成代价</h2>
+ <p>膨胀层对每个格子算它到最近障碍的距离 <code>d</code>，再套一条衰减曲线。实现里常见的形式是：</p>
+ <div class="formula">cost = 253 · exp( −k · (d − r_in) )　　（r_in &lt; d ≤ r_infl）<br>d ≤ r_in → 253　　d ≤ 0 → 254　　其他 → 0</div>
+ <p>其中 <code>r_in</code> 是内切半径、<code>r_infl</code> 是膨胀半径、<code>k</code> 控制衰减快慢。用指数而不是线性，是因为<strong>离得越近，代价该涨得越急</strong>——贴着墙的一格和离墙 5 cm 的一格，危险程度差得远，但和离墙 50 cm 与 55 cm 之间几乎没差别。</p>
+ <p>下面的实验把这张图直接画出来。三个滑块分别控制内切半径、膨胀半径和衰减，拖动蓝色圆点看它落在哪一层。</p>
+
+ <section class="cost-lab" aria-labelledby="cost-lab-title" data-ready="false">
+  <h3 id="cost-lab-title">膨胀与代价值</h3>
+  <p class="cost-hint">拖动蓝色圆圈（机器人内切圆）移动到不同位置，右侧读数会给出该格的代价与判定。<strong>红褐色环是内切区</strong>，中心落在那里就该判碰撞；再外面是渐变，越蓝代价越高。</p>
+  <div class="cost-controls">
+   <label>内切半径 <output data-out="inscribed">0.28 m</output><input type="range" data-in="inscribed" min="0.10" max="0.45" step="0.01" value="0.28" aria-label="内切半径"></label>
+   <label>膨胀半径 <output data-out="inflation">0.75 m</output><input type="range" data-in="inflation" min="0.15" max="1.20" step="0.01" value="0.75" aria-label="膨胀半径"></label>
+   <label>衰减系数 k <output data-out="decay">1.0</output><input type="range" data-in="decay" min="0.3" max="3.0" step="0.1" value="1.0" aria-label="代价衰减系数"></label>
+  </div>
+  <canvas data-canvas role="img" aria-label="二维代价地图：深色为障碍，红褐色为内切区，蓝色渐变为膨胀区，白色为自由空间。蓝色圆圈代表机器人，可拖动。">浏览器不支持画布。深色为障碍，红褐色为内切区，蓝色越深代价越高，白色为自由空间。</canvas>
+  <div class="cost-legend">
+   <span><i style="background:#1c2f42"></i>lethal 254</span>
+   <span><i style="background:#c2694f"></i>inscribed 253</span>
+   <span><i style="background:#a9c3db"></i>inflated 1–252</span>
+   <span><i style="background:#fff"></i>free 0</span>
+  </div>
+  <dl class="cost-readout">
+   <div><dt>到最近障碍</dt><dd data-read="dist">—</dd></div>
+   <div><dt>该格代价</dt><dd data-read="cost">—</dd></div>
+   <div><dt>判定</dt><dd data-read="verdict">—</dd></div>
+  </dl>
+  <p class="cost-status" data-status role="status">拖动圆圈查看不同位置的代价。</p>
+ </section>
+
+ <h2 id="not-margin">4. 膨胀半径不是安全余量</h2>
+ <p>最常见的误解是「膨胀半径 = 机器人半径 + 安全余量」。这句话对圆形机器人成立，对真实机器人不成立。</p>
+ <table class="coordinates"><thead><tr><th>你以为</th><th>实际</th></tr></thead><tbody>
+  <tr><td>机器人是个圆，半径固定</td><td>多数是矩形或 L 形 footprint，<strong>不同朝向的内切圆半径不同</strong></td></tr>
+  <tr><td>膨胀半径就是一个安全边距</td><td>它定义的是「代价从 253 衰减到 0 的范围」，是<strong>偏好场的宽度</strong>，不等于物理间隙</td></tr>
+  <tr><td>半径调大一点更安全</td><td>调太大，窄通道直接被判死，机器人原地不动；调太小，贴着墙走</td></tr>
+ </tbody></table>
+ <p>真正的硬约束是<strong>内切半径</strong>：中心进到这个范围，外轮廓必然已经压上。膨胀半径只影响「愿不愿意靠近」，不影响「能不能靠近」。</p>
+ <p>还有一个隐含假设：膨胀是在<strong>当前朝向</strong>下算的。如果规划器允许原地转向，那同一位置不同朝向的内切圆并不一样，用单一半径只能取保守值——这不是错误，是建模代价。</p>
+
+ <h2 id="2d-3d">5. 二维地图上的三维机器人</h2>
+ <p><a href="./collision-envelope.html">碰撞包络那篇</a>里的 22 个球是<strong>三维</strong>的：手臂举高、头身前倾，球心的 z 都不一样。代价地图是<strong>二维</strong>的：所有东西投影到地面。</p>
+ <p>投影会丢信息。最典型的两件事：</p>
+ <ul>
+  <li><strong>高处的障碍看不见。</strong>横在半空的线缆、悬空的工装，在二维地图上要么不存在，要么被错误地当成地面障碍。前者导致撞，后者导致明明能过却不敢过。</li>
+  <li><strong>高处的自己也不存在。</strong>手臂伸出去的那一截不进 footprint，地图上那一块仍是「自由空间」。机器人可能举着胳膊穿过一个它其实过不去的门洞。</li>
+ </ul>
+ <p>所以「碰撞球」和「costmap 膨胀」是两套东西，各管一层：前者描述三维几何，后者描述二维通行性。只做一套，另一边一定有洞。</p>
+
+ <h2 id="cost-not-constraint">6. 代价不是约束</h2>
+ <p>代价地图给的是<strong>偏好</strong>，不是禁令。规划器算的是总代价最小——如果绕路要多走 20 米，它完全可能选择穿过一片代价 200 的区域。</p>
+ <p>这带来一个验收上的差别：<strong>不要只看路径长度和是否到达，要看路径上的最大代价</strong>。一条平均代价很低、但有一小段冲进 253 区域的路径，仍然是失败的。</p>
+ <p>更隐蔽的是时效性。代价地图是滚动刷新的，如果障碍层停止更新，地图会一直显示旧世界——规划器照样给出「合理」的路径，只是那条路已经不通了。<strong>代价地图要有时间戳，规划前要检查它够不够新。</strong></p>
+
+ <h2 id="debug">7. 调试时先看什么</h2>
+ <ol>
+  <li><strong>footprint 对不对。</strong>把机器人开到墙边，看内切圆是不是刚好贴住。对不上，先修 URDF 或参数，别去调膨胀。</li>
+  <li><strong>内切半径与膨胀半径的关系。</strong>膨胀必须不小于内切，否则中间会出现「无代价但会撞」的缝隙——图上表现为障碍周围一圈白。</li>
+  <li><strong>滚动窗口边界。</strong>局部代价地图只覆盖机器人周围一小块；规划出界时，路径会在边界上「凭空拐弯」。</li>
+  <li><strong>时间戳与坐标系。</strong>代价地图挂在哪个 frame、多久更新一次，比调参数重要得多。</li>
+ </ol>
+
+ <p class="references">相关笔记：<a href="./collision-envelope.html">G2 的碰撞球</a>（三维几何那一层） · <a href="./swerve-base.html">全向底盘</a>（怎么按路径走） · <a href="./hand-eye.html">手眼标定</a>（定位从哪来）</p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./swerve-base.html"><span>← 上一篇</span><strong>全向底盘：四个舵轮怎么同时听话</strong></a>
+  <a class="next" href="./grasp-timeline.html"><span>下一篇 →</span><strong>一次完整抓取：从看到到夹住</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/costmap/costmap.js"></script>
+</body>
+</html>

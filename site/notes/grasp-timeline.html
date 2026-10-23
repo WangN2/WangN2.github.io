@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/grasp-timeline.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="一次完整抓取：从看到到夹住 · WangN2">
+ <meta property="og:description" content="把前七篇串成一次真实运行的八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/grasp-timeline.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="一次完整抓取：从看到到夹住 · WangN2">
+ <meta name="twitter:description" content="把前七篇串成一次真实运行的八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-23">
+ <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:section" content="系统复盘">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"一次完整抓取：从看到到夹住","description":"把前七篇串成一次真实运行的八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。","url":"https://wangn2.github.io/notes/grasp-timeline.html","mainEntityOfPage":"https://wangn2.github.io/notes/grasp-timeline.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["系统集成","时序","失败归因"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <!--/meta-->
+ <title>一次完整抓取：从看到到夹住 · WangN2</title>
+ <meta name="description" content="把前七篇串成一次真实运行的八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/timeline/timeline.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="./../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 08 / 系统复盘 · 全链路</p>
+ <h1>一次完整抓取：<br>从看到到夹住</h1>
+ <p class="lede">单篇讲的是模型，真实失败几乎都发生在衔接处。把前七篇串成一次运行，看每一步吃什么、产出什么、在哪一关卡住。</p>
+  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 4 分钟</span><span>系统复盘</span></div>
+
+ <p>这是系列的最后一篇。前面每一篇都在讲一个局部：运动学、碰撞、视觉、标定、抓取、底盘、代价地图。把它们拼起来跑一次，问题会从「某个算法不对」变成「两个都对，但接不上」。</p>
+ <p class="callout"><strong>这篇不介绍新算法。</strong>它是一张时序图：八步，每步的输入、输出、门限和失败处理，以及它对应前面哪一篇。用它来定位「这次为什么没抓住」比逐个模块排查快得多。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#why">1. 为什么要做全程复盘</a></li>
+   <li><a href="#eight-steps">2. 八步时序</a></li>
+   <li><a href="#lab">3. 逐步查看</a></li>
+   <li><a href="#seams">4. 四个衔接处的坑</a></li>
+   <li><a href="#failure">5. 失败怎么归类</a></li>
+   <li><a href="#logging">6. 一次运行该留下什么</a></li>
+   <li><a href="#close">7. 收尾：哪些是模型，哪些是测量</a></li>
+   </ol>
+  </nav>
+ <h2 id="why">1. 为什么要做全程复盘</h2>
+ <p>模块级测试通过、集成后失败，原因通常只有两类：<strong>单位或坐标系没对齐</strong>，或者<strong>时间上不是同一时刻的数据</strong>。这两类问题在单个模块内部永远测不出来，因为每个模块自己都是自洽的。</p>
+ <p>所以复盘要回答的不是「哪一步算错了」，而是「<strong>这一步用的数据，是不是它以为的那个东西</strong>」。</p>
+
+ <h2 id="eight-steps">2. 八步时序</h2>
+ <table class="coordinates"><thead><tr><th>步</th><th>动作</th><th>输入 → 输出</th><th>失败会怎样</th></tr></thead><tbody>
+  <tr><td>1</td><td>到位</td><td>工位坐标 → 停在视野内</td><td>停歪：观测失败或精度下降</td></tr>
+  <tr><td>2</td><td>观测</td><td>图像 → 标签在相机系的位姿</td><td>重试后放弃，不猜</td></tr>
+  <tr><td>3</td><td>搬进基座系</td><td>＋外参、＋末端位姿 → 盘位姿</td><td>外参过期：位姿系统性偏移</td></tr>
+  <tr><td>4</td><td>重算站位</td><td>＋示教文件 → 四个目标点</td><td>轴反向：直接拒绝</td></tr>
+  <tr><td>5</td><td>预检</td><td>目标序列 → 可达性结论</td><td>超限：不试跑</td></tr>
+  <tr><td>6</td><td>进孔</td><td>目标点 → 末端到位</td><td>超差：停</td></tr>
+  <tr><td>7</td><td>判定</td><td>主驱动角 → 是否吃上槽</td><td>落区外：停住，不硬来</td></tr>
+  <tr><td>8</td><td>记录</td><td>日志 → 可复盘的证据</td><td>记录不全：无法归因</td></tr>
+ </tbody></table>
+ <p>下面可以逐步点开看细节。每一步都标了它对应前面哪一篇——如果某一步反复失败，直接去看那一篇，而不是从头读一遍。</p>
+
+ <h2 id="lab">3. 逐步查看</h2>
+
+ <section class="tl-lab" aria-labelledby="tl-lab-title" data-ready="false">
+  <h3 id="tl-lab-title">八步时序</h3>
+  <div class="tl-steps" role="tablist" aria-label="抓取时序步骤"></div>
+  <div class="tl-detail" role="tabpanel" tabindex="0">
+   <p class="tl-detail-head"><span class="tl-no">1</span><strong data-detail-title>到位</strong><a class="tl-src" data-detail-src href="./swerve-base.html">对应笔记</a></p>
+   <dl class="tl-grid">
+    <div><dt>输入</dt><dd data-detail-in>—</dd></div>
+    <div><dt>输出</dt><dd data-detail-out>—</dd></div>
+    <div><dt>门限</dt><dd data-detail-gate>—</dd></div>
+    <div><dt>失败处理</dt><dd data-detail-fail>—</dd></div>
+   </dl>
+  </div>
+  <div class="tl-nav"><button type="button" data-prev>← 上一步</button><button type="button" data-next>下一步 →</button></div>
+ </section>
+
+ <h2 id="seams">4. 四个衔接处的坑</h2>
+ <table class="coordinates"><thead><tr><th>坑</th><th>症状</th><th>怎么查</th></tr></thead><tbody>
+  <tr><td><strong>时间戳不一致</strong></td><td>静止时很准，一动就偏；盘越动越明显</td><td>比对手眼观测与机器人位姿的时间戳，差值要小于运动导致的位移容差</td></tr>
+  <tr><td><strong>坐标系搞混</strong></td><td>平移看着对、方向随姿态旋转；换个姿态就错</td><td>把同一点在三个系里各打印一次，逐个比对</td></tr>
+  <tr><td><strong>外参过期</strong></td><td>某天开始系统性偏移，且偏得一致</td><td>查标定日期与最近一次机械改动的时间先后</td></tr>
+  <tr><td><strong>延迟与缓冲</strong></td><td>偶尔抓偏，重跑一次就好</td><td>看各环节延迟分布，而不是平均值</td></tr>
+ </tbody></table>
+ <p>四个坑里前三个都表现为「偏移」，但规律不同：时间戳问题是<strong>随速度变化</strong>，坐标系问题是<strong>随姿态变化</strong>，外参问题是<strong>随时间突变</strong>。会看这三条规律，排查能省掉一大半时间。</p>
+
+ <h2 id="failure">5. 失败怎么归类</h2>
+ <p>不归类就会陷入「再试一次」。四类失败的入口完全不同：</p>
+ <table class="coordinates"><thead><tr><th>类别</th><th>典型现象</th><th>先查</th></tr></thead><tbody>
+  <tr><td>观测失败</td><td>没解出标签，或重投影误差超限</td><td>光照、遮挡、标签尺寸、内参</td></tr>
+  <tr><td>几何失败</td><td>解出了盘位姿，但目标点不对</td><td>外参、示教文件的坐标系、轴方向</td></tr>
+  <tr><td>执行失败</td><td>目标点对，但末端没走到</td><td>可达性、限位、伺服误差、路径代价</td></tr>
+  <tr><td>判定失败</td><td>走到了，但没吃上槽</td><td>入槽深度、爪指状态、撑开区间</td></tr>
+ </tbody></table>
+ <p>这四类的比例本身就很有信息量：观测失败多，说明工位设计有问题；判定失败多，说明末端参数没调好；如果四类平均分布，多半是整条链路缺少标定。</p>
+
+ <h2 id="logging">6. 一次运行该留下什么</h2>
+ <p>能复盘的最小集合，比想象中少，但一条都不能缺：</p>
+ <ul>
+  <li><strong>时间戳</strong>：每个环节的输入时刻与输出时刻，不只是总耗时；</li>
+  <li><strong>坐标系名</strong>：每个位姿都要标清楚在哪个系里，别靠注释；</li>
+  <li><strong>参数版本</strong>：外参的标定日期、示教文件的版本、权重或门限的取值；</li>
+  <li><strong>拒绝理由</strong>：失败时给出的具体原因（轴反向、倾角超限、落区外），而不是一个布尔值。</li>
+ </ul>
+ <p>最后一条最容易被简化。程序里写 <code>return false</code> 很省事，但半年后你只知道「那次失败了」，不知道失败在哪一环。</p>
+
+ <h2 id="close">7. 收尾：哪些是模型，哪些是测量</h2>
+ <p>回头看这八篇，内容其实分成两类：</p>
+ <table class="coordinates"><thead><tr><th>靠推导</th><th>靠测量</th></tr></thead><tbody>
+  <tr><td>正运动学、雅可比、舵轮逆解</td><td>外参、示教站位、入槽深度</td></tr>
+  <tr><td>刚体变换链、代价场公式</td><td>门限值（10°、21 mm、±60 mm）</td></tr>
+  <tr><td>AX = XB 的推导</td><td>哪些姿态算「足够多样」</td></tr>
+ </tbody></table>
+ <p>左边可以写对，右边只能测对。这也解释了这个系列为什么反复强调边界：<strong>模型负责把问题变小，测量负责给出可信的数</strong>。两者缺一个，链条就是断的。</p>
+ <p>至于大模型——它在<a href="./tray-grasp.html">料盘那篇</a>的第 10–15 节里已经说清楚了：它是把「想法」变成「可运行代码」的加速器，不是把「代码」变成「可信结果」的替代品。后者只能靠测量，而测量正是这八篇里最枯燥、也最值钱的部分。</p>
+
+ <p class="references">全系列：<a href="./kinematics.html">01 正运动学</a> · <a href="./collision-envelope.html">02 碰撞包络</a> · <a href="./apriltag.html">03 AprilTag</a> · <a href="./hand-eye.html">04 手眼标定</a> · <a href="./tray-grasp.html">05 料盘抓取</a> · <a href="./swerve-base.html">06 全向底盘</a> · <a href="./costmap.html">07 代价地图</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./costmap.html"><span>← 上一篇</span><strong>代价地图：把「不能去」变成「尽量别去」</strong></a>
+  <a class="home" href="../index.html#notes"><span>系列索引</span><strong>全部技术笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/timeline/timeline.js"></script>
+</body>
+</html>
