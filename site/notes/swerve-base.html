@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/swerve-base.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="全向底盘：四个舵轮怎么同时听话 · WangN2">
+ <meta property="og:description" content="舵轮逆运动学只有三行公式，真正难的是等价角、180° 反转和转向限位。附可拖动的四轮俯视实验。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/swerve-base.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="全向底盘：四个舵轮怎么同时听话 · WangN2">
+ <meta name="twitter:description" content="舵轮逆运动学只有三行公式，真正难的是等价角、180° 反转和转向限位。附可拖动的四轮俯视实验。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-23">
+ <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:section" content="移动底盘">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"全向底盘：四个舵轮怎么同时听话","description":"舵轮逆运动学只有三行公式，真正难的是等价角、180° 反转和转向限位。附可拖动的四轮俯视实验。","url":"https://wangn2.github.io/notes/swerve-base.html","mainEntityOfPage":"https://wangn2.github.io/notes/swerve-base.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["舵轮","全向底盘","逆运动学"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <!--/meta-->
+ <title>全向底盘：四个舵轮怎么同时听话 · WangN2</title>
+ <meta name="description" content="舵轮逆运动学只有三行公式，真正难的是等价角、180° 反转和转向限位。附可拖动的四轮俯视实验。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/swerve/swerve.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 05 / 移动底盘 · 运动学</p>
+ <h1>全向底盘：<br>四个舵轮怎么同时听话</h1>
+ <p class="lede">舵轮的逆运动学只有三行公式。真正让它在实机上跑起来的，是另外三件事：每个角都有一堆等价写法、轮子可以反着转、以及转向机构有硬限位。</p>
+  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 6 分钟</span><span>移动底盘</span></div>
+
+ <p>前面的笔记都在讲上半身和视觉。这一篇补上底盘：一台人形机器人站在四个舵轮上，凭什么能横着走、还能原地转。内容对应站内 G2 实验室里「控制部位 → 全向底盘」那一组控件；把读数表和本文的公式对一遍，就知道那些数字是怎么来的。</p>
+ <p class="callout"><strong>范围。</strong>本文只讲理想无滑移的运动学映射：给定底盘速度指令，算出四个模块各自该转到哪、转多快。不涉及轮胎打滑、地面摩擦、电机动力学，也不涉及定位。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#why-swerve">1. 为什么用四个舵轮</a></li>
+   <li><a href="#module-velocity">2. 每个模块只负责自己那一点速度</a></li>
+   <li><a href="#wheel-speed">3. 从模块线速度到轮速</a></li>
+   <li><a href="#lab">4. 交互：拖动三个指令看四个轮子</a></li>
+   <li><a href="#equivalent-angles">5. 每个角都有一堆等价写法</a></li>
+   <li><a href="#steer-limit">6. 转向限位与零速保角</a></li>
+   <li><a href="#steer-then-roll">7. 为什么必须「先转向、再滚动」</a></li>
+   <li><a href="#acceptance">8. 验收该看什么</a></li>
+   </ol>
+  </nav>
+ <h2 id="why-swerve">1. 为什么用四个舵轮</h2>
+ <p>移动底盘有三条常见路线，差别在于「能不能横着走」：</p>
+ <table class="coordinates"><thead><tr><th>方案</th><th>自由度</th><th>代价</th></tr></thead><tbody>
+  <tr><td>差速（两轮 + 万向轮）</td><td>前后 + 转向，不能横移</td><td>结构最简单，但窄通道掉头很费劲</td></tr>
+  <tr><td>麦克纳姆轮</td><td>全向，可斜行</td><td>靠辊子侧向分力，效率低、振动大、对地面敏感</td></tr>
+  <tr><td>四个舵轮</td><td>全向，轮子始终纯滚动</td><td>每个模块多一套转向电机和编码器，控制变复杂</td></tr>
+ </tbody></table>
+ <p>舵轮贵在机构，赢在效率：每个轮子的朝向都可以主动对准运动方向，所以轮胎始终是纯滚动，没有侧滑损失。代价是每个模块都多了一个要解的量——<strong>转向角</strong>。</p>
+
+ <h2 id="module-velocity">2. 每个模块只负责自己那一点速度</h2>
+ <p>刚体上任意一点的速度，等于「质心平动」加上「绕质心转动的切向速度」：</p>
+ <div class="formula">v_i = v + ω × r_i</div>
+ <p>写成平面分量，设模块位置为 (x_i, y_i)、底盘指令为 (vx, vy, ω)：</p>
+ <div class="formula">v_ix = vx − ω · y_i<br>v_iy = vy + ω · x_i</div>
+ <p>这就是全部。四个模块互不知道对方在干什么，各自把属于自己那一点速度走出来，整台底盘的运动就对了。这条「局部正确 ⇒ 全局正确」的性质，是舵轮控制代码能写得这么短的原因。</p>
+
+ <h2 id="wheel-speed">3. 从模块线速度到轮速</h2>
+ <p>模块速度是一个二维矢量，舵轮只有两个执行量：转向角和滚动角速度。所以先取方向，再取大小：</p>
+ <div class="formula">θ_i = atan2(v_iy, v_ix)　　# 转向角<br>s_i = |v_i| / r　　　　　　 # 轮速（rad/s），r = 0.07 m</div>
+ <p>以本机参数为例：模块位于 (±0.23, ±0.218) m，轮半径 0.07 m。指令「沿 +X 前进 0.2 m/s」时，四个模块的转角都是 0°，轮速都是 0.2 / 0.07 ≈ 2.857 rad/s。</p>
+ <p>指令「原地以 0.3 rad/s 右转」时，四个模块的线速度方向各不相同，转角也不再是整齐的 0 / 90 / 180：</p>
+ <table class="coordinates"><thead><tr><th>模块位置 (m)</th><th>转向角</th><th>轮速 (rad/s)</th></tr></thead><tbody>
+  <tr><td>(0.23, 0.218)</td><td>−46.5°</td><td>−1.358</td></tr>
+  <tr><td>(−0.23, 0.218)</td><td>+46.5°</td><td>−1.358</td></tr>
+  <tr><td>(0.23, −0.218)</td><td>+46.5°</td><td>+1.358</td></tr>
+  <tr><td>(−0.23, −0.218)</td><td>−46.5°</td><td>+1.358</td></tr>
+ </tbody></table>
+ <p>注意右上角那个模块：按公式它是 <code>atan2(0.069, −0.065)</code> ≈ +133.5°，但表里写的是 −46.5°——正好差 180°，轮速也取了负。这不是笔误，是下一节的内容。</p>
+
+ <h2 id="lab">4. 交互：拖动三个指令看四个轮子</h2>
+ <p>下面把这条链路画出来。改变 vx、vy、ω，每个模块的转角与轮速会实时重算；灰色虚线是上一个姿态，用来演示「就近转向」。</p>
+
+ <section class="swerve-lab" aria-labelledby="swerve-lab-title" data-ready="false">
+  <h3 id="swerve-lab-title">四轮俯视</h3>
+  <p class="swerve-hint">蓝色箭头是模块该走的速度矢量，浅灰虚线是它上一次的朝向。拖动滑块，或直接在画布上按住拖。</p>
+  <div class="swerve-controls">
+   <label>前进 vx <output data-out="vx">0.20</output><input type="range" data-in="vx" min="-0.3" max="0.3" step="0.01" value="0.2" aria-label="前进速度"></label>
+   <label>横移 vy <output data-out="vy">0.00</output><input type="range" data-in="vy" min="-0.3" max="0.3" step="0.01" value="0" aria-label="横移速度"></label>
+   <label>自转 ω <output data-out="w">0.00</output><input type="range" data-in="w" min="-0.6" max="0.6" step="0.01" value="0" aria-label="自转角速度"></label>
+   <div class="swerve-mode" role="group" aria-label="等价角策略">
+    <button type="button" data-mode="flip" aria-pressed="true">允许 180° 反转</button>
+    <button type="button" data-mode="noflip" aria-pressed="false">不许反转</button>
+    <button type="button" data-reset>复位朝向</button>
+   </div>
+  </div>
+  <canvas data-canvas role="img" aria-label="全向底盘四轮俯视。四个舵轮模块位于矩形四角，每个模块画出一个转向角与速度箭头；中心是底盘速度指令。">浏览器不支持画布。四个模块分别朝各自的速度方向转向，轮速等于线速度除以轮半径。</canvas>
+  <table class="coordinates swerve-table"><thead><tr><th>模块</th><th>转向角</th><th>轮速 (rad/s)</th><th>状态</th></tr></thead><tbody data-body></tbody></table>
+  <p class="swerve-status" data-status role="status">理想无滑移：轮速 = 线速度 / 轮半径。</p>
+ </section>
+
+ <h2 id="equivalent-angles">5. 每个角都有一堆等价写法</h2>
+ <p>轮子是用来滚的，不是用来指的。同一个速度矢量，可以用两种方式实现：</p>
+ <div class="formula">(θ, s) 与 (θ + 180°, −s) 等价</div>
+ <p>指向反方向、倒着转，效果完全一样。这一步把「转角」的可行集合从一条射线变成了一条直线，于是每段都能挑一个离当前角度最近的解——这就是<strong>就近转向</strong>。</p>
+ <p>再看第 3 节那张表：右上模块本来该转到 +133.5°，但它的当前角度是 0°，转到 +133.5° 要转 133.5°；改成 −46.5° 加反转，只要转 46.5°。<strong>三个模块的转向时间因此大幅缩短，而底盘的运动会分毫不差。</strong></p>
+ <p>还有一层：等价角不只两个。因为转角是周期量，θ、θ±360° 描述同一个物理朝向，所以候选集合是 θ + k·180°（k 取整数）——奇数 k 对应反转，偶数 k 对应正转。实现里通常只需要在 k ∈ [−2, 2] 里找。</p>
+ <p>把上面那个按钮切到「不许反转」，再给一个接近 −X 方向的指令：你会看到模块被顶在限位上出不来。这说明一件事——<strong>反转不是优化技巧，而是全向运动能在有限转角内成立的必要条件。</strong></p>
+
+ <h2 id="steer-limit">6. 转向限位与零速保角</h2>
+ <p>真实模块的转向盘不能无限转：线束会拧断、限位开关会撞。本机的限制是 ±2.97 rad（约 ±170°），略小于 ±180°。这个「略小于」很关键：</p>
+ <ul>
+  <li>因为不到 180°，正前方和正后方之间没有直通路径，必须靠反转绕过；</li>
+  <li>如果指令方向正好在 ±180° 附近，正转候选会被限位筛掉，只剩反转候选；</li>
+  <li>所以候选筛选必须在「挑最近的」之前做——先删掉越界的，再排序。顺序反了，就会挑出一个转不过去的角。</li>
+ </ul>
+ <p>另一个容易被忽略的边界是零速。速度为零时，<code>atan2(0, 0)</code> 没有意义，模块应该<strong>保持上一次的角度</strong>，而不是回零。回零会让底盘在每次停车时都抖一下，而且下一次起步要重新转过去，白白多花时间。</p>
+
+ <h2 id="steer-then-roll">7. 为什么必须「先转向、再滚动」</h2>
+ <p>理论上转角与轮速可以同时给，但实机上不行：轮子一旦滚起来，再让转向盘去拧它，就变成了带着侧向载荷转向——轮胎在旁边擦地，编码器读数也跟着乱。所以控制顺序是：先把四个模块转到目标角、确认到位，再给轮速。</p>
+ <p>这条约束反过来影响上游：如果每一段都要停下来转向，那路径规划就该尽量少切换方向；反过来，如果底盘要连续走一条曲线，模块的转角就得连续跟随曲线的切线方向，而不是近似成几段直线。</p>
+
+ <h2 id="acceptance">8. 验收该看什么</h2>
+ <p>这套代码最容易写错的地方，恰恰也是最容易「看起来对」的地方。有三条经验：</p>
+ <ul>
+  <li><strong>验收条件写模块速度矢量，不要写转角。</strong>等价角有无数个，「轮子朝哪边」不是对错的标准；把 <code>s·cosθ</code> 和 <code>s·sinθ</code> 还原成模块线速度，再去和 <code>v + ω×r</code> 比，才是。</li>
+  <li><strong>用三个典型指令做回归：纯前进、纯横移、纯自转。</strong>它们分别覆盖「同向」「同向反号」「切向」三种模式，任何一个错了都会立刻暴露。</li>
+  <li><strong>不要断言具体角度。</strong>两个候选一样近时，选哪个取决于遍历顺序——实现细节不该被写进验收条件，否则重构一次就红一片。</li>
+ </ul>
+ <p>站内的 G2 实验室用的就是这套判定：给定底盘指令后，把四个模块的「转角 × 轮速」还原成速度，再和期望值逐项比对，误差要在 1e-10 量级内。这也解释了为什么那段代码里一个角度常量都没出现。</p>
+
+ <p class="references">相关笔记：<a href="./kinematics.html">从关节角到末端运动</a>（同样的局部线性化思路） · <a href="./collision-envelope.html">G2 的碰撞球</a>（底盘轮廓与安全包络）</p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./tray-grasp.html"><span>← 上一篇</span><strong>料盘抓取：离线示教、在线重算与大模型协作</strong></a>
+  <a class="home" href="../index.html#notes"><span>系列索引</span><strong>全部技术笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/swerve/swerve.js"></script>
+</body>
+</html>
