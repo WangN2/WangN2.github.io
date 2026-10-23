@@ -37,7 +37,7 @@
  <p class="eyebrow">NOTE 04 / 视觉标定 · 外参</p>
  <h1>手眼标定：<br>把「相机看到的」<br>搬进机器人坐标系</h1>
  <p class="lede">标签给你「标签相对相机」，运动学给你「末端相对基座」。这两个数都很准，但拼不到一起——中间缺一个数：相机到底装在机器人的哪个位置。</p>
-  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 5 分钟</span><span>视觉标定</span></div>
+  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 5 分钟</span><span>视觉标定</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>上一篇解决了「看到标签，怎么算出它在相机里的六自由度位姿」。这一篇解决下一个问题：<strong>相机在机器人身上，它看到的位姿怎么搬进机器人的坐标系</strong>。搬不过去，视觉就只是一堆好看的坐标。</p>
  <p class="callout"><strong>范围。</strong>本文只讲外参的求法与验证，不涉及相机内参标定（焦距、畸变）、时间同步和多相机融合。内参是另一个独立问题，搞混了两者的误差会互相甩锅。</p>

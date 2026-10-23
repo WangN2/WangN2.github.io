@@ -99,3 +99,17 @@ test('core layout rules are still present in the stylesheet',()=>{
   assert.ok(css.includes(sel),'stylesheet lost '+sel);
  assert.equal((css.match(/\{/g)||[]).length,(css.match(/\}/g)||[]).length,'unbalanced braces in site.css');
 });
+
+test('series index lists every note in order and every note links back',()=>{
+ const series=fs.readFileSync(path.join(root,'series/index.html'),'utf8');
+ const listed=[...series.matchAll(/<a class="article-card" href="\.\.\/(notes\/[^"]+)">[\s\S]*?article-index" aria-hidden="true">(\d+)</g)]
+  .map(m=>({file:m[1],n:m[2]}));
+ const notes=walk(root).filter(f=>/\/notes\/[^/]+\.html$/.test(f)).map(f=>'notes/'+path.basename(f));
+ assert.equal(listed.length,notes.length,'系列页必须列全所有笔记');
+ assert.deepEqual(listed.map(x=>x.n),['01','02','03','04','05','06','07','08'],'编号必须连续');
+ assert.deepEqual(new Set(listed.map(x=>x.file)),new Set(notes),'系列页与 notes/ 目录必须一致');
+ for(const f of fs.readdirSync(path.join(root,'notes')).filter(f=>f.endsWith('.html'))){
+  const s=fs.readFileSync(path.join(root,'notes',f),'utf8');
+  assert.match(s,/<a class="series-link" href="\.\.\/series\/">全系列/ ,f+' 缺少回到系列页的链接');
+ }
+});

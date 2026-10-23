@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/series/index.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="website">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="八篇，一条链路 · WangN2 机器人技术笔记">
+ <meta property="og:description" content="从一个关节的转动，到一次完整的抓取。八篇笔记的阅读顺序、前置关系，以及按问题直达的入口。">
+ <meta property="og:url" content="https://wangn2.github.io/series/index.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="八篇，一条链路 · WangN2 机器人技术笔记">
+ <meta name="twitter:description" content="从一个关节的转动，到一次完整的抓取。八篇笔记的阅读顺序、前置关系，以及按问题直达的入口。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"八篇，一条链路","description":"从一个关节的转动，到一次完整的抓取。八篇笔记的阅读顺序、前置关系，以及按问题直达的入口。","url":"https://wangn2.github.io/series/index.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"}}</script>
+ <!--/meta-->
+ <title>八篇，一条链路 · WangN2 机器人技术笔记</title>
+ <meta name="description" content="从一个关节的转动，到一次完整的抓取。八篇笔记的阅读顺序、前置关系，以及按问题直达的入口。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/series/series.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap series">
+ <p class="eyebrow">SERIES / 从看到到抓住</p>
+ <h1>八篇，一条链路</h1>
+ <p class="lede">从一个关节的转动，到一次完整的抓取。这八篇不是八个话题，是同一台机器人的八个环节——按顺序读是一条链路，按问题读是八个入口。</p>
+ <p class="callout"><strong>怎么用这个页面。</strong>想系统地学，从 01 顺着读到 08；只想解决眼前的问题，跳到下面「按问题找」。每篇都标了前置，缺哪块先去补哪块，不用从头读。</p>
+
+ <h2 id="chain">一条链路</h2>
+ <nav class="chain" aria-label="八篇笔记的阅读顺序">
+  <a href="../notes/kinematics.html"><b>01</b>正运动学</a><i>→</i>
+  <a href="../notes/collision-envelope.html"><b>02</b>碰撞包络</a><i>→</i>
+  <a href="../notes/apriltag.html"><b>03</b>AprilTag</a><i>→</i>
+  <a href="../notes/hand-eye.html"><b>04</b>手眼标定</a><i>→</i>
+  <a href="../notes/tray-grasp.html"><b>05</b>料盘抓取</a><i>→</i>
+  <a href="../notes/swerve-base.html"><b>06</b>全向底盘</a><i>→</i>
+  <a href="../notes/costmap.html"><b>07</b>代价地图</a><i>→</i>
+  <a href="../notes/grasp-timeline.html"><b>08</b>时序复盘</a>
+ </nav>
+ <p class="references">合计约 51 分钟。含交互实验的 5 篇可以边看边拖。</p>
+
+ <h2 id="all">八篇</h2>
+
+ <div class="stage">
+  <div class="stage-head"><span>STAGE 1</span><h3>看懂机器人</h3></div>
+  <a class="article-card" href="../notes/kinematics.html"><div class="article-index" aria-hidden="true">01</div><div><p class="eyebrow">运动学入门 · 交互实验</p><h3>从关节角到末端运动：正运动学与雅可比</h3><p>为什么转动一个关节，夹爪会沿弧线移动？雅可比又是怎么把「微小转角」换算成「末端位移」的。</p><p class="card-note"><b>前置</b> 无 · 约 5 分钟</p></div><span class="card-arrow" aria-hidden="true">↗</span></a>
+  <a class="article-card" href="../notes/collision-envelope.html"><div class="article-index" aria-hidden="true">02</div><div><p class="eyebrow">导航避障 · 交互实验</p><h3>G2 的碰撞球：有距离，为什么还停住？</h3><p>机器人检查的不是外壳，是更大的几何包络。22 个球、底盘膨胀 16 cm 与 5 cm 的差别。</p><p class="card-note"><b>前置</b> 无（看完 01 更顺） · 约 3 分钟</p></div><span class="card-arrow" aria-hidden="true">↗</span></a>
+ </div>
+
+ <div class="stage">
+  <div class="stage-head"><span>STAGE 2</span><h3>让它看见</h3></div>
+  <a class="article-card" href="../notes/apriltag.html"><div class="article-index" aria-hidden="true">03</div><div><p class="eyebrow">视觉定位 · 交互实验</p><h3>AprilTag 视觉定位详解</h3><p>从 tag36h11 编码、汉明纠错到 PnP 六自由度位姿：一张图怎么变成一个位置和朝向。</p><p class="card-note"><b>前置</b> 高中几何 · 约 6 分钟</p></div><span class="card-arrow" aria-hidden="true">↗</span></a>
+  <a class="article-card" href="../notes/hand-eye.html"><div class="article-index" aria-hidden="true">04</div><div><p class="eyebrow">视觉标定 · 交互实验</p><h3>手眼标定：把「相机看到的」搬进机器人坐标系</h3><p>AX = XB 不是在背公式，是「两条路径必须到同一个地方」。错了 2 cm，末端就偏，而且时准时不准。</p><p class="card-note"><b>前置</b> 01、03 · 约 5 分钟</p></div><span class="card-arrow" aria-hidden="true">↗</span></a>
+ </div>
+
+ <div class="stage">
+  <div class="stage-head"><span>STAGE 3</span><h3>让它动手</h3></div>
+  <a class="article-card" href="../notes/tray-grasp.html"><div class="article-index" aria-hidden="true">05</div><div><p class="eyebrow">视觉伺服 · 工程实践</p><h3>料盘抓取：离线示教、在线重算与大模型协作</h3><p>盘挪了位置为什么不用重教？只跟随 5 个自由度、锁住滚转，以及大模型该站在哪一格。</p><p class="card-note"><b>前置</b> 01、03、04 · 约 17 分钟</p></div><span class="card-arrow" aria-hidden="true">↗</span></a>
+  <a class="article-card" href="../notes/swerve-base.html"><div class="article-index" aria-hidden="true">06</div><div><p class="eyebrow">移动底盘 · 交互实验</p><h3>全向底盘：四个舵轮怎么同时听话</h3><p>逆运动学只有三行，难的是等价角、180° 反转和转向限位——环环相扣的工程细节。</p><p class="card-note"><b>前置</b> 无 · 约 6 分钟</p></div><span class="card-arrow" aria-hidden="true">↗</span></a>
+ </div>
+
+ <div class="stage">
+  <div class="stage-head"><span>STAGE 4</span><h3>让它跑通</h3></div>
+  <a class="article-card" href="../notes/costmap.html"><div class="article-index" aria-hidden="true">07</div><div><p class="eyebrow">导航规划 · 交互实验</p><h3>代价地图：把「不能去」变成「尽量别去」</h3><p>占用栅格只说有没有障碍。给它一层代价，规划器才知道该离墙多远——但膨胀半径不是安全余量。</p><p class="card-note"><b>前置</b> 02 · 约 5 分钟</p></div><span class="card-arrow" aria-hidden="true">↗</span></a>
+  <a class="article-card" href="../notes/grasp-timeline.html"><div class="article-index" aria-hidden="true">08</div><div><p class="eyebrow">系统复盘 · 全链路</p><h3>一次完整抓取：从看到到夹住</h3><p>把前七篇串成八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。</p><p class="card-note"><b>前置</b> 全部 · 约 4 分钟</p></div><span class="card-arrow" aria-hidden="true">↗</span></a>
+ </div>
+
+ <h2 id="by-question">按问题找</h2>
+ <table class="coordinates"><thead><tr><th>你的问题</th><th>去哪篇</th></tr></thead><tbody>
+  <tr><td>拖一个关节，末端为什么走弧线？</td><td><a href="../notes/kinematics.html">01 正运动学</a></td></tr>
+  <tr><td>明明还有距离，机器人为什么停了？</td><td><a href="../notes/collision-envelope.html">02 碰撞包络</a></td></tr>
+  <tr><td>相机看到标签，怎么变成 6DoF 位姿？</td><td><a href="../notes/apriltag.html">03 AprilTag</a></td></tr>
+  <tr><td>相机在机器人身上，坐标怎么搬过去？</td><td><a href="../notes/hand-eye.html">04 手眼标定</a></td></tr>
+  <tr><td>料盘挪了位置，程序要不要重教？</td><td><a href="../notes/tray-grasp.html">05 料盘抓取</a></td></tr>
+  <tr><td>四个轮子凭什么能横着走？</td><td><a href="../notes/swerve-base.html">06 全向底盘</a></td></tr>
+  <tr><td>规划出来的路为什么贴着墙？</td><td><a href="../notes/costmap.html">07 代价地图</a></td></tr>
+  <tr><td>这次为什么没抓住？</td><td><a href="../notes/grasp-timeline.html">08 时序复盘</a></td></tr>
+ </tbody></table>
+
+ <h2 id="howto">三种读法</h2>
+ <ul>
+  <li><strong>系统读（约 51 分钟）。</strong>从 01 顺着读到 08，中间不要跳——08 里有一半内容是在总结前七篇。<br>建议分两次：01–04 一次，05–08 一次。</li>
+  <li><strong>按问题读（5–15 分钟）。</strong>用上面的表直接跳。注意看每篇开头的「范围」和结尾的「相关笔记」，能补上缺的上下文。</li>
+  <li><strong>只读结论（8 分钟）。</strong>直接看 08 的八步时序和四个衔接坑，再回头看感兴趣的那篇。</li>
+ </ul>
+
+ <h2 id="whats-not">这里没有什么</h2>
+ <p>这套笔记只覆盖一台机器人的一条链路，以下内容不在范围内：真正的视觉识别训练、SLAM 建图、多机调度、动力学与力控设计、以及任何真实产线的验收数据。<strong>文中所有数值要么来自公开资料，要么是演示参数</strong>——前者会标来源，后者会在正文里说清楚。</p>
+ <p>另外，站内所有交互都不会连接真机。它们用于理解原理，不能作为任何设备的安全依据。</p>
+
+ <p class="references">相关入口：<a href="../guide/">机器人本体选型</a>（18 台本体的对比） · <a href="../index.html#lab">G2 交互实验室</a>（不用读文章，直接拖） · <a href="../licenses/attribution.html">来源与许可</a></p>
+</main>
+<footer class="site-footer wrap"><div><strong>WangN2 · 机器人技术笔记</strong><p>把抽象的原理，变成可探索的实验。</p></div><div><a href="https://github.com/WangN2">GitHub</a><a href="../index.html">返回主页</a></div></footer>
+</body>
+</html>

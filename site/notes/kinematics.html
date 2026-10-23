@@ -32,7 +32,7 @@
 <main class="wrap"><article class="article">
  <p class="eyebrow">NOTE 01 / 运动学入门</p><h1>从关节角到末端运动：<br>正运动学与雅可比</h1>
  <p class="lede">想象你伸手拿杯子：你想的是「手往前一点」，而机器人需要知道「每个关节应该转多少」。这篇笔记把两者之间的桥梁拆开讲清楚。</p>
-  <div class="article-meta"><span><time datetime="2026-10-09">2026-10-09</time></span><span>约 5 分钟</span><span>运动学入门</span></div>
+  <div class="article-meta"><span><time datetime="2026-10-09">2026-10-09</time></span><span>约 5 分钟</span><span>运动学入门</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>可以同时打开 <a href="../demos/g2/index.html">G2 全身运动实验室</a>。先选「左臂」，再选「双臂屈肘观察」。模型从公开的机器人资产导出，网页负责计算姿态和绘制；它不是在远程运行 Isaac Sim，也不会发送真机指令。</p>
    <nav class="toc" aria-labelledby="toc-title">
@@ -74,6 +74,7 @@
  <p>要让真机抓取物体，还需要标定、感知、带碰撞检查的轨迹规划、动力学与伺服控制，以及速度、力和急停等安全约束。漂亮的网页动作只是理解这些系统的第一步。</p>
  <p class="callout">模型依据 AgiBot / AgiBot World 的 GenieSimAssets，经网格简化与运动学导出。模型及改编数据采用 CC BY-NC-SA 4.0。详见<a href="../licenses/attribution.html">来源与许可</a>。</p>
  <a class="primary-link back" href="../index.html#lab">回到实验室，动手试试 →</a>
+ <p class="references">相关笔记：<a href="./collision-envelope.html">G2 的碰撞球</a>（几何包络那一层） · <a href="./hand-eye.html">手眼标定</a>（正运动学是它的 A 段） · <a href="./tray-grasp.html">料盘抓取</a>（末端目标怎么变成关节角）</p>
   <nav class="note-nav" aria-label="笔记导航">
    <a class="home" href="../index.html#notes"><span>系列索引</span><strong>全部技术笔记</strong></a>
    <a class="next" href="./collision-envelope.html"><span>下一篇 →</span><strong>G2 的碰撞球：有距离，为什么还停住？</strong></a>

@@ -51,6 +51,7 @@ python3 tests/browser_timeline.py --base-url http://127.0.0.1:8765
 ## 维护入口
 
 - site/index.html：主页；site/notes/kinematics.html、collision-envelope.html、apriltag.html、hand-eye.html、tray-grasp.html、swerve-base.html、costmap.html、grasp-timeline.html：技术笔记。
+- site/series/index.html：系列总览页（链路图 + 八篇分组卡片 + 按问题找 + 三种读法）。新增笔记时必须同时更新这里：`tests/site-meta.test.cjs` 会校验系列页列出的编号连续、与 `site/notes/` 目录一一对应，并要求每篇都有回到 `../series/` 的链接。
 - site/guide/index.html：机器人本体选型指南。数据由 WangN2/robot_guide 的 CSV 生成后内嵌进页面（`<script id="guide-data">`），页面不请求任何外部资源。更新流程：改来源仓库的 CSV → 重新生成 JSON → 替换内嵌块。`tests/browser_guide.py` 会校验默认权重下首行必须是 4.60、改权重后排名必须变、恢复后必须回到 4.60。
 - site/assets/guide/models/：13 张产品缩略图（200 px WebP），版权归原厂商，仅用于型号识别，页脚有署名说明。
 - site/notes/tray-grasp.html：料盘抓取的离线示教、在线重算与大模型协作（第 10–15 节讲分工、参数搜索、自然语言示教与排障边界，只写方法，不含量化结论）。交互部分在 site/assets/tray/ 下，是纯 Canvas 2D 的刚体搬运示意，不连接真机、不做碰撞检查；文中数值是示意值，改稿时不要写成站点验证过的结论。

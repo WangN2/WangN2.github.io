@@ -37,7 +37,7 @@
  <p class="eyebrow">NOTE 06 / 移动底盘 · 运动学</p>
  <h1>全向底盘：<br>四个舵轮怎么同时听话</h1>
  <p class="lede">舵轮的逆运动学只有三行公式。真正让它在实机上跑起来的，是另外三件事：每个角都有一堆等价写法、轮子可以反着转、以及转向机构有硬限位。</p>
-  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 6 分钟</span><span>移动底盘</span></div>
+  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 6 分钟</span><span>移动底盘</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>前面的笔记都在讲上半身和视觉。这一篇补上底盘：一台人形机器人站在四个舵轮上，凭什么能横着走、还能原地转。内容对应站内 G2 实验室里「控制部位 → 全向底盘」那一组控件；把读数表和本文的公式对一遍，就知道那些数字是怎么来的。</p>
  <p class="callout"><strong>范围。</strong>本文只讲理想无滑移的运动学映射：给定底盘速度指令，算出四个模块各自该转到哪、转多快。不涉及轮胎打滑、地面摩擦、电机动力学，也不涉及定位。</p>
