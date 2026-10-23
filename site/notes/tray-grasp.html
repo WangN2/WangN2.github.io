@@ -11,7 +11,7 @@
  <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
  <meta property="og:locale" content="zh_CN">
  <meta property="og:title" content="料盘抓取：离线示教、在线重算与大模型协作 · WangN2">
- <meta property="og:description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型到底该站在这条链路的哪一格。">
+ <meta property="og:description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型该站在哪一格——附 Code as Policies、OPRO、π0.5 等工作的对照。">
  <meta property="og:url" content="https://wangn2.github.io/notes/tray-grasp.html">
  <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="og:image:type" content="image/png">
@@ -20,15 +20,15 @@
  <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
  <meta name="twitter:card" content="summary_large_image">
  <meta name="twitter:title" content="料盘抓取：离线示教、在线重算与大模型协作 · WangN2">
- <meta name="twitter:description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型到底该站在这条链路的哪一格。">
+ <meta name="twitter:description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型该站在哪一格——附 Code as Policies、OPRO、π0.5 等工作的对照。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-23">
  <meta property="article:modified_time" content="2026-10-23">
  <meta property="article:section" content="视觉伺服">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"料盘抓取：离线示教、在线重算与大模型协作","description":"示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型到底该站在这条链路的哪一格。","url":"https://wangn2.github.io/notes/tray-grasp.html","mainEntityOfPage":"https://wangn2.github.io/notes/tray-grasp.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["离线示教","坐标系变换","视觉伺服","夹取"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"料盘抓取：离线示教、在线重算与大模型协作","description":"示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型该站在哪一格——附 Code as Policies、OPRO、π0.5 等工作的对照。","url":"https://wangn2.github.io/notes/tray-grasp.html","mainEntityOfPage":"https://wangn2.github.io/notes/tray-grasp.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["离线示教","坐标系变换","视觉伺服","夹取"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
  <!--/meta-->
  <title>料盘抓取：离线示教、在线重算与大模型协作 · WangN2</title>
- <meta name="description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型到底该站在这条链路的哪一格。">
+ <meta name="description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型该站在哪一格——附 Code as Policies、OPRO、π0.5 等工作的对照。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/tray/tray-grasp.css">
 </head>
@@ -37,7 +37,7 @@
  <p class="eyebrow">NOTE 04 / 视觉伺服 · 工程实践</p>
  <h1>料盘抓取：<br>离线示教、在线重算<br>与大模型协作</h1>
  <p class="lede">示教文件把「工具相对料盘」的位姿冻结在盘系里；每次运行时只用本次观测到的盘位姿，把它搬运到基座系。所以盘怎么挪，程序都不用重教——只要它还看得见、还在臂展内。后半部分换一个角度：这条链路本身是怎么被搭出来、调出来和排障的，大模型在其中站在哪一格。</p>
-  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 13 分钟</span><span>视觉伺服</span></div>
+  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 17 分钟</span><span>视觉伺服</span></div>
 
  <p>这篇笔记分两部分。前半部分记录一套已经跑通的流程：相机看到料盘上的标签，求出料盘本次的位姿，再把四个预先教好的站位搬到基座系执行。重点不在标签怎么识别（那是<a href="./apriltag.html">上一篇</a>的事），而在「教什么、跟什么、不跟什么」这三个决定。后半部分从第 10 节开始，讲这套东西是怎么被写出来、被标定、被排障的——以及在哪些环节上，大模型是真的有用。</p>
  <p class="callout"><strong>先划清界限。</strong>本文描述的是真机流程的方法与约束，不是本站在浏览器里能复现的能力。站内的 G2 实验室只是运动学演示，不连接真机、不做碰撞检查，也不要把它当作本文任何数值的来源。</p>
@@ -60,6 +60,7 @@
    <li><a href="#natural-language-teach">13. 自然语言 → 示教动作：能走多远</a></li>
    <li><a href="#log-triage">14. 日志排障：最快的用法也最危险</a></li>
    <li><a href="#when-not-to-use">15. 什么时候不该用它</a></li>
+   <li><a href="#landscape">16. 四条路线，和本文站的位置</a></li>
    <li><a href="#numbers">附录：数值参考</a></li>
    </ol>
   </nav>
@@ -191,6 +192,7 @@
  </tbody></table>
  <p>一句话概括分工：<strong>模型产出候选，物理世界产出证据。</strong></p>
  <p>有一个我们常用的做法值得单独说：同一个问题同时给两个模型，比较它们的分歧点。两边都同意的，多半只是常识；只有一边提到的，往往是从你的描述里过度外推；<strong>真正需要人判断的地方，恰好落在两家说法不一致的位置</strong>。分歧不是噪声，是信息。</p>
+ <p>这张分工表在文献里有旁证。2025 年的一项基准研究把 PDDL 问题直接交给当时最强的推理模型，结果是：简单任务能给出正确计划，但在需要精确资源管理、状态跟踪和严格约束满足的复杂场景里仍然吃力，作者的结论是让语言模型和经典规划器组合，而不是取代它（<a href="https://arxiv.org/abs/2507.23589">Goebel &amp; Zips, 2025</a>）。这和第 2 节的选择是同一个道理：<strong>把不确定的部分交给不确定的东西，把确定的部分写死。</strong></p>
 
  <h2 id="llm-code">11. 写代码：让经验变成可重跑的资产</h2>
  <p>这条链路上最适合交给模型的是「把一段经验固化成确定性代码」这类活：生成示教文件的脚本、轴对齐与细分的规划器、以及把现场踩过的坑写成断言的测试。</p>
@@ -201,11 +203,14 @@
   <li><strong>让模型写测试，但别让它定义验收标准。</strong>测试是「这条经验有没有被守住」的检查点；验收标准是「什么算做成了」，那是人的判断。</li>
  </ul>
  <p>模型在这个环节的典型失败模式很固定：它会编造你代码库里不存在的字段和接口，也会默认你的机器人是一台理想串联臂——不知道有闭链、有联动、有软限位。所以顺序永远是：离线数据或仿真上先跑通，再上机。</p>
+ <p>这条路线的可行性早被验证过。<a href="https://arxiv.org/abs/2209.07753">Code as Policies</a> 在 2022 年就演示了让语言模型按自然语言写机器人策略代码，并在多台真机上运行；它的前提也正是前面第一条——<strong>先给它一套稳定的、带语义的控制 API 和少量示例</strong>，它才能重新组合出可执行的程序。换句话说，模型的上限很大程度来自你给的接口，而不是模型本身。</p>
 
  <h2 id="parameter-search">12. 参数搜索：模型提候选，人签字</h2>
  <p>「自动化标定」这个词容易被误解。这条链路里能自动化的是<strong>记录、复算和对比</strong>，不能自动化的是<strong>判断</strong>。所以我们的用法是把四样东西一起交给模型：当前参数、硬约束、失败现象、验收指标；让它回三样东西：下一组候选、为什么这么改、以及「如果这组是对的，哪个读数会变」。</p>
  <p>最后那一条最容易被忽略，却最有用：<strong>先想清楚什么现象能证伪这组参数，再去跑。</strong>没有这一条，跑完只会得到「好像还行」。</p>
  <p>用本文的真实案例说明分工。前面提到过，<code>groove</code> 的入槽深度从证据值外推的轴向位置一路收到 ±60 mm，起因是翻面后的 −65 mm 太深、爪指越过了槽位。这个环节里：模型能做的是，根据「越过槽位」这个现象提出「把 groove 往回退、其余三站不动」的候选；而判定「确实太深」的，只能是现场那一次看和摸。</p>
+ <p>这件事在文献里被形式化过。<a href="https://arxiv.org/abs/2309.03409">OPRO</a> 把「模型提候选 → 评估器打分 → 分数连同历史解回填提示词」做成一个通用的优化循环，在提示词优化等任务上超过了人工设计的结果。但它成立的前提很硬：<strong>目标函数必须能被自动、稳定地评估。</strong> 而这条链路里最难的一步恰恰是这个——「有没有吃上槽」不是一个可以随时读取的浮点数，它是一次撑开、一次停住、一次人工确认。</p>
+ <p>标定本身倒是正在被基础模型改造。像 <a href="https://arxiv.org/abs/2509.08813">Calib3R</a> 这样的工作已经做到不用标定板、把手眼标定和米制三维重建放进同一个优化里，不到十张图就收敛，优于有板和没板的传统方法。但要说清楚它替代的是什么：<strong>它替代的是外参标定，不是工艺参数。</strong> 相机和机器人之间的变换可以自动求；爪尖该进孔多深、绕孔的滚转能不能跟，仍然得靠试。这两件事经常被混在一起说，是「自动化标定」这个说法最容易被高估的地方。</p>
  <p>还有两条纪律：</p>
  <ul>
   <li><strong>一次只改一个参数。</strong>同时改两个，你无法归因，省下的时间会在下一次排障时加倍还回来。</li>
@@ -221,11 +226,13 @@
  </tbody></table>
  <p>原因不复杂：模型不知道你的工装长什么样，也不知道地面反光会让检测飘多少。它能可靠处理的，是<strong>几何关系明确、后果可预先检查</strong>的那一层。</p>
  <p>所以正确的接法是：模型输出<strong>站位与约束</strong>，由已经验证过的执行器把它解释成伺服序列。也就是它改的是 <code>T_tray_end</code> 这一层，而不是关节指令那一层。这正好是第 4 节那条链路的边界——重算链路只接受「盘系里的站位」，所有几何安全都建立在这条轴线上。模型可以提议新的站位，但不能绕过门限。</p>
+ <p>另一条路线是把这一步也交给模型，直接学「观测 → 动作」。<a href="https://arxiv.org/abs/2504.16054">π0.5</a> 这类视觉-语言-动作模型已经能在完全陌生的家里完成长时序的整理任务，靠的是多机器人数据、网络数据和语义子任务标注的协同训练；一篇覆盖 80 多个 VLA 模型的综述（<a href="https://arxiv.org/abs/2505.04769">Sapkota 等</a>）把这些工作归成了五类主题。这条路的前提是<strong>大规模异构数据</strong>——多台机器人、多场景、长时间采集。一条产线、一台机器、几十次试跑，语料量级和这个前提差了不止一个数量级。所以我们选的是那条窄路：模型只碰站位和约束，不碰伺服。</p>
 
  <h2 id="log-triage">14. 日志排障：最快的用法也最危险</h2>
  <p>好用的形态是「一次给全」：时间线、错误码、关键数值窗口、当时的参数，一起贴过去，让它给一份<strong>假设清单</strong>，而不是一个结论。</p>
  <p>危险在于它太顺着你。你写「是不是标定错了」，它就会认真论证标定错了——这不是模型坏，是它在完成你的请求。这类回答读起来特别顺，因为它在替你已有的判断找理由。</p>
  <p>所以有一条纪律：<strong>每个假设都要配一个能证伪的观测量。先加观测，再改参数。</strong>顺序反过来，你得到的是一条解释得通、但从没被验证过的故事。下一次同样的故障出现，你还是不知道原因。</p>
+ <p>排障确实是语言模型的强项，而且有实证。<a href="https://arxiv.org/abs/2410.09084">SysDiagBench</a> 收了 2500 多条真实机器人系统的工单，让模型做根因分析；结论是一个用 QLoRA 微调的 7B 模型在诊断准确率上超过了当时的 GPT-4，成本还低得多，并且经过人类专家评审验证。这条结果有两个含义：<strong>一是排障适合交给模型；二是你沉淀下来的故障语料，比换一个更大的模型更值钱。</strong></p>
 
  <h2 id="when-not-to-use">15. 什么时候不该用它</h2>
  <ul>
@@ -235,6 +242,18 @@
   <li><strong>你已经知道答案、只想找认同的时候。</strong>这种用法得不到信息，只得到安慰。</li>
  </ul>
  <p>一句总结：<strong>大模型压缩的是「从想法到可运行代码」的距离，不是「从代码到可信结果」的距离。</strong> 后者只能靠测量。这条链路里真正值钱的，是那四张表：门限、站位、运行记录、边界——它们都是量出来的，不是生成出来的。</p>
+
+ <h2 id="landscape">16. 四条路线，和本文站的位置</h2>
+ <p>把这些做法放回研究地图，会看清一件事：它们不是同一条路上的快慢之争，而是四条各有前提的路线，另外还有一个正在快速变化的标定方向。</p>
+ <table class="coordinates"><thead><tr><th>路线</th><th>代表工作</th><th>它解决什么</th><th>成立的前提</th><th>本文对应</th></tr></thead><tbody>
+  <tr><td>代码即策略</td><td><a href="https://arxiv.org/abs/2209.07753">Code as Policies</a></td><td>把意图写成可执行的策略代码</td><td>稳定的控制 API 与少量示例</td><td>第 11 节</td></tr>
+  <tr><td>模型当优化器</td><td><a href="https://arxiv.org/abs/2309.03409">OPRO</a></td><td>无梯度的参数搜索</td><td>目标函数能被自动、稳定地评估</td><td>第 12 节的一半</td></tr>
+  <tr><td>端到端 VLA</td><td><a href="https://arxiv.org/abs/2504.16054">π0.5</a></td><td>观测直接映射到动作</td><td>大规模异构数据与算力</td><td>不走这条</td></tr>
+  <tr><td>诊断助手</td><td><a href="https://arxiv.org/abs/2410.09084">SysDiagBench</a></td><td>从工单和日志做根因分析</td><td>有真实故障语料可微调</td><td>第 14 节</td></tr>
+  <tr><td>自动标定</td><td><a href="https://arxiv.org/abs/2509.08813">Calib3R</a></td><td>手眼外参与米制重建</td><td>有图像与机器人位姿</td><td>替代不了工艺参数</td></tr>
+ </tbody></table>
+ <p>四条路线有个共同规律：<strong>越是靠近「可验证」的一端，模型越可靠；越是靠近「物理后果」的一端，越需要人和确定性程序兜底。</strong> 这也解释了前半部分为什么要把那条变换链写得那么死——它是模型可以安全介入的前提，而不是它的替代品。</p>
+ <p>如果今天就要在这条链路上引入大模型，性价比最高的顺序是 <strong>排障 → 写代码与测试 → 参数候选 → 动作生成</strong>。前两项失败了可以回滚，后两项不一定。</p>
 
  <h2 id="numbers">附录：数值参考</h2>
  <p>示教文件里四站的轴向坐标与末端平移（A 面）。<code>tip_x</code> 是爪尖在盘系里沿孔轴的位置，负值在盘外，正值在孔内：</p>
@@ -247,6 +266,7 @@
  <p>y、z 恒定（0.0106 / −0.0587），只有 x 变化——这正说明四站严格共线于孔轴。</p>
  <p>B 面（盘翻面）不是一份新的证据，而是 A 面记录绕盘系 Y 轴转 180°：真正的旋转，x 和 z 同时反号，z 变成 +0.0587，其余同构。这类文件必须标明「物理配准尚未验证」，否则很容易被当成验证过的数据用。</p>
 
+ <p class="references">参考文献：<a href="https://arxiv.org/abs/2209.07753">Code as Policies（arXiv:2209.07753）</a> · <a href="https://arxiv.org/abs/2309.03409">Large Language Models as Optimizers / OPRO（arXiv:2309.03409）</a> · <a href="https://arxiv.org/abs/2410.09084">Diagnosing Robotics Systems Issues with LLMs / SysDiagBench（arXiv:2410.09084）</a> · <a href="https://arxiv.org/abs/2504.16054">π0.5（arXiv:2504.16054）</a> · <a href="https://arxiv.org/abs/2505.04769">VLA 综述（arXiv:2505.04769）</a> · <a href="https://arxiv.org/abs/2507.23589">Can LLM-Reasoning Models Replace Classical Planning?（arXiv:2507.23589）</a> · <a href="https://arxiv.org/abs/2509.08813">Calib3R（arXiv:2509.08813）</a></p>
  <p class="references">相关笔记：<a href="./apriltag.html">AprilTag 视觉定位详解</a>（盘位姿从哪来） · <a href="./kinematics.html">从关节角到末端运动</a>（末端目标怎么变成关节角）</p>
 
  <nav class="note-nav" aria-label="笔记导航">
