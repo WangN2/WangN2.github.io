@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'../site');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
-const notes=['notes/kinematics.html','notes/collision-envelope.html','notes/apriltag.html','notes/tray-grasp.html','notes/swerve-base.html'];
+const notes=['notes/kinematics.html','notes/collision-envelope.html','notes/apriltag.html','notes/tray-grasp.html','notes/swerve-base.html','notes/hand-eye.html'];
 function body(s){return s.slice(s.indexOf('<article'),s.indexOf('</article>'));}
 function plain(html){return html.replace(/<script[\s\S]*?<\/script>/g,' ').replace(/<[^>]+>/g,' ');}
 function minutes(html){
@@ -64,7 +64,7 @@ test('notes form one series with consistent previous and next links',()=>{
 test('homepage cards advertise the same dates and reading times as the notes',()=>{
  const home=read('index.html');
  const cards=[...home.matchAll(/<a class="article-card" href="\.\/(notes\/[^"]+)">([\s\S]*?)<\/a>/g)];
- assert.equal(cards.length,5);
+ assert.equal(cards.length,6);
  for(const [,href,markup] of cards){
   const time=markup.match(/<time datetime="(\d{4}-\d{2}-\d{2})">/);
   assert.ok(time,href+' card needs a date');

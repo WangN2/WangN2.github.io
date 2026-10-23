@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/hand-eye.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="手眼标定：把相机看到的位姿搬进机器人坐标系 · WangN2">
+ <meta property="og:description" content="AX = XB 不是一条要背的公式，而是「两条路径必须到同一个地方」。附可拖动的路径一致性实验。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/hand-eye.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="手眼标定：把相机看到的位姿搬进机器人坐标系 · WangN2">
+ <meta name="twitter:description" content="AX = XB 不是一条要背的公式，而是「两条路径必须到同一个地方」。附可拖动的路径一致性实验。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-23">
+ <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:section" content="视觉标定">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"手眼标定：把相机看到的位姿搬进机器人坐标系","description":"AX = XB 不是一条要背的公式，而是「两条路径必须到同一个地方」。附可拖动的路径一致性实验。","url":"https://wangn2.github.io/notes/hand-eye.html","mainEntityOfPage":"https://wangn2.github.io/notes/hand-eye.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["手眼标定","外参","AX=XB"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <!--/meta-->
+ <title>手眼标定：把相机看到的位姿搬进机器人坐标系 · WangN2</title>
+ <meta name="description" content="AX = XB 不是一条要背的公式，而是「两条路径必须到同一个地方」。附可拖动的路径一致性实验。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/handeye/handeye.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 04 / 视觉标定 · 外参</p>
+ <h1>手眼标定：<br>把「相机看到的」<br>搬进机器人坐标系</h1>
+ <p class="lede">标签给你「标签相对相机」，运动学给你「末端相对基座」。这两个数都很准，但拼不到一起——中间缺一个数：相机到底装在机器人的哪个位置。</p>
+  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 5 分钟</span><span>视觉标定</span></div>
+
+ <p>上一篇解决了「看到标签，怎么算出它在相机里的六自由度位姿」。这一篇解决下一个问题：<strong>相机在机器人身上，它看到的位姿怎么搬进机器人的坐标系</strong>。搬不过去，视觉就只是一堆好看的坐标。</p>
+ <p class="callout"><strong>范围。</strong>本文只讲外参的求法与验证，不涉及相机内参标定（焦距、畸变）、时间同步和多相机融合。内参是另一个独立问题，搞混了两者的误差会互相甩锅。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#the-problem">1. 你需要的那个数，谁也不给你</a></li>
+   <li><a href="#two-mounts">2. 两种装法，两套方程</a></li>
+   <li><a href="#ax-xb">3. AX = XB：两条路径必须到同一个地方</a></li>
+   <li><a href="#solve">4. 先解旋转，再解平移</a></li>
+   <li><a href="#degeneracy">5. 为什么「多转几个角度」不是废话</a></li>
+   <li><a href="#verify">6. 怎么验证标定结果</a></li>
+   <li><a href="#chain">7. 它在这条链路上的位置</a></li>
+   </ol>
+  </nav>
+ <h2 id="the-problem">1. 你需要的那个数，谁也不给你</h2>
+ <p>把三个已知量摆出来：</p>
+ <div class="formula">T_cam_tag　相机看到标签　← 视觉（PnP）<br>T_base_ee　末端在基座系　← 机器人正运动学<br>T_base_cam　相机在基座系　← ？</div>
+ <p>要把标签位置告诉机器人，需要的是 <code>T_base_tag</code>，它由三者串起来：</p>
+ <div class="formula">T_base_tag = T_base_cam · T_cam_tag</div>
+ <p>而相机装在末端上时，还要多一层：</p>
+ <div class="formula">T_base_tag = T_base_ee · T_ee_cam · T_cam_tag</div>
+ <p>中间那个 <code>T_ee_cam</code>（或相机固定时的 <code>T_base_cam</code>）就是<strong>外参</strong>。它不会从任何一次观测里自动掉出来——你把它猜错 2 厘米，末端就会偏 2 厘米，而且偏移方向会随着机器人姿态旋转，表现为「时准时不准」。</p>
+
+ <h2 id="two-mounts">2. 两种装法，两套方程</h2>
+ <table class="coordinates"><thead><tr><th>装法</th><th>未知量</th><th>特点</th></tr></thead><tbody>
+  <tr><td><strong>眼在手上</strong><br>相机装在末端，跟着动</td><td><code>T_ee_cam</code></td><td>可以凑近看细节，视野随臂移动；标定要在多个姿态下进行，相机自身的运动被算进方程里</td></tr>
+  <tr><td><strong>眼在手外</strong><br>相机固定在工作单元上</td><td><code>T_base_cam</code></td><td>视野固定、不随臂动，适合盯住整个工装；但臂挡视线、标定范围受视野限制</td></tr>
+ </tbody></table>
+ <p>两者的方程形式一样，区别只在于「哪一头是已知的」。下面的推导按眼在手上写，眼在手外只需把末端换成基座。</p>
+
+ <h2 id="ax-xb">3. AX = XB：两条路径必须到同一个地方</h2>
+ <p>让机器人从姿态 1 动到姿态 2。记：</p>
+ <ul>
+  <li><code>A</code>：末端从姿态 1 到姿态 2 的运动（<code>T_ee1_ee2</code>），由运动学直接读出；</li>
+  <li><code>B</code>：相机看到的标签运动（<code>T_cam1_tag · T_cam2_tag⁻¹</code>），由视觉给出；</li>
+  <li><code>X</code>：相机相对末端的固定变换，也就是要求的外参。</li>
+ </ul>
+ <p>因为相机是刚接在末端上的，这两段运动在「末端坐标系」里描述的是同一件事，于是：</p>
+ <div class="formula">A · X = X · B</div>
+ <p>换成一句话：<strong>从末端走到相机，可以经 A 再经 X，也可以经 X 再经 B，两条路必须落到同一个地方。</strong> 这就是全部推导。剩下的工作，是拿足够多的姿态把 X 解出来，并验证它在每个姿态上都成立。</p>
+ <p>下面的实验把这两条路径画出来。拖动滑块改变机器人的姿态，或者给标定结果加一点误差，看两条路径从哪里开始分叉。</p>
+
+ <section class="eye-lab" aria-labelledby="eye-lab-title" data-ready="false">
+  <h3 id="eye-lab-title">路径一致性</h3>
+  <p class="eye-hint">蓝线是「末端 → 相机」这条路，橙线是「标签 → 相机」这条路。标定正确时，两条线终点重合；加一点误差，终点就分开——<strong>分开的距离，就是这个姿态下的残差</strong>。</p>
+  <div class="eye-controls">
+   <label>末端 X <output data-out="ax">0.42</output><input type="range" data-in="ax" min="0.25" max="0.60" step="0.01" value="0.42" aria-label="末端 X 位置"></label>
+   <label>末端 Y <output data-out="ay">0.05</output><input type="range" data-in="ay" min="-0.15" max="0.30" step="0.01" value="0.05" aria-label="末端 Y 位置"></label>
+   <label>末端转角 <output data-out="ath">20°</output><input type="range" data-in="ath" min="-160" max="160" step="1" value="20" aria-label="末端转角"></label>
+   <label>标定角度误差 <output data-out="dth">0°</output><input type="range" data-in="dth" min="0" max="10" step="0.5" value="0" aria-label="标定角度误差"></label>
+   <label>标定平移误差 <output data-out="dt">0 mm</output><input type="range" data-in="dt" min="0" max="40" step="1" value="0" aria-label="标定平移误差"></label>
+  </div>
+  <canvas data-canvas role="img" aria-label="俯视示意：基座、末端、相机与标签。蓝线经末端与标定结果到达相机，橙线经标签与视觉观测到达相机。标定有误差时两条线的终点分开，距离即残差。">浏览器不支持画布。标定正确时两条路径的终点重合；有误差时分开，距离即残差。</canvas>
+  <dl class="eye-readout">
+   <div><dt>终点偏差</dt><dd data-read="gap">0.0 mm / 0.0°</dd></div>
+   <div><dt>相机观测（B）</dt><dd data-read="b">—</dd></div>
+   <div><dt>判定</dt><dd data-read="verdict">一致</dd></div>
+  </dl>
+  <p class="eye-status" data-status role="status">两条路径终点重合，说明这组姿态下外参自洽。</p>
+ </section>
+
+ <h2 id="solve">4. 先解旋转，再解平移</h2>
+ <p><code>A·X = X·B</code> 里的旋转和平移是<strong>解耦</strong>的。把两边写成旋转加平移：</p>
+ <div class="formula">R_A · R_X = R_X · R_B　　　　（只含旋转）<br>R_A · t_X + t_A = R_X · t_B + t_X　（只含平移）</div>
+ <p>第一式与平移无关，所以先解 <code>R_X</code>：每一组姿态给一个约束，多组姿态联立即可。常见做法有两种——</p>
+ <table class="coordinates"><thead><tr><th>思路</th><th>怎么做</th><th>注意</th></tr></thead><tbody>
+  <tr><td>两两配对（经典两段式）</td><td>两组姿态的旋转轴叉乘，得到旋转的约束，再用 SVD 求最近的正交阵</td><td>姿态对之间旋转轴越「不平行」，约束越强</td></tr>
+  <tr><td>整体最小二乘 / 非线性优化</td><td>把所有姿态一起丢进优化器，直接最小化残差</td><td>实现简单，但需要好的初值，否则容易掉进局部极小</td></tr>
+ </tbody></table>
+ <p>拿到 <code>R_X</code> 之后代回第二式，它就变成了关于 <code>t_X</code> 的线性最小二乘——这一步没有迭代，也没有初值问题。</p>
+
+ <h2 id="degeneracy">5. 为什么「多转几个角度」不是废话</h2>
+ <p>手眼标定最容易失败的三个原因，全都跟「姿态够不够丰富」有关：</p>
+ <table class="coordinates"><thead><tr><th>退化情况</th><th>为什么解不出来</th></tr></thead><tbody>
+  <tr><td>只做平移，不转</td><td>旋转方程退化为 0 = 0，<code>R_X</code> 完全不受约束</td></tr>
+  <tr><td>所有姿态绕同一根轴转</td><td>绕轴的分量有解，垂直方向无解——解出的 <code>R_X</code> 只在部分方向上可信</td></tr>
+  <tr><td>角度变化太小</td><td>数学上有解，但噪声被放大，条件数很差；表面看误差不大，换到工作空间边缘就暴露</td></tr>
+ </tbody></table>
+ <p>实践上的做法：<strong>让每个姿态的旋转轴都不同</strong>，并让旋转轴之间的夹角尽量大。取姿态时不要只在一个平面里转，也不要只转手腕——把大臂、躯干一起用上，姿态差异才够大。</p>
+
+ <h2 id="verify">6. 怎么验证标定结果</h2>
+ <p>解出来不等于对了。三个逐级加强的检查：</p>
+ <ol>
+  <li><strong>残差。</strong>把解出的 X 代回每一组姿态，看 <code>A·X</code> 与 <code>X·B</code> 差多少。残差大说明数据或模型有问题；残差小但不均匀，说明某些姿态在拖后腿。</li>
+  <li><strong>闭环。</strong>用标定结果把标签位姿搬回基座系，再让机器人末端去碰同一个点。这一步会把内参、外参、运动学误差一起暴露出来——它测的不是标定，是<strong>整条链路</strong>。</li>
+  <li><strong>换位重测。</strong>把标签挪到工作空间另一个位置再测一次。如果误差随位置线性增长，多半是尺度或内参；如果误差随姿态变化，多半是外参。</li>
+ </ol>
+ <p>还有一条容易被忽略：<strong>标定结果要写下日期和姿态集合。</strong>换了相机支架、撞过一次、拧过一颗螺丝，这组数就不作数了——但它不会自己失效，只会在某次抓取失败时才提醒你。</p>
+
+ <h2 id="chain">7. 它在这条链路上的位置</h2>
+ <p>这几篇笔记是串起来的，外参正好是其中一环：</p>
+ <table class="coordinates"><thead><tr><th>环节</th><th>由谁提供</th><th>用在哪里</th></tr></thead><tbody>
+  <tr><td>末端相对基座</td><td><a href="./kinematics.html">正运动学</a></td><td>标定的 A 段、抓取时的末端位姿</td></tr>
+  <tr><td>标签相对相机</td><td><a href="./apriltag.html">AprilTag 与 PnP</a></td><td>标定的 B 段、运行时的盘位姿</td></tr>
+  <tr><td><strong>相机相对机器人</strong></td><td><strong>本文（外参）</strong></td><td>把上面两个接起来</td></tr>
+  <tr><td>盘位姿到抓取点</td><td><a href="./tray-grasp.html">料盘抓取的重算链</a></td><td>每次运行的四站目标</td></tr>
+  <tr><td>底盘怎么走过去</td><td><a href="./swerve-base.html">全向底盘运动学</a></td><td>把机器人送到工位</td></tr>
+ </tbody></table>
+ <p>反过来读这张表也成立：<strong>下游任何一环出问题，都要先确认外参没过期。</strong> 「时准时不准」这种症状，优先怀疑外参，而不是先调算法。</p>
+
+ <p class="references">相关笔记：<a href="./apriltag.html">AprilTag 视觉定位详解</a>（B 段从哪来） · <a href="./tray-grasp.html">料盘抓取</a>（外参用在哪） · <a href="./kinematics.html">从关节角到末端运动</a>（A 段从哪来）</p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./apriltag.html"><span>← 上一篇</span><strong>AprilTag 视觉定位详解</strong></a>
+  <a class="next" href="./tray-grasp.html"><span>下一篇 →</span><strong>料盘抓取：离线示教、在线重算与大模型协作</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/handeye/handeye.js"></script>
+</body>
+</html>
