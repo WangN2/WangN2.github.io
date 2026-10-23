@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/guide/index.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="website">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="机器人本体选型：一份可复算的对比表 · WangN2">
+ <meta property="og:description" content="18 台移动双臂本体的六维加权对比。硬门槛先于总分，权重可以自己调，每个参数都标了证据等级。">
+ <meta property="og:url" content="https://wangn2.github.io/guide/index.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="机器人本体选型：一份可复算的对比表 · WangN2">
+ <meta name="twitter:description" content="18 台移动双臂本体的六维加权对比。硬门槛先于总分，权重可以自己调，每个参数都标了证据等级。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:modified_time" content="2026-10-23">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"机器人本体选型：一份可复算的对比表","description":"18 台移动双臂本体的六维加权对比，硬门槛先于总分，权重可调，参数标注证据等级。","url":"https://wangn2.github.io/guide/index.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"}}</script>
+ <!--/meta-->
+ <title>机器人本体选型：一份可复算的对比表 · WangN2</title>
+ <meta name="description" content="18 台移动双臂本体的六维加权对比。硬门槛先于总分，权重可以自己调，每个参数都标了证据等级。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/guide/guide.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a><a href="./index.html" aria-current="page">选型</a></nav></header>
+<main class="wrap guide">
+ <p class="eyebrow">GUIDE / 本体选型 · 持续更新</p>
+ <h1>机器人本体选型：<br>一份可复算的对比表</h1>
+ <p class="lede">18 台移动双臂本体，6 个评分维度。硬门槛先于总分，权重可以自己调，每个参数都标了它来自哪一级证据。</p>
+ <div class="article-meta"><span>数据截至 <time datetime="2026-09-17">2026-09-17</time></span><span>18 台本体</span><span>6 维加权</span></div>
+
+ <p class="callout"><strong>这份表是拿来用的，不是拿来排名的。</strong>它记录的是「在当前场景下，哪些本体值得进入 POC、哪些还缺资料」。分数只用于通过门槛之后的排序；技术分再高，采购不到、接口不开放、本地没有售后，也进不了短名单。</p>
+
+ <h2 id="gate">1. 先定门槛，再谈总分</h2>
+ <p>当前场景是工厂里的线束布线、捋线和端子插接。这类工位有个共同要求：<strong>机身朝向不能变，但要能横向贴着工装走</strong>。所以第一轮筛选不看得分，只看一件事——能不能保持朝向纯横移。</p>
+ <table class="coordinates"><thead><tr><th>门槛判定</th><th>含义</th><th>后果</th></tr></thead><tbody>
+  <tr><td><span class="chip chip-ok">通过</span></td><td>官方资料或实测确认可保持朝向横移</td><td>进入加权排序</td></tr>
+  <tr><td><span class="chip chip-wait">通过待实测</span></td><td>文档写明支持，但没有现场数据</td><td>进入排序，POC 首先验这一项</td></tr>
+  <tr><td><span class="chip chip-wait">待确认</span></td><td>轮系或底盘能力未公开</td><td>补齐资料前不进短名单</td></tr>
+  <tr><td><span class="chip chip-no">不通过</span></td><td>差速底盘，无法保持朝向横移</td><td>分数再高也不参与候选</td></tr>
+ </tbody></table>
+ <p>双足是个特殊类别。它理论上可以侧步，但<strong>侧步不等于连续、低扰动、可重复的工业蟹行</strong>。在没有侧移节拍、上身扰动和末端误差数据之前，双足一律标记为「待实测」，不能按舵轮底盘算通过。这条规则会直接改变排名——后面你会看到。</p>
+
+ <h2 id="model">2. 六个维度，一套权重</h2>
+ <p>每个维度按 0–5 分打分：5 是能力明确且参数完整，3 是理论可用但工程数据不全，0 是能力缺失。综合分就是加权和：</p>
+ <div class="formula">综合分 = Σ（权重ᵢ × 分项得分ᵢ）　　（权重按场景给定，默认和为 100%）</div>
+ <table class="coordinates" data-weights-table><thead><tr><th>维度</th><th>默认权重</th><th>看什么</th></tr></thead><tbody></tbody></table>
+ <p>权重不是常数，它取决于你的工位。做插接，力控和精度该更重；做客制化柔性工位，接口开放该更重。所以下面这个排名是可以被你改写的。</p>
+
+ <h2 id="lab">3. 交互：改权重，看排名怎么变</h2>
+ <p>拖动六个维度的权重，排名会实时重算。<strong>试试把「力控与柔顺」拉满</strong>——那些靠底盘和接口拿分的型号会立刻掉下去，因为它们在力传感这一项上本来就只给了 3 分。</p>
+
+ <section class="guide-lab" aria-labelledby="lab-title" data-ready="false">
+  <div class="guide-lab-head">
+   <h3 id="lab-title">权重实验</h3>
+   <button type="button" class="guide-reset" data-reset>恢复默认权重</button>
+  </div>
+  <div class="guide-sliders" data-sliders></div>
+  <div class="guide-rank">
+   <div class="guide-rank-head"><span>排名（前 8）</span><span class="guide-hint">条形长度 = 综合分 / 5</span></div>
+   <ol class="guide-rank-list" data-rank></ol>
+  </div>
+  <p class="guide-note" data-note role="status">默认权重下，前三名是 4.60 / 4.10 / 3.93。</p>
+ </section>
+
+ <h2 id="table">4. 参数主表</h2>
+ <p>点表头排序，或在搜索框里输型号、厂商。空着的格子代表<strong>参数没有公开来源</strong>，不是「没有这项能力」——这两件事在选型里差别很大。</p>
+ <div class="guide-tools">
+  <label class="guide-search">搜索<input type="search" data-search placeholder="型号或厂商，例如 Optimus、逐际" aria-label="搜索型号或厂商"></label>
+  <div class="guide-filters" role="group" aria-label="按横移门槛筛选">
+   <button type="button" data-filter="all" aria-pressed="true">全部 18</button>
+   <button type="button" data-filter="pass" aria-pressed="false">已通过门槛</button>
+   <button type="button" data-filter="pending" aria-pressed="false">待确认</button>
+  </div>
+ </div>
+ <div class="guide-table-wrap">
+  <table class="guide-table">
+   <thead><tr>
+    <th scope="col" class="col-img"><span class="sr-only">图示</span></th>
+    <th scope="col" data-sort="model">本体</th>
+    <th scope="col" data-sort="vendor">厂商</th>
+    <th scope="col" data-sort="category" class="col-opt">类别</th>
+    <th scope="col" data-sort="dof" class="num col-opt">自由度</th>
+    <th scope="col" data-sort="base" class="col-base">底盘</th>
+    <th scope="col" data-sort="gate">横移</th>
+    <th scope="col" data-sort="payload" class="num">单臂负载</th>
+    <th scope="col" data-sort="reach" class="num col-opt">臂展</th>
+    <th scope="col" data-sort="repeat" class="num col-opt">重复精度</th>
+    <th scope="col" data-sort="total" class="num">综合分</th>
+   </tr></thead>
+   <tbody data-tbody></tbody>
+  </table>
+ </div>
+ <p class="guide-foot">共 <span data-count>18</span> 台。分数会随上方权重变化；「—」表示该参数没有公开证据。</p>
+
+ <h2 id="evidence">5. 证据分级：空着的地方就是风险</h2>
+ <p>同一个参数，来自合同、来自现场实测、来自产品彩页，可信度完全不同。所以主表里的每个值都带一个来源等级：</p>
+ <table class="coordinates"><thead><tr><th>等级</th><th>来源</th><th>怎么用</th></tr></thead><tbody>
+  <tr><td>1</td><td>合同保证值、双方签字的技术协议</td><td>可以直接写进验收</td></tr>
+  <tr><td>2</td><td>我方现场 POC 或验收实测</td><td>可以直接写进验收</td></tr>
+  <tr><td>3</td><td>厂商正式用户手册、数据表</td><td>可作为设计输入，需 POC 复核</td></tr>
+  <tr><td>4</td><td>官网、研发论文</td><td>只作线索</td></tr>
+  <tr><td>5</td><td>销售书面回复</td><td>必须落到书面</td></tr>
+  <tr><td>6</td><td>第三方报道、口头信息</td><td>不能作为依据</td></tr>
+ </tbody></table>
+ <p>两条纪律：<strong>参数冲突时不覆盖旧值</strong>，而是并列保留不同口径并登记问题；<strong>缺参数不等于缺能力</strong>，但缺参数一定意味着风险转移到了 POC 上。</p>
+
+ <h2 id="poc">6. POC 最低要求</h2>
+ <p>打分只能筛掉明显不合适的，剩下的必须用下面这几条来淘汰：</p>
+ <ul>
+  <li>保持身体朝向不变，连续横移 2 米；</li>
+  <li>横移停止后完成视觉重定位和线束抓取；</li>
+  <li>双臂协同捋线，能检测卡滞并柔顺停止；</li>
+  <li>按真实工装连续运行 500–1000 次；</li>
+  <li>记录节拍、一次成功率、损伤率、人工介入、故障恢复和连续运行时长。</li>
+ </ul>
+ <p>最后一条比前四条都重要。没有这些数字，「通过了 POC」只是一句话。</p>
+
+ <h2 id="limits">7. 这个指南的边界</h2>
+ <ul>
+  <li><strong>只覆盖公开可查的参数。</strong>很多关键指标（移动后 TCP 精度、连续运行故障率、整机 IP、真实负载口径）厂商不公开，表里只能空着。</li>
+  <li><strong>分数是场景相关的。</strong>换一个工位，权重和门槛都会变，这张表就需要重算——这正是把权重做成可调的原因。</li>
+  <li><strong>不构成采购建议。</strong>技术分高不代表能买到、能集成、能长期维护。</li>
+  <li><strong>不追新。</strong>新发布的产品先按「待实测」处理，等有可核对的资料再进表。</li>
+ </ul>
+
+ <p class="references">数据与勘误：来源仓库 <a href="https://github.com/WangN2/robot_guide">WangN2/robot_guide</a>，参数逐条记录来源、版本与日期。产品图示来自厂商官网、产品彩页或公开报道，<strong>版权归原厂商或原发布方</strong>，此处仅用于型号识别，不代表尺寸比例或最终交付配置。</p>
+
+ <p class="references">延伸阅读：<a href="../notes/tray-grasp.html">料盘抓取：离线示教与在线重算</a>（选完本体之后，末端作业怎么落地） · <a href="../notes/collision-envelope.html">G2 的碰撞球</a>（底盘轮廓与安全包络）</p>
+</main>
+<footer class="site-footer wrap"><div><strong>WangN2 · 机器人技术笔记</strong><p>把抽象的原理，变成可探索的实验。</p></div><div><a href="https://github.com/WangN2">GitHub</a><a href="../index.html">返回主页</a></div></footer>
+ <script type="application/json" id="guide-data">{"updated":"2026-09-17","weights":[{"id":"base","name":"底盘全向与贴线能力","w":0.25,"def":"是否能保持机身朝向横移和蟹行，以及公开的运动参数完整度"},{"id":"workspace","name":"双臂与躯干工作空间","w":0.15,"def":"双臂自由度、负载、臂展、升降和低高位覆盖能力"},{"id":"force","name":"力控与柔顺能力","w":0.2,"def":"关节或末端力传感、阻抗控制、采样率及量化精度"},{"id":"precision","name":"定位与视觉闭环","w":0.15,"def":"机械臂精度、底盘定位、腕部视觉及移动后重定位能力"},{"id":"interface","name":"SDK与末端接口成熟度","w":0.1,"def":"控制接口、通信、电源、工具链、版本清晰度和可集成性"},{"id":"industrial","name":"工业可靠性与维护","w":0.15,"def":"安全、防护、连续运行、电池、认证、维护与量产证据"}],"robots":[{"id":"agibot_g2","vendor":"智元","model":"AgiBot 精灵G2","category":"移动双臂本体","stage":"量产/部署","dof":25,"armDof":7,"base":"四舵轮全向底盘","crab":"是","speed":1.5,"height":"1225–1795","weight":185,"reach":696,"payload":5,"workspace":"0-2.3","repeat":0.1,"accuracy":1,"runtime":4,"ip":"","ee":"夹爪或灵巧手可选","evidence":"官方用户手册","scores":{"base":5,"workspace":5,"force":5,"precision":4,"interface":4,"industrial":4},"total":4.6,"gate":"通过","eligible":true,"note":"四舵轮、5自由度躯干、全关节力矩传感；需验证横移后整链路精度","img":"agibot-g2.png"},{"id":"galaxea_r1pro_2026","vendor":"星海图","model":"Galaxea R1 Pro 2026","category":"轮式双臂仿人形本体","stage":"现货/科研与行业落地","dof":24,"armDof":7,"base":"三舵轮360度全向底盘","crab":"是","speed":1.5,"height":1700,"weight":126,"reach":620,"payload":3.5,"workspace":null,"repeat":0.5,"accuracy":null,"runtime":null,"ip":"","ee":"电动平行夹爪","evidence":"官方产品页+开发文档","scores":{"base":5,"workspace":5,"force":4,"precision":3,"interface":4,"industrial":3},"total":4.1,"gate":"通过","eligible":true,"note":"三舵轮全向和工作空间契合；重复精度0.5mm且机械臂无制动器是主要风险","img":"galaxea-r1-pro.jpg"},{"id":"spirit_moz1_pro","vendor":"千寻智能","model":"Moz1 Pro","category":"轮式双臂人形本体","stage":"供应商发布/待交付验证","dof":26,"armDof":7,"base":"四轮全向移动平台（SDK开放vx/vy/wz）","crab":"是","speed":1,"height":"1500–1850","weight":null,"reach":700,"payload":5,"workspace":null,"repeat":0.05,"accuracy":null,"runtime":null,"ip":"","ee":"自研二指夹爪；兼容第三方末端","evidence":"供应商彩页+官方在线手册（在线手册主体为旧款Moz1）","scores":{"base":4.5,"workspace":5,"force":3,"precision":4,"interface":4,"industrial":3},"total":3.93,"gate":"通过待实测","eligible":true,"note":"SDK明确开放vx/vy/wz三自由度底盘速度并支持ROS2/Python；公开SDK未开放力矩和末端力控且Pro专属手册与工业证据不足","img":"spirit-moz1-pro.jpg"},{"id":"boston_atlas_2026","vendor":"Boston Dynamics","model":"Atlas","category":"全尺寸双足工业人形","stage":"早期客户导入","dof":56,"armDof":null,"base":"双足全电驱","crab":"步态可侧移；连续工业横移待验证","speed":null,"height":1900,"weight":90,"reach":null,"payload":null,"workspace":null,"repeat":null,"accuracy":null,"runtime":4,"ip":"IP67","ee":"工业任务手/夹具未披露","evidence":"官方网站","scores":{"base":3,"workspace":5,"force":4,"precision":4,"interface":2,"industrial":5},"total":3.85,"gate":"待实测","eligible":true,"note":"工业可靠性负载和工作空间领先；但双足连续贴线横移、采购与集成开放性待确认","img":"boston-atlas.jpg"},{"id":"zdl_d1","vendor":"智动力","model":"D1 擎骏系列","category":"移动双臂本体","stage":"供应商产品资料","dof":23,"armDof":7,"base":"四轮四转底盘","crab":"是","speed":1.5,"height":1850,"weight":300,"reach":1000,"payload":15,"workspace":null,"repeat":null,"accuracy":null,"runtime":6,"ip":"IP50","ee":"七自由度灵巧手或夹爪","evidence":"供应商产品册","scores":{"base":5,"workspace":5,"force":3,"precision":3,"interface":3,"industrial":3},"total":3.8,"gate":"通过待实测","eligible":true,"note":"四轮四转明确支持蟹行；整机重且精度和力控证据不足","img":"zdl-d1.jpg"},{"id":"figure_03","vendor":"Figure AI","model":"Figure 03","category":"全尺寸双足通用人形","stage":"量产爬坡/客户验证","dof":null,"armDof":null,"base":"双足电驱","crab":"步态可侧移；工业横移精度未披露","speed":1.2,"height":1727,"weight":61,"reach":null,"payload":null,"workspace":null,"repeat":null,"accuracy":null,"runtime":5,"ip":"","ee":"自研触觉灵巧手","evidence":"官方网站","scores":{"base":3,"workspace":5,"force":5,"precision":4,"interface":1,"industrial":4},"total":3.8,"gate":"待实测","eligible":true,"note":"触觉手和量产设计突出；无公开SDK且双足横移节拍与精度未披露","img":"figure-03.jpg"},{"id":"tars_a1","vendor":"它石智航","model":"TARS A1","category":"轮式工业具身本体","stage":"产线验证/规模部署计划","dof":null,"armDof":null,"base":"轮式底盘（轮系未公开）","crab":"待确认","speed":null,"height":null,"weight":null,"reach":null,"payload":null,"workspace":null,"repeat":null,"accuracy":null,"runtime":null,"ip":"","ee":"定制夹爪或DexHand","evidence":"客户/政府/吉尼斯+内部沟通","scores":{"base":3,"workspace":4,"force":5,"precision":5,"interface":1,"industrial":3},"total":3.65,"gate":"待确认","eligible":true,"note":"线束任务证据最强；底盘轮型接口参数和规模部署验收数据未公开且内部反馈仍有差距","img":"tars-a1.jpg"},{"id":"tianji_marvin_m6ccs","vendor":"天机智能","model":"Marvin M6 CCS","category":"双臂模块","stage":"供应商产品资料","dof":14,"armDof":7,"base":"需集成第三方底盘","crab":"待集成","speed":null,"height":null,"weight":11,"reach":696,"payload":6,"workspace":null,"repeat":0.03,"accuracy":null,"runtime":"外部供电","ip":"IP54","ee":"末端执行器由集成方配置","evidence":"供应商产品册","scores":{"base":0,"workspace":4,"force":5,"precision":5,"interface":4,"industrial":4},"total":3.35,"gate":"待集成","eligible":false,"note":"双臂模块不含标准底盘；集成全向底盘后再评估","img":null},{"id":"limx_oli_edu","vendor":"逐际动力","model":"LimX Oli EDU","category":"全尺寸双足开发平台","stage":"可购/持续迭代","dof":31,"armDof":7,"base":"双足步行","crab":"步态可侧移；连续贴线横移待实测","speed":1.389,"height":1650,"weight":55,"reach":700,"payload":null,"workspace":null,"repeat":null,"accuracy":null,"runtime":2,"ip":"","ee":"二指夹爪或五指灵巧手","evidence":"官方网站","scores":{"base":3,"workspace":5,"force":3,"precision":3,"interface":5,"industrial":2},"total":3.35,"gate":"待实测","eligible":true,"note":"开放开发工具链和全尺寸工作空间较好；双足贴线横移、精度和工业认证需验证","img":"limx-oli-edu.jpg"},{"id":"astribot_t1","vendor":"星尘","model":"Astribot T1","category":"移动双臂本体","stage":"量产/发货","dof":23,"armDof":null,"base":"紧凑轮式底盘（轮系未公开）","crab":"待确认","speed":null,"height":1550,"weight":66,"reach":null,"payload":5,"workspace":null,"repeat":null,"accuracy":null,"runtime":null,"ip":"","ee":"支持多样末端配置与更换","evidence":"官网+政府及媒体报道","scores":{"base":2,"workspace":4,"force":4,"precision":2,"interface":4,"industrial":4},"total":3.2,"gate":"待确认","eligible":true,"note":"紧凑轮式底盘但轮系和蟹行能力未公开；绳驱柔性和量产进展较好，精度与SDK量化不足","img":"astribot-t1.jpg"},{"id":"limx_tron2_dualarm","vendor":"逐际动力","model":"TRON 2 双臂形态","category":"多形态双臂移动平台","stage":"可购/持续迭代","dof":null,"armDof":7,"base":"双足/双轮足可换形","crab":"官方称四向移动；纯横移机制待确认","speed":5,"height":null,"weight":null,"reach":null,"payload":3,"workspace":null,"repeat":0.5,"accuracy":null,"runtime":null,"ip":"","ee":"夹爪或灵巧手","evidence":"官方网站","scores":{"base":3,"workspace":4,"force":3,"precision":3,"interface":5,"industrial":2},"total":3.2,"gate":"待确认","eligible":true,"note":"接口开放且多形态；四向移动是否包含保持朝向纯横移需要供应商确认","img":"limx-tron2.jpg"},{"id":"tesla_optimus","vendor":"Tesla","model":"Optimus","category":"全尺寸双足通用人形","stage":"产线建设/内部验证","dof":null,"armDof":null,"base":"双足电驱","crab":"工业横移能力与精度未披露","speed":null,"height":null,"weight":null,"reach":null,"payload":null,"workspace":null,"repeat":null,"accuracy":null,"runtime":null,"ip":"","ee":"灵巧手","evidence":"官方网站+投资者披露","scores":{"base":3,"workspace":4,"force":3,"precision":3,"interface":1,"industrial":2},"total":2.8,"gate":"待确认","eligible":true,"note":"官方工程参数和外部集成方式严重不足；暂不具备正式采购比较条件","img":"tesla-optimus.jpg"},{"id":"unitree_g1d_flagship","vendor":"宇树","model":"Unitree G1-D 旗舰版","category":"移动双臂本体","stage":"官方产品","dof":19,"armDof":7,"base":"双轮差速底盘","crab":"否","speed":1.5,"height":"1260–1680","weight":90,"reach":null,"payload":3,"workspace":null,"repeat":null,"accuracy":null,"runtime":6,"ip":"","ee":"二指夹爪或三/五指灵巧手","evidence":"官方网站","scores":{"base":1,"workspace":4,"force":2,"precision":3,"interface":3,"industrial":2},"total":2.3,"gate":"不通过","eligible":true,"note":"差速底盘不能纯横移；更偏数据采集和开发平台","img":"unitree-g1d.jpg"},{"id":"zdl_juno2","vendor":"智动力","model":"JUNO2-SD 龙骏系列","category":"移动双臂本体","stage":"供应商产品资料","dof":22,"armDof":7,"base":"双差速线控底盘","crab":"否","speed":1.5,"height":1780,"weight":160,"reach":800,"payload":5,"workspace":null,"repeat":null,"accuracy":null,"runtime":6,"ip":"IP40","ee":"七自由度灵巧手或夹爪","evidence":"供应商产品册","scores":{"base":1,"workspace":4,"force":2,"precision":2,"interface":3,"industrial":2},"total":2.15,"gate":"不通过","eligible":true,"note":"差速底盘为硬伤；重复定位和力控指标未公开","img":"zdl-juno2-sd.jpg"},{"id":"unitree_g1d_standard","vendor":"宇树","model":"Unitree G1-D 通用版","category":"固定/可搬运双臂平台","stage":"官方产品","dof":17,"armDof":7,"base":"无主动移动参数","crab":"否","speed":null,"height":"1260–1680","weight":90,"reach":null,"payload":3,"workspace":null,"repeat":null,"accuracy":null,"runtime":2,"ip":"","ee":"二指夹爪或三/五指灵巧手","evidence":"官方网站","scores":{"base":0,"workspace":4,"force":2,"precision":3,"interface":3,"industrial":2},"total":2.05,"gate":"不通过","eligible":true,"note":"官方参数未提供主动移动底盘","img":null},{"id":"zdl_juno1","vendor":"智动力","model":"JUNO1-P 智骏系列","category":"移动双臂本体","stage":"供应商产品资料","dof":21,"armDof":7,"base":"双差速线控底盘","crab":"否","speed":1.5,"height":1750,"weight":120,"reach":800,"payload":3,"workspace":null,"repeat":null,"accuracy":null,"runtime":4,"ip":"IP40","ee":"七自由度灵巧手或夹爪","evidence":"供应商产品册","scores":{"base":1,"workspace":3,"force":2,"precision":2,"interface":3,"industrial":2},"total":2.0,"gate":"不通过","eligible":true,"note":"差速底盘为硬伤；负载和升降能力低于JUNO2","img":null},{"id":"zdl_l1","vendor":"智动力","model":"L1 灵骏系列","category":"轻量移动双臂本体","stage":"供应商产品资料","dof":15,"armDof":6,"base":"差速轮式底盘","crab":"否","speed":1.5,"height":1280,"weight":40,"reach":600,"payload":1.5,"workspace":null,"repeat":null,"accuracy":null,"runtime":"4-6","ip":"IP40","ee":"七自由度灵巧手或夹爪","evidence":"供应商产品册","scores":{"base":1,"workspace":2,"force":2,"precision":2,"interface":3,"industrial":2},"total":1.85,"gate":"不通过","eligible":true,"note":"差速底盘且负载、臂展和躯干能力较弱","img":null},{"id":"zdl_z1","vendor":"智动力","model":"Z1","category":"移动双臂本体/SDK平台","stage":"开发手册r26.6","dof":null,"armDof":7,"base":"双轮差速底盘","crab":"否","speed":null,"height":null,"weight":null,"reach":null,"payload":null,"workspace":null,"repeat":null,"accuracy":null,"runtime":null,"ip":"","ee":"夹爪或灵巧手","evidence":"供应商开发手册","scores":{"base":1,"workspace":3,"force":1,"precision":2,"interface":2,"industrial":2},"total":1.7,"gate":"不通过","eligible":false,"note":"仅有SDK手册且差速底盘；不纳入排名","img":null}]}</script>
+ <script src="../assets/guide/guide.js"></script>
+</body>
+</html>

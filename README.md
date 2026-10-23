@@ -1,6 +1,6 @@
 # WangN2 · 机器人技术笔记
 
-纯静态个人主页，包含 G2 全身运动学、碰撞包络、AprilTag 视觉定位与料盘抓取重算的交互实验，以及配套技术笔记。GitHub Pages 地址：https://wangn2.github.io/ 。
+纯静态个人主页，包含 G2 全身运动学、碰撞包络、AprilTag 视觉定位与料盘抓取重算的交互实验、配套技术笔记，以及一份可调权重的机器人本体选型指南。GitHub Pages 地址：https://wangn2.github.io/ 。
 
 ## 本地运行
 
@@ -32,6 +32,7 @@ python3 tests/browser_collision.py --base-url http://127.0.0.1:8765
 python3 tests/browser_apriltag.py --base-url http://127.0.0.1:8765
 python3 tests/browser_tray_grasp.py --base-url http://127.0.0.1:8765
 python3 tests/browser_swerve.py --base-url http://127.0.0.1:8765
+python3 tests/browser_guide.py --base-url http://127.0.0.1:8765
 ```
 
 也可设置 CHROME_PATH 为本机 Chrome 可执行文件。测试使用独立浏览器上下文，不读取日常浏览资料。截图和结果在被忽略的 artifacts/ 中。测试拦截第三方请求，检查桌面/360 px 手机布局、iframe 高度校验、中文错误提示、存储异常与交互。
@@ -47,6 +48,8 @@ python3 tests/browser_swerve.py --base-url http://127.0.0.1:8765
 ## 维护入口
 
 - site/index.html：主页；site/notes/kinematics.html、collision-envelope.html、apriltag.html、tray-grasp.html、swerve-base.html：技术笔记。
+- site/guide/index.html：机器人本体选型指南。数据由 WangN2/robot_guide 的 CSV 生成后内嵌进页面（`<script id="guide-data">`），页面不请求任何外部资源。更新流程：改来源仓库的 CSV → 重新生成 JSON → 替换内嵌块。`tests/browser_guide.py` 会校验默认权重下首行必须是 4.60、改权重后排名必须变、恢复后必须回到 4.60。
+- site/assets/guide/models/：13 张产品缩略图（200 px WebP），版权归原厂商，仅用于型号识别，页脚有署名说明。
 - site/notes/tray-grasp.html：料盘抓取的离线示教、在线重算与大模型协作（第 10–15 节讲分工、参数搜索、自然语言示教与排障边界，只写方法，不含量化结论）。交互部分在 site/assets/tray/ 下，是纯 Canvas 2D 的刚体搬运示意，不连接真机、不做碰撞检查；文中数值是示意值，改稿时不要写成站点验证过的结论。
 - 技术笔记的「骨架」是数据驱动的约定：每篇必须有 `<div class="article-meta">` 里的 `<time datetime>`、阅读时长、板块名，`<nav class="toc">` 里列出全部 `h2` 锚点，结尾有 `<nav class="note-nav">` 串联上一篇/下一篇。`tests/notes.test.cjs` 会校验日期与 JSON-LD 一致、目录锚点全部存在、前后篇互相指回、首页卡片与正文的日期和时长同步。
 - 阅读时长按正文「中日韩字符数 / 400 + 英文词数 / 220」向上取整；改稿后重算并同步首页卡片，测试允许 ±1 分钟误差。
