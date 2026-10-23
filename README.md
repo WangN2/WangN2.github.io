@@ -46,7 +46,7 @@ python3 tests/browser_tray_grasp.py --base-url http://127.0.0.1:8765
 ## 维护入口
 
 - site/index.html：主页；site/notes/kinematics.html、collision-envelope.html、apriltag.html、tray-grasp.html：技术笔记。
-- site/notes/tray-grasp.html：料盘抓取的离线示教与在线重算。交互部分在 site/assets/tray/ 下，是纯 Canvas 2D 的刚体搬运示意，不连接真机、不做碰撞检查；文中数值是示意值，改稿时不要写成站点验证过的结论。
+- site/notes/tray-grasp.html：料盘抓取的离线示教、在线重算与大模型协作（第 10–15 节讲分工、参数搜索、自然语言示教与排障边界，只写方法，不含量化结论）。交互部分在 site/assets/tray/ 下，是纯 Canvas 2D 的刚体搬运示意，不连接真机、不做碰撞检查；文中数值是示意值，改稿时不要写成站点验证过的结论。
 - 技术笔记的「骨架」是数据驱动的约定：每篇必须有 `<div class="article-meta">` 里的 `<time datetime>`、阅读时长、板块名，`<nav class="toc">` 里列出全部 `h2` 锚点，结尾有 `<nav class="note-nav">` 串联上一篇/下一篇。`tests/notes.test.cjs` 会校验日期与 JSON-LD 一致、目录锚点全部存在、前后篇互相指回、首页卡片与正文的日期和时长同步。
 - 阅读时长按正文「中日韩字符数 / 400 + 英文词数 / 220」向上取整；改稿后重算并同步首页卡片，测试允许 ±1 分钟误差。
 - site/assets/g2/demo.js：三维场景。机身浅灰、底盘与夹爪深灰的两套材质是刻意的可读性设计；光照已按 ACES 色调映射配平，不要再叠加高亮环境光，否则白色机身会和浅色背景糊在一起。

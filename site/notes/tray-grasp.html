@@ -10,8 +10,8 @@
  <meta property="og:type" content="article">
  <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
  <meta property="og:locale" content="zh_CN">
- <meta property="og:title" content="料盘抓取：离线示教与在线重算 · WangN2">
- <meta property="og:description" content="示教为什么必须存在盘系而不是基座系？运行时如何只跟随 5 个自由度、锁住滚转，并如实拒绝超出能力的请求。">
+ <meta property="og:title" content="料盘抓取：离线示教、在线重算与大模型协作 · WangN2">
+ <meta property="og:description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型到底该站在这条链路的哪一格。">
  <meta property="og:url" content="https://wangn2.github.io/notes/tray-grasp.html">
  <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="og:image:type" content="image/png">
@@ -19,27 +19,27 @@
  <meta property="og:image:height" content="630">
  <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
  <meta name="twitter:card" content="summary_large_image">
- <meta name="twitter:title" content="料盘抓取：离线示教与在线重算 · WangN2">
- <meta name="twitter:description" content="示教为什么必须存在盘系而不是基座系？运行时如何只跟随 5 个自由度、锁住滚转，并如实拒绝超出能力的请求。">
+ <meta name="twitter:title" content="料盘抓取：离线示教、在线重算与大模型协作 · WangN2">
+ <meta name="twitter:description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型到底该站在这条链路的哪一格。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-23">
  <meta property="article:modified_time" content="2026-10-23">
  <meta property="article:section" content="视觉伺服">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"料盘抓取：离线示教与在线重算","description":"示教为什么必须存在盘系而不是基座系？运行时如何只跟随 5 个自由度、锁住滚转，并如实拒绝超出能力的请求。","url":"https://wangn2.github.io/notes/tray-grasp.html","mainEntityOfPage":"https://wangn2.github.io/notes/tray-grasp.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["离线示教","坐标系变换","视觉伺服","夹取"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"料盘抓取：离线示教、在线重算与大模型协作","description":"示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型到底该站在这条链路的哪一格。","url":"https://wangn2.github.io/notes/tray-grasp.html","mainEntityOfPage":"https://wangn2.github.io/notes/tray-grasp.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["离线示教","坐标系变换","视觉伺服","夹取"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
  <!--/meta-->
- <title>料盘抓取：离线示教与在线重算 · WangN2</title>
- <meta name="description" content="示教为什么必须存在盘系而不是基座系？运行时如何只跟随 5 个自由度、锁住滚转，并如实拒绝超出能力的请求。">
+ <title>料盘抓取：离线示教、在线重算与大模型协作 · WangN2</title>
+ <meta name="description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型到底该站在这条链路的哪一格。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/tray/tray-grasp.css">
 </head>
 <body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a></nav></header>
 <main class="wrap"><article class="article">
  <p class="eyebrow">NOTE 04 / 视觉伺服 · 工程实践</p>
- <h1>料盘抓取：<br>离线示教与在线重算</h1>
- <p class="lede">示教文件把「工具相对料盘」的位姿冻结在盘系里；每次运行时只用本次观测到的盘位姿，把它搬运到基座系。所以盘怎么挪，程序都不用重教——只要它还看得见、还在臂展内。</p>
-  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 9 分钟</span><span>视觉伺服</span></div>
+ <h1>料盘抓取：<br>离线示教、在线重算<br>与大模型协作</h1>
+ <p class="lede">示教文件把「工具相对料盘」的位姿冻结在盘系里；每次运行时只用本次观测到的盘位姿，把它搬运到基座系。所以盘怎么挪，程序都不用重教——只要它还看得见、还在臂展内。后半部分换一个角度：这条链路本身是怎么被搭出来、调出来和排障的，大模型在其中站在哪一格。</p>
+  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 13 分钟</span><span>视觉伺服</span></div>
 
- <p>这篇笔记记录一套已经跑通的流程：相机看到料盘上的标签，求出料盘本次的位姿，再把四个预先教好的站位搬到基座系执行。重点不在标签怎么识别（那是<a href="./apriltag.html">上一篇</a>的事），而在「教什么、跟什么、不跟什么」这三个决定。</p>
+ <p>这篇笔记分两部分。前半部分记录一套已经跑通的流程：相机看到料盘上的标签，求出料盘本次的位姿，再把四个预先教好的站位搬到基座系执行。重点不在标签怎么识别（那是<a href="./apriltag.html">上一篇</a>的事），而在「教什么、跟什么、不跟什么」这三个决定。后半部分从第 10 节开始，讲这套东西是怎么被写出来、被标定、被排障的——以及在哪些环节上，大模型是真的有用。</p>
  <p class="callout"><strong>先划清界限。</strong>本文描述的是真机流程的方法与约束，不是本站在浏览器里能复现的能力。站内的 G2 实验室只是运动学演示，不连接真机、不做碰撞检查，也不要把它当作本文任何数值的来源。</p>
 
   <nav class="toc" aria-labelledby="toc-title">
@@ -54,7 +54,13 @@
    <li><a href="#run-sequence">7. 运行时序：每一步都有门</a></li>
    <li><a href="#run-record">8. 一次运行记录</a></li>
    <li><a href="#limits">9. 边界与已知限制</a></li>
-   <li><a href="#numbers">10. 数值参考</a></li>
+   <li><a href="#where-llm-fits">10. 大模型放在这条链路的哪一步</a></li>
+   <li><a href="#llm-code">11. 写代码：让经验变成可重跑的资产</a></li>
+   <li><a href="#parameter-search">12. 参数搜索：模型提候选，人签字</a></li>
+   <li><a href="#natural-language-teach">13. 自然语言 → 示教动作：能走多远</a></li>
+   <li><a href="#log-triage">14. 日志排障：最快的用法也最危险</a></li>
+   <li><a href="#when-not-to-use">15. 什么时候不该用它</a></li>
+   <li><a href="#numbers">附录：数值参考</a></li>
    </ol>
   </nav>
  <h2 id="the-problem">1. 问题：料盘每次都在别的地方</h2>
@@ -174,7 +180,63 @@
   <li><strong>倾角大了为什么还能插？</strong>10° 以内，工具跟随孔轴方向即可，横向偏差由爪尖位置控制吸收。超过这个量级，先出问题的是可达性和净空，所以设了这个门限。</li>
  </ul>
 
- <h2 id="numbers">10. 数值参考</h2>
+ <h2 id="where-llm-fits">10. 大模型放在这条链路的哪一步</h2>
+ <p>先说结论：大模型不是这条链路的执行者，是副驾驶。把「谁负责什么」写清楚，比讨论用哪个模型重要得多。</p>
+ <table class="coordinates"><thead><tr><th>环节</th><th>谁来做</th><th>为什么</th></tr></thead><tbody>
+  <tr><td>定义「什么算成功」</td><td>人</td><td>验收标准是责任，不是生成物。写错了没人替你担。</td></tr>
+  <tr><td>几何变换、门限判定、执行</td><td>程序</td><td>必须确定、可复算、可回放。同一输入必须给同一输出。</td></tr>
+  <tr><td>写代码骨架、生成示教文件、搭测试</td><td>大模型起草 + 人审</td><td>结构性工作，错了能在编译或测试阶段暴露。</td></tr>
+  <tr><td>提参数候选、列排障假设</td><td>大模型</td><td>发散性工作，需要人去筛和证伪。</td></tr>
+  <tr><td>上机、签字、安全</td><td>人</td><td>物理后果不可回滚。</td></tr>
+ </tbody></table>
+ <p>一句话概括分工：<strong>模型产出候选，物理世界产出证据。</strong></p>
+ <p>有一个我们常用的做法值得单独说：同一个问题同时给两个模型，比较它们的分歧点。两边都同意的，多半只是常识；只有一边提到的，往往是从你的描述里过度外推；<strong>真正需要人判断的地方，恰好落在两家说法不一致的位置</strong>。分歧不是噪声，是信息。</p>
+
+ <h2 id="llm-code">11. 写代码：让经验变成可重跑的资产</h2>
+ <p>这条链路上最适合交给模型的是「把一段经验固化成确定性代码」这类活：生成示教文件的脚本、轴对齐与细分的规划器、以及把现场踩过的坑写成断言的测试。</p>
+ <p>写这类代码有三条要求，比用什么模型重要：</p>
+ <ul>
+  <li><strong>先定接口，再写实现。</strong>函数签名、输入输出的单位、向量属于哪个坐标系，都要写在注释里。这类代码最常见的 bug 不是算法错，是「这个向量到底是基座系还是盘系」没写清楚。</li>
+  <li><strong>每条断言都要带失败信息。</strong>不是「assert 通过了」，而是「轴反向时本应拒绝，实际却执行了」。半年后回来排障，你只有这句话可依靠。</li>
+  <li><strong>让模型写测试，但别让它定义验收标准。</strong>测试是「这条经验有没有被守住」的检查点；验收标准是「什么算做成了」，那是人的判断。</li>
+ </ul>
+ <p>模型在这个环节的典型失败模式很固定：它会编造你代码库里不存在的字段和接口，也会默认你的机器人是一台理想串联臂——不知道有闭链、有联动、有软限位。所以顺序永远是：离线数据或仿真上先跑通，再上机。</p>
+
+ <h2 id="parameter-search">12. 参数搜索：模型提候选，人签字</h2>
+ <p>「自动化标定」这个词容易被误解。这条链路里能自动化的是<strong>记录、复算和对比</strong>，不能自动化的是<strong>判断</strong>。所以我们的用法是把四样东西一起交给模型：当前参数、硬约束、失败现象、验收指标；让它回三样东西：下一组候选、为什么这么改、以及「如果这组是对的，哪个读数会变」。</p>
+ <p>最后那一条最容易被忽略，却最有用：<strong>先想清楚什么现象能证伪这组参数，再去跑。</strong>没有这一条，跑完只会得到「好像还行」。</p>
+ <p>用本文的真实案例说明分工。前面提到过，<code>groove</code> 的入槽深度从证据值外推的轴向位置一路收到 ±60 mm，起因是翻面后的 −65 mm 太深、爪指越过了槽位。这个环节里：模型能做的是，根据「越过槽位」这个现象提出「把 groove 往回退、其余三站不动」的候选；而判定「确实太深」的，只能是现场那一次看和摸。</p>
+ <p>还有两条纪律：</p>
+ <ul>
+  <li><strong>一次只改一个参数。</strong>同时改两个，你无法归因，省下的时间会在下一次排障时加倍还回来。</li>
+  <li><strong>别把「收敛」当成「验证」。</strong>参数搜索一定会收敛到某个局部最优。而机器人的失败有个讨厌的性质：这一次没撞，不代表下一次不撞。</li>
+ </ul>
+
+ <h2 id="natural-language-teach">13. 自然语言 → 示教动作：能走多远</h2>
+ <p>这一块最容易被高估。先说能做和不能做的分界：</p>
+ <table class="coordinates"><thead><tr><th>可行</th><th>不可行</th></tr></thead><tbody>
+  <tr><td>约束级输入：「从盘外 13 cm 沿孔轴进入，进到 6 cm 停，姿态保持不变」</td><td>直接生成安全可执行轨迹</td></tr>
+  <tr><td>把意图翻译成结构化的站位与约束</td><td>判断净空、线缆、夹具变形够不够</td></tr>
+  <tr><td>批量生成同一形状的站位序列</td><td>替你决定这条轴线是否值得信任</td></tr>
+ </tbody></table>
+ <p>原因不复杂：模型不知道你的工装长什么样，也不知道地面反光会让检测飘多少。它能可靠处理的，是<strong>几何关系明确、后果可预先检查</strong>的那一层。</p>
+ <p>所以正确的接法是：模型输出<strong>站位与约束</strong>，由已经验证过的执行器把它解释成伺服序列。也就是它改的是 <code>T_tray_end</code> 这一层，而不是关节指令那一层。这正好是第 4 节那条链路的边界——重算链路只接受「盘系里的站位」，所有几何安全都建立在这条轴线上。模型可以提议新的站位，但不能绕过门限。</p>
+
+ <h2 id="log-triage">14. 日志排障：最快的用法也最危险</h2>
+ <p>好用的形态是「一次给全」：时间线、错误码、关键数值窗口、当时的参数，一起贴过去，让它给一份<strong>假设清单</strong>，而不是一个结论。</p>
+ <p>危险在于它太顺着你。你写「是不是标定错了」，它就会认真论证标定错了——这不是模型坏，是它在完成你的请求。这类回答读起来特别顺，因为它在替你已有的判断找理由。</p>
+ <p>所以有一条纪律：<strong>每个假设都要配一个能证伪的观测量。先加观测，再改参数。</strong>顺序反过来，你得到的是一条解释得通、但从没被验证过的故事。下一次同样的故障出现，你还是不知道原因。</p>
+
+ <h2 id="when-not-to-use">15. 什么时候不该用它</h2>
+ <ul>
+  <li><strong>需要确定性重复执行的步骤。</strong>几何变换、门限判定这类东西，写进代码，不要每次再问一遍模型——同一个问题问两次得到两种实现，本身就是风险。</li>
+  <li><strong>需要签字担责的判定。</strong>能不能上机、算不算通过，是人的决定。</li>
+  <li><strong>数据本身可疑的时候。</strong>模型会把噪声解释得很合理，这是它最擅长的，也是最容易骗到你的。</li>
+  <li><strong>你已经知道答案、只想找认同的时候。</strong>这种用法得不到信息，只得到安慰。</li>
+ </ul>
+ <p>一句总结：<strong>大模型压缩的是「从想法到可运行代码」的距离，不是「从代码到可信结果」的距离。</strong> 后者只能靠测量。这条链路里真正值钱的，是那四张表：门限、站位、运行记录、边界——它们都是量出来的，不是生成出来的。</p>
+
+ <h2 id="numbers">附录：数值参考</h2>
  <p>示教文件里四站的轴向坐标与末端平移（A 面）。<code>tip_x</code> 是爪尖在盘系里沿孔轴的位置，负值在盘外，正值在孔内：</p>
  <table class="coordinates"><thead><tr><th>站位</th><th>tip_x（盘系）</th><th>T_tray_end 平移 (m)</th></tr></thead><tbody>
   <tr><td>standoff</td><td>−70 mm</td><td>[−0.3621, 0.0106, −0.0587]</td></tr>
