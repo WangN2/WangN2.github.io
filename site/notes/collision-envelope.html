@@ -22,13 +22,19 @@
  <meta name="twitter:title" content="G2 的碰撞球：有距离，为什么还停住？ · WangN2">
  <meta name="twitter:description" content="旋转观察 G2 的22个碰撞球，对比底盘额外膨胀16cm与5cm，理解碰撞包络、二维地图和物理间隙的区别。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"G2 的碰撞球：有距离，为什么还停住？","description":"旋转观察 G2 的 22 个碰撞球，对比底盘额外膨胀 16 cm 与 5 cm，理解碰撞包络、二维地图和物理间隙的区别。","url":"https://wangn2.github.io/notes/collision-envelope.html","mainEntityOfPage":"https://wangn2.github.io/notes/collision-envelope.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["碰撞包络","导航避障"]}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"G2 的碰撞球：有距离，为什么还停住？","description":"旋转观察 G2 的 22 个碰撞球，对比底盘额外膨胀 16 cm 与 5 cm，理解碰撞包络、二维地图和物理间隙的区别。","url":"https://wangn2.github.io/notes/collision-envelope.html","mainEntityOfPage":"https://wangn2.github.io/notes/collision-envelope.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["碰撞包络","导航避障"],"datePublished":"2026-10-16","dateModified":"2026-10-23"}</script>
+
+ <meta property="article:published_time" content="2026-10-16">
+ <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:section" content="导航避障">
  <!--/meta--><title>G2 的碰撞球：有距离，为什么还停住？ · WangN2</title><meta name="description" content="旋转观察 G2 的22个碰撞球，对比底盘额外膨胀16cm与5cm，理解碰撞包络、二维地图和物理间隙的区别。"><link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/g2/collision.css"></head>
 <body><a class="skip" href="#collision-explorer">跳转到碰撞球模型</a>
 <header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a></nav></header>
 <main class="wrap"><article class="article">
  <p class="eyebrow">NOTE 02 / 导航避障 · 交互观察</p><h1>G2 的碰撞球：<br>有距离，为什么还停住？</h1>
  <p class="lede">机器人看起来还没碰到障碍物，导航却停住了。它检查的可能不是外壳本身，而是一层更大的几何包络。转动下面的模型，看看这些球如何包住底盘、双臂与头身。</p>
+  <div class="article-meta"><span><time datetime="2026-10-16">2026-10-16</time></span><span>约 3 分钟</span><span>导航避障</span></div>
+
  <section class="collision-viewer" id="collision-explorer" data-src="../assets/g2/collision-spheres.json" aria-labelledby="collision-title" data-ready="false">
   <h2 id="collision-title">G2 整机碰撞包络 · 22 个球</h2>
   <p class="collision-caption">站立姿态记录快照 · 机体坐标 base_link · 单位：米</p>
@@ -43,22 +49,35 @@
   <p class="collision-help">拖动旋转 · 点击或选择编号查看半径 · 切换膨胀量仅改变图示</p>
   <noscript><p>此交互需要 JavaScript。快照共22个球；5 cm 指底盘额外膨胀量，不是球的总半径。</p></noscript>
  </section>
- <h2>1. 用球近似身体，比检查整块网格更简单</h2>
+   <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#why-spheres">1. 用球近似身体，比检查整块网格更简单</a></li>
+   <li><a href="#inflation-vs-radius">2. 5 cm 是额外膨胀，不是总半径</a></li>
+   <li><a href="#3d-robot-2d-map">3. 三维机器人，不一定配上三维环境</a></li>
+   <li><a href="#map-layers">4. 球、轮廓、代价地图，各管哪一层？</a></li>
+   </ol>
+  </nav>
+  <h2 id="why-spheres">1. 用球近似身体，比检查整块网格更简单</h2>
  <p>碰撞模型可以用多个球近似机器人的各个部位。每个球只需要一个球心和一个半径，就能快速计算与障碍物的间隙。球体之间可以重叠，叠在一起形成整机包络。</p>
  <p>本页展示一份站立姿态的记录：底盘2球、左臂7球、右臂7球、头身6球。球心和直径来自机器人发布的碰撞模型；分组按所在部位整理。编号是这份快照的标识，<strong>不是关节编号，也不代表所有 G2 配置都固定使用22个球</strong>。</p>
- <h2>2. 5 cm 是额外膨胀，不是总半径</h2>
+ <h2 id="inflation-vs-radius">2. 5 cm 是额外膨胀，不是总半径</h2>
  <p>选择 #15 底盘球，再切换16 cm与5 cm。它的基础几何半径约36.2 cm，因此原值下总半径约52.2 cm，候选下仍有约41.2 cm。另一底盘球对应约50.2 cm与39.2 cm。其余20个球不随这个选项变化。</p>
  <div class="formula">碰撞球半径 = 基础几何半径 + 额外膨胀<br>约 36.2 cm + 5 cm = 41.2 cm</div>
  <p>额外包络越大，越可能在接触真实外壳之前触发碰撞判定。反过来，缩小包络只改变其中一层检查，不能单凭这个数值推导最终停车距离。</p>
- <h2>3. 三维机器人，不一定配上三维环境</h2>
+ <h2 id="3d-robot-2d-map">3. 三维机器人，不一定配上三维环境</h2>
  <p>机器人可以用三维球表示，但导航仍然使用二维占据地图。若检查时把球投影到水平面，较高的手臂也可能受低矮障碍物的地图投影限制：地图只有“这里被占据”，没有足够的高度信息判断能否从上方越过。</p>
  <p>因此，“缩小底盘包络”与“允许手臂越过低障碍”是两件事。后者需要高度感知的环境与整机碰撞检查，也需要区分真实墙体、地图占据边界和未知区域。仅把模型画成立体，不会自动获得这种能力。</p>
- <h2>4. 球、轮廓、代价地图，各管哪一层？</h2>
+ <h2 id="map-layers">4. 球、轮廓、代价地图，各管哪一层？</h2>
  <p>球体近似整机几何；底盘 footprint 描述水平轮廓；代价地图膨胀给障碍物附近的栅格赋予更高代价。导航还会检查候选轨迹与到达条件。它们会共同影响能否通行，不能把几个半径直接相加，或把代价地图的膨胀半径当成外壳到障碍物的停车距离。</p>
  <p>通用概念可参考 <a href="https://docs.nav2.org/jazzy/configuration_and_development/configuration_guide/core_servers/costmap_2d/costmap_plugins/inflation/">Nav2 的 Inflation Layer 说明</a>。具体机器人采用哪套检查路径，仍要以实际配置和运行数据为准。</p>
  <p class="callout"><strong>这是静态几何观察，不是在线碰撞仿真。</strong>本页不加载实时点云或地图，不计算可通行路径，也不连接机器人。5 cm 为对比候选值，不是已验收的安全配置。坐标原点与真实地面高度不能未经标定直接等同。</p>
  <p>继续探索：<a href="./kinematics.html">从关节角到末端运动：正运动学与雅可比</a>。碰撞球快照与已有运动学实验室使用不同的数据来源，页面没有将两者自动配准。</p>
  <a class="primary-link back" href="../index.html#notes">回到笔记列表 →</a>
-</article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+  <nav class="note-nav" aria-label="笔记导航">
+   <a class="prev" href="./kinematics.html"><span>← 上一篇</span><strong>从关节角到末端运动：正运动学与雅可比</strong></a>
+   <a class="next" href="./apriltag.html"><span>下一篇 →</span><strong>AprilTag 视觉定位详解</strong></a>
+  </nav>
+ </article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
 <script src="../assets/g2/collision-model.cjs"></script><script src="../assets/g2/collision-viewer.js"></script>
 </body></html>

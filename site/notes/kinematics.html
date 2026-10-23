@@ -22,39 +22,60 @@
  <meta name="twitter:title" content="从关节角到末端运动：正运动学与雅可比 · WangN2">
  <meta name="twitter:description" content="配合 G2 交互模型，从零理解关节角、正运动学、雅可比与位置逆解。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"从关节角到末端运动：正运动学与雅可比","description":"配合 G2 交互模型，从零理解关节角、正运动学、雅可比与位置逆解。","url":"https://wangn2.github.io/notes/kinematics.html","mainEntityOfPage":"https://wangn2.github.io/notes/kinematics.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["正运动学","雅可比矩阵","逆运动学"]}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"从关节角到末端运动：正运动学与雅可比","description":"配合 G2 交互模型，从零理解关节角、正运动学、雅可比与位置逆解。","url":"https://wangn2.github.io/notes/kinematics.html","mainEntityOfPage":"https://wangn2.github.io/notes/kinematics.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["正运动学","雅可比矩阵","逆运动学"],"datePublished":"2026-10-09","dateModified":"2026-10-23"}</script>
+
+ <meta property="article:published_time" content="2026-10-09">
+ <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:section" content="运动学入门">
  <!--/meta--><title>从关节角到末端运动：正运动学与雅可比 · WangN2</title><meta name="description" content="配合 G2 交互模型，从零理解关节角、正运动学、雅可比与位置逆解。"><link rel="stylesheet" href="../assets/site.css"></head>
 <body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a></nav></header>
 <main class="wrap"><article class="article">
  <p class="eyebrow">NOTE 01 / 运动学入门</p><h1>从关节角到末端运动：<br>正运动学与雅可比</h1>
  <p class="lede">想象你伸手拿杯子：你想的是「手往前一点」，而机器人需要知道「每个关节应该转多少」。这篇笔记把两者之间的桥梁拆开讲清楚。</p>
+  <div class="article-meta"><span><time datetime="2026-10-09">2026-10-09</time></span><span>约 5 分钟</span><span>运动学入门</span></div>
+
  <p>可以同时打开 <a href="../demos/g2/index.html">G2 全身运动实验室</a>。先选「左臂」，再选「双臂屈肘观察」。模型从公开的机器人资产导出，网页负责计算姿态和绘制；它不是在远程运行 Isaac Sim，也不会发送真机指令。</p>
- <h2>1. 关节角：机器人身体的旋钮</h2>
+   <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#joint-angles">1. 关节角：机器人身体的旋钮</a></li>
+   <li><a href="#forward-kinematics">2. 正运动学：给定角度，算出夹爪在哪里</a></li>
+   <li><a href="#jacobian">3. 雅可比：当前姿态下的「微小运动换算表」</a></li>
+   <li><a href="#inverse-kinematics">4. 逆解：让 7 个关节合作，夹爪向前 5 cm</a></li>
+   <li><a href="#coordinate-frames">5. 别混淆这三种坐标</a></li>
+   <li><a href="#scope-and-limits">6. 它能教什么，还不能做什么？</a></li>
+   </ol>
+  </nav>
+  <h2 id="joint-angles">1. 关节角：机器人身体的旋钮</h2>
  <p>机械臂不是一个可以随意移动的整体，而是一串连杆通过关节连接起来。对旋转关节，关节角 q 描述它相对零位转了多少。G2 演示中，一只手臂有 7 个这样的角度，合起来就是一个向量 q = [q₁, …, q₇]。</p>
  <p>拖动 J1 滑块：它后面的连杆会一起移动。拖动靠近夹爪的关节：受到影响的部分通常更少。这里的「后面」指关节树中的子链，不是屏幕上的前后。</p>
  <p>界面用度数方便阅读；计算时使用弧度。180° = π rad。关节都有自己的允许角度范围，滑块会限制这个范围，但<strong>在单轴限位内不等于整机没有碰撞</strong>。</p>
- <h2>2. 正运动学：给定角度，算出夹爪在哪里</h2>
+ <h2 id="forward-kinematics">2. 正运动学：给定角度，算出夹爪在哪里</h2>
  <p>每一段连杆都有长度和安装方向，每个关节也有自己的转轴。把「固定安装关系」和「关节转动」沿着身体到夹爪的链条逐段相乘，就能得到夹爪的位置与朝向。这就是正运动学（FK）。</p>
  <div class="formula">关节角 q → 沿关节链组合变换 → 末端位置 p 与朝向 R<br>p = f(q)</div>
  <p>变换不只有旋转，还包含平移。本演示使用 4×4 齐次变换矩阵，把位置与朝向组合在一起。既要包含关节父侧安装坐标，也要包含子侧坐标的逆变换，不能只把连杆长度简单相加。</p>
  <p><strong>试一试：</strong>移动躯干关节，左右夹爪会一起改变位置；转动头部，夹爪位置不变。因为躯干在夹爪的祖先链上，头部属于另一条分支。</p>
- <h2>3. 雅可比：当前姿态下的「微小运动换算表」</h2>
+ <h2 id="jacobian">3. 雅可比：当前姿态下的「微小运动换算表」</h2>
  <p>正运动学回答「现在在哪里」。雅可比 J 回答另一件事：「如果每个关节稍微动一点，夹爪会往哪里动、动多少？」</p>
  <div class="formula">Δp ≈ Jᵥ(q) · Δq<br>末端线速度 v = Jᵥ(q) · 关节角速度 q̇</div>
  <p>位置雅可比有 3 行，分别对应 X、Y、Z；对 7 轴手臂有 7 列。第 i 列表示：只让第 i 个关节变化，夹爪在三个方向如何响应。它的单位可以读成 m/rad。完整几何雅可比还有 3 行 Jω，用来描述角速度。</p>
  <p>对旋转关节，位置列来自叉乘：Jᵥ,ᵢ = aᵢ × (p − oᵢ)。其中 aᵢ 是关节轴的单位方向，oᵢ 是轴上的关节点，p 是末端点；这些量必须表达在同一个坐标系里。轴离夹爪越远，同样的小角度常常带来更大的位移。</p>
  <p><strong>试一试：</strong>选择一个关节，点击「该关节 +3°」。蓝色轨迹是逐帧算出的实际运动，橙色虚线是起始姿态的雅可比一阶预测。真正的轨迹可能是弧线，所以有限角度下预测不会完全重合。雅可比随姿态变化，不是一张永远不变的表。</p>
- <h2>4. 逆解：让 7 个关节合作，夹爪向前 5 cm</h2>
+ <h2 id="inverse-kinematics">4. 逆解：让 7 个关节合作，夹爪向前 5 cm</h2>
  <p>按下「末端 +X 5 cm」时，我们知道的是目标位置，而不是 7 个关节的新角度。本演示每一帧都重新计算当前位置和雅可比，再求一组小的关节速度，把夹爪逐步推向目标。</p>
  <ol><li>记录当前末端位置，在世界坐标的 X 方向加 0.05 m。</li><li>把目标过程插值成一段位置参考，按误差产生期望末端速度 v。</li><li>用阻尼最小二乘求关节速度，再限制关节速度和角度。</li><li>积分更新 q，重新做正运动学，检查目标误差，直到到达或超时。</li></ol>
  <div class="formula">q̇ = Jᵀ (J Jᵀ + λ² I)⁻¹ v</div>
  <p>这里用的是位置雅可比 Jᵥ。λ 是阻尼系数：当某些方向很难运动、直接求逆容易给出巨大关节速度时，阻尼让解更稳定，代价是可能有残余误差。它不能保证任意目标都可达，也不能替代避障规划。</p>
  <p>界面显示的「位置误差 &lt;0.5 mm」只是当前数学模型中的到达判据，不是真机精度。这里只让所选末端对应的 7 轴手臂参与求解，<strong>末端朝向是自由的</strong>，所以夹爪可能边移动边转动。</p>
- <h2>5. 别混淆这三种坐标</h2>
+ <h2 id="coordinate-frames">5. 别混淆这三种坐标</h2>
  <table class="coordinates"><thead><tr><th>坐标系</th><th>本演示中的含义</th></tr></thead><tbody><tr><th>世界坐标</th><td>固定在场景中。末端 XYZ 读数和 ±5 cm 按钮使用它；底盘转向后，这些轴不会跟着转。</td></tr><tr><th>底盘机体坐标</th><td>跟着机器人朝向。前进、后退、左移、右移按钮使用它；底盘转向 90° 后，「前进」在世界中的方向也改变了。</td></tr><tr><th>关节局部坐标</th><td>每个关节自己的安装坐标。模型中的转轴先转换到世界坐标，才能与世界位置一起计算雅可比。</td></tr></tbody></table>
- <h2>6. 它能教什么，还不能做什么？</h2>
+ <h2 id="scope-and-limits">6. 它能教什么，还不能做什么？</h2>
  <p>这套实验适合观察关节链、局部线性近似和位置逆解。夹爪展示联动与闭链几何，舵轮展示「先转向、再滚动」的理想无滑移运动学。它们都没有计算力矩、摩擦、重力、夹持力和碰撞。</p>
  <p>要让真机抓取物体，还需要标定、感知、带碰撞检查的轨迹规划、动力学与伺服控制，以及速度、力和急停等安全约束。漂亮的网页动作只是理解这些系统的第一步。</p>
  <p class="callout">模型依据 AgiBot / AgiBot World 的 GenieSimAssets，经网格简化与运动学导出。模型及改编数据采用 CC BY-NC-SA 4.0。详见<a href="../licenses/attribution.html">来源与许可</a>。</p>
  <a class="primary-link back" href="../index.html#lab">回到实验室，动手试试 →</a>
-</article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer></body></html>
+  <nav class="note-nav" aria-label="笔记导航">
+   <a class="home" href="../index.html#notes"><span>系列索引</span><strong>全部技术笔记</strong></a>
+   <a class="next" href="./collision-envelope.html"><span>下一篇 →</span><strong>G2 的碰撞球：有距离，为什么还停住？</strong></a>
+  </nav>
+ </article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer></body></html>

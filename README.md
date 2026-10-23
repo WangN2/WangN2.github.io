@@ -45,6 +45,8 @@ python3 tests/browser_apriltag.py --base-url http://127.0.0.1:8765
 ## 维护入口
 
 - site/index.html：主页；site/notes/kinematics.html、collision-envelope.html、apriltag.html：技术笔记。
+- 技术笔记的「骨架」是数据驱动的约定：每篇必须有 `<div class="article-meta">` 里的 `<time datetime>`、阅读时长、板块名，`<nav class="toc">` 里列出全部 `h2` 锚点，结尾有 `<nav class="note-nav">` 串联上一篇/下一篇。`tests/notes.test.cjs` 会校验日期与 JSON-LD 一致、目录锚点全部存在、前后篇互相指回、首页卡片与正文的日期和时长同步。
+- 阅读时长按正文「中日韩字符数 / 400 + 英文词数 / 220」向上取整；改稿后重算并同步首页卡片，测试允许 ±1 分钟误差。
 - site/assets/g2/demo.js：三维场景。机身浅灰、底盘与夹爪深灰的两套材质是刻意的可读性设计；光照已按 ACES 色调映射配平，不要再叠加高亮环境光，否则白色机身会和浅色背景糊在一起。
 - site/notes/collision-envelope.html：碰撞包络笔记，入口位于首页 Notes。
 - site/assets/g2/collision-spheres.json：站立姿态的22球几何快照；collision-model.cjs：几何核心；collision-viewer.js、collision.css：独立画布交互与样式。16/5 cm 切换仅改变两个底盘球的额外膨胀，不做地图碰撞或机器人控制。选择和视角保存在独立的 wangn2:g2-collision:v1 中，存储不可用时仍可操作。
