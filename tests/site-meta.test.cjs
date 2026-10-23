@@ -78,3 +78,24 @@ test('homepage selection summary matches the guide dataset',()=>{
  const shown=[...block[1].matchAll(/<b>([\d.]+)<\/b><span class="nm">([^<]+)<\/span>/g)].map(m=>[m[1],m[2].trim()]);
  assert.deepEqual(shown,top,'homepage picks must track the guide ranking; regenerate them after any data change');
 });
+
+test('core layout rules are still present in the stylesheet',()=>{
+ const css=fs.readFileSync(path.join(root,'assets/site.css'),'utf8');
+ // 用带特征值的片段而不是选择器名：同名规则在移动端媒体查询里也有一份，
+ // 只查选择器名的话，桌面版被整段删掉也发现不了（真发生过一次）。
+ const desktop=[
+  ['首页笔记卡片','.article-card{position:relative;display:grid;grid-template-columns:80px 1fr'],
+  ['卡片悬停','.article-card:hover{text-decoration:none;border-color:#9bbbd4'],
+  ['卡片序号','.article-index{font:32px Georgia,serif'],
+  ['卡片阅读链接','.read-link{font-size:13px;color:var(--blue)}'],
+  ['卡片右上箭头','.card-arrow{position:absolute;right:32px;top:32px'],
+  ['页脚','.site-footer{border-top:1px solid var(--line);padding:30px 0 40px'],
+  ['文章版心','.article{max-width:760px;margin:54px auto 72px}'],
+  ['文章标题','.article h1{font-size:38px;margin:20px 0}'],
+  ['文章导语','.article .lede{font-size:18px;color:var(--muted);margin-bottom:36px}']
+ ];
+ for(const [name,fragment] of desktop)assert.ok(css.includes(fragment),'桌面样式丢失：'+name+'（'+fragment.slice(0,32)+'…）');
+ for(const sel of ['.toc{','.note-nav{','.guide-teaser{','.guide-teaser-top{','.hero-visual{'])
+  assert.ok(css.includes(sel),'stylesheet lost '+sel);
+ assert.equal((css.match(/\{/g)||[]).length,(css.match(/\}/g)||[]).length,'unbalanced braces in site.css');
+});

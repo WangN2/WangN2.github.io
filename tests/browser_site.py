@@ -35,6 +35,11 @@ with sync_playwright() as p:
       let n=0;for(let i=3;i<px.length;i+=4)if(px[i]>0)n++;return n;
     }""")
     assert pixels>5000,pixels
+    # 卡片样式必须真的生效，而不只是标签还在（曾整段被误删过一次）
+    card=page.locator('a.article-card').first
+    assert card.evaluate("e=>getComputedStyle(e).backgroundColor")=='rgb(255, 255, 255)',card.evaluate("e=>getComputedStyle(e).backgroundColor")
+    assert card.evaluate("e=>getComputedStyle(e).borderRadius")=='14px'
+    assert '80px' in card.evaluate("e=>getComputedStyle(e).gridTemplateColumns")
     page.screenshot(path=str(out/'homepage-desktop.png'),full_page=True)
     for width in [1440,360]:
         page.set_viewport_size({'width':width,'height':1080})
