@@ -62,3 +62,19 @@ test('text palette meets WCAG AA contrast in both paper and white contexts',()=>
  assert.ok(ratio('#ffffff',token('blue'))>=4.5,'button label');
  assert.match(css,/\.article p a[^{]*\{text-decoration:underline/,'in-text links need a non-color cue');
 });
+
+test('homepage selection summary matches the guide dataset',()=>{
+ const guide=fs.readFileSync(path.join(root,'guide/index.html'),'utf8');
+ const raw=guide.match(/<script type="application\/json" id="guide-data">([\s\S]*?)<\/script>/);
+ assert.ok(raw,'guide must embed its dataset');
+ const data=JSON.parse(raw[1]);
+ const total=data.weights.reduce((s,w)=>s+w.w,0);
+ const score=r=>data.weights.reduce((s,w)=>s+w.w*(r.scores[w.id]||0),0)/total;
+ const top=data.robots.filter(r=>r.eligible).sort((a,b)=>score(b)-score(a)).slice(0,3)
+  .map(r=>[score(r).toFixed(2),r.model]);
+ const home=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ const block=home.match(/<p class="guide-teaser-top">([\s\S]*?)<\/p>/);
+ assert.ok(block,'homepage must show the current top three');
+ const shown=[...block[1].matchAll(/<b>([\d.]+)<\/b>([^<]+)</g)].map(m=>[m[1],m[2].trim()]);
+ assert.deepEqual(shown,top,'homepage picks must track the guide ranking; regenerate them after any data change');
+});
