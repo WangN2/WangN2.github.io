@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/tray-grasp.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="料盘抓取：离线示教与在线重算 · WangN2">
+ <meta property="og:description" content="示教为什么必须存在盘系而不是基座系？运行时如何只跟随 5 个自由度、锁住滚转，并如实拒绝超出能力的请求。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/tray-grasp.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="料盘抓取：离线示教与在线重算 · WangN2">
+ <meta name="twitter:description" content="示教为什么必须存在盘系而不是基座系？运行时如何只跟随 5 个自由度、锁住滚转，并如实拒绝超出能力的请求。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-23">
+ <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:section" content="视觉伺服">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"料盘抓取：离线示教与在线重算","description":"示教为什么必须存在盘系而不是基座系？运行时如何只跟随 5 个自由度、锁住滚转，并如实拒绝超出能力的请求。","url":"https://wangn2.github.io/notes/tray-grasp.html","mainEntityOfPage":"https://wangn2.github.io/notes/tray-grasp.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["离线示教","坐标系变换","视觉伺服","夹取"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <!--/meta-->
+ <title>料盘抓取：离线示教与在线重算 · WangN2</title>
+ <meta name="description" content="示教为什么必须存在盘系而不是基座系？运行时如何只跟随 5 个自由度、锁住滚转，并如实拒绝超出能力的请求。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/tray/tray-grasp.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 04 / 视觉伺服 · 工程实践</p>
+ <h1>料盘抓取：<br>离线示教与在线重算</h1>
+ <p class="lede">示教文件把「工具相对料盘」的位姿冻结在盘系里；每次运行时只用本次观测到的盘位姿，把它搬运到基座系。所以盘怎么挪，程序都不用重教——只要它还看得见、还在臂展内。</p>
+  <div class="article-meta"><span><time datetime="2026-10-23">2026-10-23</time></span><span>约 9 分钟</span><span>视觉伺服</span></div>
+
+ <p>这篇笔记记录一套已经跑通的流程：相机看到料盘上的标签，求出料盘本次的位姿，再把四个预先教好的站位搬到基座系执行。重点不在标签怎么识别（那是<a href="./apriltag.html">上一篇</a>的事），而在「教什么、跟什么、不跟什么」这三个决定。</p>
+ <p class="callout"><strong>先划清界限。</strong>本文描述的是真机流程的方法与约束，不是本站在浏览器里能复现的能力。站内的 G2 实验室只是运动学演示，不连接真机、不做碰撞检查，也不要把它当作本文任何数值的来源。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#the-problem">1. 问题：料盘每次都在别的地方</a></li>
+   <li><a href="#why-tray-frame">2. 把示教存进盘系，而不是基座系</a></li>
+   <li><a href="#what-is-taught">3. 示教文件里到底存了什么</a></li>
+   <li><a href="#online-remap">4. 在线重算：一条刚体变换链</a></li>
+   <li><a href="#five-dof">5. 只跟随 5 个自由度</a></li>
+   <li><a href="#sub-legs">6. 孔内为什么要切成 ≤21 mm</a></li>
+   <li><a href="#run-sequence">7. 运行时序：每一步都有门</a></li>
+   <li><a href="#run-record">8. 一次运行记录</a></li>
+   <li><a href="#limits">9. 边界与已知限制</a></li>
+   <li><a href="#numbers">10. 数值参考</a></li>
+   </ol>
+  </nav>
+ <h2 id="the-problem">1. 问题：料盘每次都在别的地方</h2>
+ <p>上料盘是一块带若干孔位的工装。机器人要做的动作很具体：把夹爪伸进某个孔、撑开爪指、卡住槽位、把盘提起来。孔的内径只比爪指宽出几毫米，所以位置和姿态都得落在很小的窗口里。</p>
+ <p>麻烦在于盘每次放的位置都不一样。人工上下料时挪动十几厘米很常见，产线换型时整盘换一个方向也正常。如果程序里写死「基座系里的绝对目标点」，盘一挪，整套点位就得重新教一遍。</p>
+ <p>这篇笔记要回答的就是这个问题：<strong>能不能教一次，之后自动跟随？</strong> 能，前提是先想清楚「什么东西是不变的」。</p>
+
+ <h2 id="why-tray-frame">2. 把示教存进盘系，而不是基座系</h2>
+ <p>盘在动，机器人基座不动，看起来该用基座系。但真正不变的是另一件事：<strong>夹爪相对盘孔的几何关系</strong>。盘挪到哪，这个关系都成立。</p>
+ <p>于是把示教的末端位姿换算进料盘坐标系存下来，用的时候再乘一次当前的盘位姿：</p>
+ <div class="formula">p_base = T_base_tray · p_tray</div>
+ <p>两种存法的差别，在盘挪动之后会立刻暴露：</p>
+ <table class="coordinates"><thead><tr><th>表达方式</th><th>料盘挪 10 cm 之后</th></tr></thead><tbody>
+  <tr><th>基座系绝对位姿<br><code>p_base = [0.785, 0.260, 1.142]</code></th><td>完全失效，必须重新示教</td></tr>
+  <tr><th>盘系相对位姿<br><code>p_tray = [0.060, 0.011, −0.059]</code></th><td>依然有效，乘上新的盘位姿即可</td></tr>
+ </tbody></table>
+ <p>一句话概括：<strong>离线示教 = 一次成功经验的坐标系无关化</strong>。它保存的不是坐标，而是「这次成了」这件事里与盘绑定的那部分。</p>
+
+ <h2 id="what-is-taught">3. 示教文件里到底存了什么</h2>
+ <p>如果示教只是记一个点，那在线算一遍就够了，不必存文件。真正要存的，是那些<strong>从一次观测里算不出来</strong>的量：</p>
+ <table class="coordinates"><thead><tr><th>承载内容</th><th>为什么算不出来</th></tr></thead><tbody>
+  <tr><th>爪尖偏置 <code>(60, 0, 292) mm</code></th><td>工具不是轴对称的：末端法兰到爪尖有 60 mm 横向偏移。这个偏移只能来自装配图或标定，观测里没有。</td></tr>
+  <tr><th>四个站位的间距 <code>130 / 110 / 45 mm</code></th><td>孔内要进多深才吃上卡槽，是试出来的经验值，不是几何必然。换一种爪指，这组数就得重来。</td></tr>
+  <tr><th>入槽深度 <code>±60 mm</code></th><td>吃槽窗口只有几毫米。深了爪指会越过槽位，浅了撑不开。</td></tr>
+  <tr><th>可用的工具滚转</th><td>通孔允许任意滚转，但<strong>实际可行</strong>的那一个，是验证过的那一个。见第 5 节的反例。</td></tr>
+ </tbody></table>
+ <p>四个站位分别是 <code>standoff</code>（盘外待命）、<code>mouth</code>（孔口）、<code>short_insert</code>（浅入）、<code>groove</code>（吃槽）。它们严格共线于孔轴——不是巧合，而是生成时按同一条轴线、只改轴向坐标做出来的。</p>
+ <p>这四个站位里，只有 <code>groove</code> 是<strong>真实证据</strong>：来自一次物理上真正插到位并卡住的插入。其余三个是沿同一轴线外推出来的几何偏移。现场微调时也只动 <code>groove</code>：它一移动，绝对位置变了，但其余三站不动，于是四站的相对间距跟着变。</p>
+
+ <h2 id="online-remap">4. 在线重算：一条刚体变换链</h2>
+ <p>运行时对四个站位各算一次，就是把示教位姿从盘系搬进基座系：</p>
+ <div class="formula">target_base(站) = T_base_tray_live · T_tray_end(站)<br>　　　　　　　　　└── 本次观测 ──┘　　└── 示教文件 ──┘</div>
+ <p>这是标准的刚体变换链。四个站位是<strong>刚性搬运</strong>过去的，它们之间的相对形状不变——像一架梯子，盘转到哪，梯子跟着转到哪，梯子本身不变形。</p>
+ <p>下面的实验把这件事画出来。拖动滑块改变料盘的姿态，看四个站位如何随盘移动；再切换「照抄观测」，看绕孔轴的滚转被观测噪声带走时会发生什么。</p>
+
+ <section class="tray-lab" aria-labelledby="tray-lab-title" data-ready="false">
+  <h3 id="tray-lab-title">交互：把料盘挪一挪</h3>
+  <p class="tray-hint">拖动滑块，或在画布上左右拖动来转盘。灰色站立姿态是示教时的参考位置，彩色是本次重算结果。</p>
+  <div class="tray-controls">
+   <label>料盘转角 <output data-out="yaw">12°</output><input type="range" data-in="yaw" min="-45" max="45" step="1" value="12" aria-label="料盘绕竖直轴的转角"></label>
+   <label>孔轴倾角 <output data-out="tilt">3.5°</output><input type="range" data-in="tilt" min="0" max="10" step="0.5" value="3.5" aria-label="孔轴相对水平面的倾角"></label>
+   <label>观测滚转噪声 <output data-out="roll">0°</output><input type="range" data-in="roll" min="0" max="180" step="5" value="0" aria-label="观测到的绕孔轴滚转噪声"></label>
+   <div class="tray-mode" role="group" aria-label="姿态跟随策略">
+    <button type="button" data-mode="min" aria-pressed="true">最小旋转 · 锁滚转</button>
+    <button type="button" data-mode="copy" aria-pressed="false">照抄观测 · 带滚转</button>
+    <button type="button" data-reset>复位料盘</button>
+   </div>
+  </div>
+  <canvas data-canvas role="img" aria-label="料盘与四个站位的等轴测示意。料盘可以整体平移和转动，四个站位作为刚体随盘移动，工具绕孔轴的滚转在最小旋转模式下保持不变。">浏览器不支持画布。四个站位随料盘刚性搬运；绕孔轴的滚转保持示教值。</canvas>
+  <p class="tray-legend"><b>①</b> standoff −70 mm　<b>②</b> mouth −50 mm　<b>③</b> short_insert +15 mm　<b>④</b> groove +60 mm　·　虚线为示教参考位置</p>
+  <dl class="tray-readout">
+   <div><dt>盘心（基座系）</dt><dd data-read="center">0.800 / 0.100 / 1.100 m</dd></div>
+   <div><dt>孔轴方向</dt><dd data-read="axis">1.000 / 0.000 / 0.000</dd></div>
+   <div><dt>工具滚转</dt><dd data-read="rollout">锁定 · 0°</dd></div>
+   <div><dt>groove 目标</dt><dd data-read="groove">—</dd></div>
+  </dl>
+  <p class="tray-status" data-status role="status">最小旋转：孔轴跟随观测，滚转保持示教值。</p>
+ </section>
+
+ <h2 id="five-dof">5. 只跟随 5 个自由度</h2>
+ <p>观测给出的料盘位姿有 6 个自由度，但<strong>不该全部跟随</strong>。绕孔轴自身的那个滚转就是多余的：孔是通孔，爪指是平着插进去的，绕轴转多少都不影响能不能进孔。</p>
+ <p>如果直接照抄观测姿态，检测出的滚转噪声会原样传进工具姿态。这不是理论风险：有一次跟随了检测滚转，工具绕着孔轴拧了 90°，把盘直接撞掉。所以实际做法是只取<strong>最小旋转</strong>：</p>
+ <div class="formula">R_min  = 把 a_ref 转到 a_live 的最小旋转（轴 = a_ref × a_live，角 = acos(a_ref · a_live)）<br>R_used = R_min · R_ref　　# 示教滚转被保留<br>t_used = 本次观测的盘心平移　# 盘心完全跟随</div>
+ <p>也就是：<strong>跟随 3 个平移 + 2 个轴方向自由度，锁住绕轴滚转这 1 个自由度。</strong></p>
+ <p>还要处理一个符号问题：如果观测到的孔轴与示教时的孔轴几乎反向，那多半是选错了面的示教文件（盘翻面了）。这时最小旋转会退化成一个绕轴 180° 的翻转，姿态看着「对」，实际完全错。程序在算之前就把它拦下来，报 <code>bore_axis_reversed</code> 并拒绝执行。</p>
+ <table class="coordinates"><thead><tr><th>跟着盘变（在线重算）</th><th>固化不动（示教文件 / 参数）</th></tr></thead><tbody>
+  <tr><td>盘心位置（3 个平移）</td><td>绕孔轴的滚转</td></tr>
+  <tr><td>孔轴方向（含倾角）</td><td>站位间距 130 / 110 / 45 mm</td></tr>
+  <tr><td>整条梯子的朝向</td><td>入槽深度 ±60 mm</td></tr>
+  <tr><td>—</td><td>爪尖偏置 (60, 0, 292) mm</td></tr>
+ </tbody></table>
+
+ <h2 id="sub-legs">6. 孔内为什么要切成 ≤21 mm</h2>
+ <p>规划器在两个目标之间按<strong>关节空间</strong>插值，不是按末端直线插值。跨度一大，末端实际走出的路径就会「切弦」——在两个目标之间抄近路，偏离那条理想直线。</p>
+ <p>直线离孔轴越远，切弦的偏移越大。孔只有几十毫米宽，偏移一大就会蹭到孔壁。所以孔内每一段再细分为不超过 21 mm 的子目标：</p>
+ <div class="formula">max_sub_leg_m = 0.021</div>
+ <p>关键在于：<strong>子目标是同一条示教轴线上的线性插值，姿态不变</strong>。所以每个子目标都还在轴上，细分不会引入新的方向误差，误差也不随段数累积。代价是每段都是一次独立的阻塞式请求，段末速度归零——现场听起来就是「一走一停」。</p>
+
+ <h2 id="run-sequence">7. 运行时序：每一步都有门</h2>
+ <p>整条流程按顺序推进，每一步都有明确的通过条件和失败处理。设计原则是<strong>不过就停，不猜</strong>：宁可拒绝执行，也不带着可疑的位姿去插孔。</p>
+ <table class="coordinates"><thead><tr><th>步</th><th>动作</th><th>失败处理</th></tr></thead><tbody>
+  <tr><th>1</th><td>观测标签，解算本次 <code>T_base_tray_live</code></td><td>重投影误差过大、观测不新鲜或不稳定 → 重试数次后失败</td></tr>
+  <tr><th>2</th><td>轴对齐，求最小旋转</td><td>孔轴反向（多半选错面）→ 拒绝，报 <code>bore_axis_reversed</code></td></tr>
+  <tr><th>3</th><td>四个站位重算</td><td>—</td></tr>
+  <tr><th>4</th><td>预检：倾角、单段长度、逆解可解</td><td>超限直接失败，不做试探性运动</td></tr>
+  <tr><th>5</th><td>执行：初始位 → standoff → 逐站进孔（≤21 mm 细分）</td><td>到位误差超限 → 失败</td></tr>
+  <tr><th>6</th><td>叠加竖直方向的基座系修正</td><td>—</td></tr>
+  <tr><th>7</th><td>撑开爪指，用主驱动角判断是否吃上槽</td><td>落在判定区间外 → 失败并停住</td></tr>
+ </tbody></table>
+ <p>第 7 步值得单独说。判断「有没有吃上槽」不能靠「爪子合拢了没有」，而要看<strong>主驱动角落在哪个区间</strong>。爪指卡进槽里，撑开过程会在一个很窄的角度区间内被挡住；角度跑到区间外，说明爪指根本没进槽——这时候继续动作只会把盘顶飞。</p>
+
+ <h2 id="run-record">8. 一次运行记录</h2>
+ <p>下面是一次连续调试中的三轮。期间料盘被人挪动过，程序里没有改任何参数：</p>
+ <table class="coordinates"><thead><tr><th>轮次</th><th>盘心位置 (m)</th><th>孔轴倾角</th><th>撑开角 (rad)</th><th>伸入最大到位误差</th></tr></thead><tbody>
+  <tr><td>1</td><td>[0.894, 0.099, 1.194]</td><td>3.59°</td><td>1.58039</td><td>0.30 mm</td></tr>
+  <tr><td>2</td><td>[0.892, 0.104, 1.195]</td><td>7.07°</td><td>1.56771</td><td>0.30 mm</td></tr>
+  <tr><td>3</td><td>[0.838, 0.216, 1.197]</td><td>7.32°</td><td>1.58400</td><td>0.29 mm</td></tr>
+ </tbody></table>
+ <p>三轮之间盘心平移了 11.7 cm，倾角从 3.59° 变到 7.32°，撑开角各自不同——但都落在吃槽判定区间内。这说明重算链路是通的：<strong>变的是盘，不变的是程序</strong>。</p>
+ <p>注意「到位误差」指的是末端到达子目标的位置偏差，不是插入精度，也不是重复定位精度。两者不是一回事，别混着说。</p>
+
+ <h2 id="limits">9. 边界与已知限制</h2>
+ <table class="coordinates"><thead><tr><th>情况</th><th>行为</th></tr></thead><tbody>
+  <tr><td>料盘挪出臂展</td><td>预检失败，拒绝执行</td></tr>
+  <tr><td>孔轴倾角超过 10°</td><td>预检失败。倾角再大，末端可达性和工装净空会先出问题</td></tr>
+  <tr><td>只看到一个标签、重投影超限</td><td>观测失败，重试后退出</td></tr>
+  <tr><td>观测过期</td><td>拒绝使用旧位姿</td></tr>
+  <tr><td>选错面的示教文件</td><td><code>bore_axis_reversed</code> 拒绝</td></tr>
+  <tr><td>料盘不在碰撞场景内</td><td>插入段的几何安全依赖示教轴线与子段细分，这是已知限制</td></tr>
+ </tbody></table>
+ <p>最后一条要说得更直白：这套方法保证<strong>沿着一条验证过的轴线插进去</strong>，但它不是一般的避障规划。如果现场临时多了一个障碍物、或者盘被抬高了，这套逻辑不会自动发现。</p>
+ <p>几个常被问到的点：</p>
+ <ul>
+  <li><strong>为什么不能每次在线算目标、干脆不要示教文件？</strong>在线只能算出「盘在哪」，算不出「工具相对孔该在哪」。爪尖偏置、入槽深度、站间距、可用滚转都在示教文件里；没有它，这些就得每次现场教。</li>
+  <li><strong>既然只有 <code>groove</code> 是证据，为什么另外三站不也现场教？</strong>它们沿同一条孔轴偏移，教了也只是重复验证同一个轴线方向。真正决定成败的是 groove 深度，所以现场只调它。</li>
+  <li><strong>锁住滚转会不会让工具和盘不匹配？</strong>不会。工具与盘的相对姿态就是那次成功插入时的相对姿态；只要孔轴方向一致，绕轴差多少都不影响爪指进入通孔。</li>
+  <li><strong>倾角大了为什么还能插？</strong>10° 以内，工具跟随孔轴方向即可，横向偏差由爪尖位置控制吸收。超过这个量级，先出问题的是可达性和净空，所以设了这个门限。</li>
+ </ul>
+
+ <h2 id="numbers">10. 数值参考</h2>
+ <p>示教文件里四站的轴向坐标与末端平移（A 面）。<code>tip_x</code> 是爪尖在盘系里沿孔轴的位置，负值在盘外，正值在孔内：</p>
+ <table class="coordinates"><thead><tr><th>站位</th><th>tip_x（盘系）</th><th>T_tray_end 平移 (m)</th></tr></thead><tbody>
+  <tr><td>standoff</td><td>−70 mm</td><td>[−0.3621, 0.0106, −0.0587]</td></tr>
+  <tr><td>mouth</td><td>−50 mm</td><td>[−0.3421, 0.0106, −0.0587]</td></tr>
+  <tr><td>short_insert</td><td>+15 mm</td><td>[−0.2771, 0.0106, −0.0587]</td></tr>
+  <tr><td>groove</td><td><strong>+60 mm</strong></td><td>[−0.2321, 0.0106, −0.0587]</td></tr>
+ </tbody></table>
+ <p>y、z 恒定（0.0106 / −0.0587），只有 x 变化——这正说明四站严格共线于孔轴。</p>
+ <p>B 面（盘翻面）不是一份新的证据，而是 A 面记录绕盘系 Y 轴转 180°：真正的旋转，x 和 z 同时反号，z 变成 +0.0587，其余同构。这类文件必须标明「物理配准尚未验证」，否则很容易被当成验证过的数据用。</p>
+
+ <p class="references">相关笔记：<a href="./apriltag.html">AprilTag 视觉定位详解</a>（盘位姿从哪来） · <a href="./kinematics.html">从关节角到末端运动</a>（末端目标怎么变成关节角）</p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./apriltag.html"><span>← 上一篇</span><strong>AprilTag 视觉定位详解</strong></a>
+  <a class="home" href="../index.html#notes"><span>系列索引</span><strong>全部技术笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/tray/tray-grasp.js"></script>
+</body>
+</html>
