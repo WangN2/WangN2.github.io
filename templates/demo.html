@@ -32,15 +32,21 @@
   <label class="form-label">姿态预设 <select class="form-select" id="g2-preset"><option value="down">站立 · 双臂下垂</option><option value="bent">双臂屈肘观察</option><option value="zero">USD 原始零位</option></select></label>
  </div>
  <div class="viz-controls"><button class="btn" id="g2-wide" type="button">全身视角</button><button class="btn" id="g2-close" type="button">当前部位特写</button><label class="form-check"><input class="form-check-input" id="g2-transparent" type="checkbox"><span class="form-check-label">透视外壳</span></label><button class="btn" id="g2-stop" type="button">停止</button></div>
- <div class="scene" id="g2-scene" role="img" aria-label="G2 全身可动模型、关节轴、末端轨迹和雅可比预测箭头"><span class="note text-small">拖动旋转 · 滚轮缩放 · X 前 / Y 左 / Z 上</span></div>
- <div class="legend text-small"><span><i class="swatch" style="background:var(--viz-series-1)"></i>所选末端 / 实际轨迹 ●</span><span><i class="swatch" style="background:var(--viz-series-2)"></i>雅可比预测 →</span><span><i class="swatch" style="background:var(--viz-series-3)"></i>关节轴 / 目标 ○</span></div>
- <div class="readout tabular-nums"><span id="g2-position">正在解析全身模型…</span><span id="g2-error"></span></div>
- <div id="g2-joint-actions" class="viz-controls"><label class="form-label">观察关节 <select class="form-select" id="g2-selected"></select></label><button class="btn" id="g2-nudge-minus" type="button">该关节 −3°</button><button class="btn" id="g2-nudge" type="button">该关节 +3°</button></div>
- <div id="g2-actions" class="viz-controls"><button class="btn btn-primary" data-move="0,0.05" type="button">末端 +X 5 cm</button><button class="btn" data-move="0,-0.05" type="button">−X 5 cm</button><button class="btn" data-move="1,0.05" type="button">+Y 5 cm</button><button class="btn" data-move="1,-0.05" type="button">−Y 5 cm</button><button class="btn" data-move="2,0.05" type="button">+Z 5 cm</button><button class="btn" data-move="2,-0.05" type="button">−Z 5 cm</button></div>
- <div id="g2-grip-controls" hidden><label class="form-label">夹爪开合 · 主驱动角 <output id="g2-grip-value" class="tabular-nums"></output><input id="g2-grip" class="form-range" type="range" min="0" max="90" step="1" value="0" aria-label="夹爪联动开合"></label></div>
- <div id="g2-base-actions" hidden><div class="viz-controls"><button class="btn" data-base="0.2,0,0" type="button">前进 20 cm</button><button class="btn" data-base="-0.2,0,0" type="button">后退 20 cm</button><button class="btn" data-base="0,0.2,0" type="button">左移 20 cm</button><button class="btn" data-base="0,-0.2,0" type="button">右移 20 cm</button><button class="btn" data-base="0,0,0.2617993878" type="button">左转 15°</button><button class="btn" data-base="0,0,-0.2617993878" type="button">右转 15°</button></div><div id="g2-wheel-values" class="text-small tabular-nums"></div></div>
- <div id="g2-status" class="text-small" aria-live="polite">运动学教学 · 无接触、碰撞或动力学 · 不连接真机</div>
- <div class="joints" id="g2-joints"></div><div id="g2-column" class="text-small joint-name"></div>
+ <div class="lab-grid">
+  <div class="lab-visual">
+   <div class="scene" id="g2-scene" role="img" aria-label="G2 全身可动模型、关节轴、末端轨迹和雅可比预测箭头"><span class="note text-small">拖动旋转 · 滚轮缩放 · X 前 / Y 左 / Z 上</span></div>
+   <div class="legend text-small"><span><i class="swatch" style="background:var(--viz-series-1)"></i>所选末端 / 实际轨迹 ●</span><span><i class="swatch" style="background:var(--viz-series-2)"></i>雅可比预测 →</span><span><i class="swatch" style="background:var(--viz-series-3)"></i>关节轴 / 目标 ○</span></div>
+   <div class="readout tabular-nums"><span id="g2-position">正在解析全身模型…</span><span id="g2-error"></span></div>
+  </div>
+  <div class="lab-side">
+   <div id="g2-joint-actions" class="viz-controls"><label class="form-label">观察关节 <select class="form-select" id="g2-selected"></select></label><button class="btn" id="g2-nudge-minus" type="button">该关节 −3°</button><button class="btn" id="g2-nudge" type="button">该关节 +3°</button></div>
+   <div id="g2-actions" class="viz-controls"><button class="btn btn-primary" data-move="0,0.05" type="button">末端 +X 5 cm</button><button class="btn" data-move="0,-0.05" type="button">−X 5 cm</button><button class="btn" data-move="1,0.05" type="button">+Y 5 cm</button><button class="btn" data-move="1,-0.05" type="button">−Y 5 cm</button><button class="btn" data-move="2,0.05" type="button">+Z 5 cm</button><button class="btn" data-move="2,-0.05" type="button">−Z 5 cm</button></div>
+   <div id="g2-grip-controls" hidden><label class="form-label">夹爪开合 · 主驱动角 <output id="g2-grip-value" class="tabular-nums"></output><input id="g2-grip" class="form-range" type="range" min="0" max="90" step="1" value="0" aria-label="夹爪联动开合"></label></div>
+   <div id="g2-base-actions" hidden><div class="viz-controls"><button class="btn" data-base="0.2,0,0" type="button">前进 20 cm</button><button class="btn" data-base="-0.2,0,0" type="button">后退 20 cm</button><button class="btn" data-base="0,0.2,0" type="button">左移 20 cm</button><button class="btn" data-base="0,-0.2,0" type="button">右移 20 cm</button><button class="btn" data-base="0,0,0.2617993878" type="button">左转 15°</button><button class="btn" data-base="0,0,-0.2617993878" type="button">右转 15°</button></div><div id="g2-wheel-values" class="text-small tabular-nums"></div></div>
+   <div id="g2-status" class="text-small" aria-live="polite">运动学教学 · 无接触、碰撞或动力学 · 不连接真机</div>
+   <div class="joints" id="g2-joints"></div><div id="g2-column" class="text-small joint-name"></div>
+  </div>
+ </div>
 
  <script type="application/octet-stream" id="g2-model">__MODEL__</script>
 </main>
