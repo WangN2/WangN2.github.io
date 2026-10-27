@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/lingbot-vla2.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="LingBot-VLA 2.0：从看懂指令到连续动作 · WangN2">
+ <meta property="og:description" content="用 9 分 22 秒中文动画和配套笔记，理解 LingBot-VLA 2.0 的输入、联合注意力、MoE、Flow Matching、时空蒸馏与闭环执行，附官方论文和固定代码版本。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/lingbot-vla2.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="LingBot-VLA 2.0：从看懂指令到连续动作 · WangN2">
+ <meta name="twitter:description" content="用 9 分 22 秒中文动画和配套笔记，理解 LingBot-VLA 2.0 的输入、联合注意力、MoE、Flow Matching、时空蒸馏与闭环执行，附官方论文和固定代码版本。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-27">
+ <meta property="article:modified_time" content="2026-10-27">
+ <meta property="article:section" content="具身模型">
+ <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "LingBot-VLA 2.0：从看懂指令到连续动作", "description": "用 9 分 22 秒中文动画和配套笔记，理解 LingBot-VLA 2.0 的输入、联合注意力、MoE、Flow Matching、时空蒸馏与闭环执行，附官方论文和固定代码版本。", "url": "https://wangn2.github.io/notes/lingbot-vla2.html", "mainEntityOfPage": "https://wangn2.github.io/notes/lingbot-vla2.html", "inLanguage": "zh-CN", "author": {"@type": "Person", "name": "WangN2", "url": "https://github.com/WangN2"}, "publisher": {"@type": "Person", "name": "WangN2"}, "isPartOf": {"@type": "WebSite", "name": "WangN2 · 机器人技术笔记", "url": "https://wangn2.github.io/"}, "about": ["VLA", "Flow Matching", "MoE", "机器人控制"], "datePublished": "2026-10-27", "dateModified": "2026-10-27"}</script>
+ <!--/meta-->
+ <title>LingBot-VLA 2.0：从看懂指令到连续动作 · WangN2</title>
+ <meta name="description" content="用 9 分 22 秒中文动画和配套笔记，理解 LingBot-VLA 2.0 的输入、联合注意力、MoE、Flow Matching、时空蒸馏与闭环执行，附官方论文和固定代码版本。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/lingbot-vla2/tutorial.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="./../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article lingbot-article">
+<p class="eyebrow">NOTE 09 / 具身模型 · 动画教学</p>
+<h1>LingBot-VLA 2.0：<br>从看懂指令到连续动作</h1>
+<p class="lede">一句「把杯子放到托盘上」，怎样变成一小段机器人动作？先用动画抓住整体，再把注意力、MoE、Flow Matching 和训练监督放回同一条数据流。</p>
+<div class="article-meta"><span><time datetime="2026-10-27">2026-10-27</time></span><span>约 6 分钟</span><span>视频 9 分 22 秒</span><span>具身模型</span><a class="series-link" href="../series/">全系列 ›</a></div>
+<p class="callout"><strong>范围与版本。</strong>这是 LingBot-<strong>VLA</strong> 2.0，不是 LingBot-VA。本片是原创示意动画与中文合成旁白，不是官方实机录像，也不证明任何特定机器人或线束任务已验证成功。机制核查截至 2026-10-26；论文和固定代码见文末。</p>
+<nav class="toc" aria-labelledby="toc-title"><p class="toc-title" id="toc-title">本文目录</p><ol>
+<li><a href="#watch">1. 先看视频，再按章节回看</a></li><li><a href="#pipeline">2. 把一次推理连成完整链路</a></li><li><a href="#attention">3. 联合注意力与 MoE 各做什么</a></li><li><a href="#flow">4. Flow Matching：从噪声到动作</a></li><li><a href="#representation">5. 10、50、55，三个不同的轴</a></li><li><a href="#teachers">6. 训练有教师，运行没有真实未来</a></li><li><a href="#loop">7. 动作如何走到真实机器人</a></li><li><a href="#reading-code">8. 从三处入口读源码</a></li><li><a href="#sources">9. 来源与实现边界</a></li></ol></nav>
+<h2 id="watch">1. 先看视频，再按章节回看</h2>
+<figure class="tutorial-player"><video id="lingbot-video" controls preload="metadata" playsinline width="1280" height="720" poster="../assets/lingbot-vla2/poster.jpg" aria-label="LingBot-VLA 2.0 中文动画教学">
+<source src="../assets/lingbot-vla2/lingbot-vla2-tutorial.mp4" type="video/mp4">
+<track kind="captions" src="../assets/lingbot-vla2/captions.vtt" srclang="zh-CN" label="中文字幕">
+你的浏览器无法播放嵌入视频，请使用下方下载链接。</video><figcaption>9:22 · 720p · 约 11.3 MB · 中文配音与画面字幕。不会自动播放。</figcaption></figure>
+<p class="media-downloads"><a href="../assets/lingbot-vla2/lingbot-vla2-tutorial.mp4" download>下载 MP4</a> · <a href="../assets/lingbot-vla2/transcript.md" download>完整讲稿与来源</a> · <a href="../assets/lingbot-vla2/captions.vtt" download>下载字幕</a></p>
+<details class="chapter-details"><summary>展开 26 个视频章节</summary><p>点击定位到对应章节；不会强制播放，可自行按播放键。无脚本时仍可使用视频进度条。</p><div class="video-chapters" data-video-chapters><button type="button" data-time="0"><span>00:00</span>机器人收到一句话</button><button type="button" data-time="18"><span>00:18</span>先抓住一条主线</button><button type="button" data-time="40"><span>00:40</span>三个入口，各回答一个问题</button><button type="button" data-time="63"><span>01:03</span>画面和文字变成 tokens</button><button type="button" data-time="83"><span>01:23</span>语言主干，不直接充当电机驱动器</button><button type="button" data-time="103"><span>01:43</span>注意力：动作向上下文取信息</button><button type="button" data-time="125"><span>02:05</span>MoE：只调用部分计算专家</button><button type="button" data-time="148"><span>02:28</span>为什么需要统一动作表示？</button><button type="button" data-time="169"><span>02:49</span>55 维，不是 55 个关节</button><button type="button" data-time="191"><span>03:11</span>输出一段动作，而不是一句答案</button><button type="button" data-time="212"><span>03:32</span>动作从噪声中逐渐整理出来</button><button type="button" data-time="234"><span>03:54</span>训练：把正确动作和噪声混合</button><button type="button" data-time="255"><span>04:15</span>模型学的是速度场</button><button type="button" data-time="277"><span>04:37</span>推理：从 t = 1 走到 t = 0</button><button type="button" data-time="301"><span>05:01</span>把三个数字彻底分开</button><button type="button" data-time="322"><span>05:22</span>二点零怎样学习空间和未来？</button><button type="button" data-time="342"><span>05:42</span>训练时，两类教师提供监督</button><button type="button" data-time="363"><span>06:03</span>推理时，不把真实未来喂进去</button><button type="button" data-time="387"><span>06:27</span>它不是“先生成视频再行动”</button><button type="button" data-time="408"><span>06:48</span>训练是怎样搭起来的？</button><button type="button" data-time="431"><span>07:11</span>模型输出还要经过部署接口</button><button type="button" data-time="454"><span>07:34</span>闭环：只执行前段，再看一次</button><button type="button" data-time="475"><span>07:55</span>读论文，也要读当前配置</button><button type="button" data-time="496"><span>08:16</span>现在，你能复述完整机制了</button><button type="button" data-time="520"><span>08:40</span>带着这三个问题读源码</button><button type="button" data-time="541"><span>09:01</span>来源与版本</button></div></details>
+<h2 id="pipeline">2. 把一次推理连成完整链路</h2>
+<p><strong>当前多视角 RGB、语言指令、机器人状态 → 条件动作生成 → 反归一化与字段映射 → 执行前段 → 更新观测。</strong>图像回答「现场有什么」，语言回答「要做什么」，状态回答「身体现在怎样」。它不是把自然语言直接翻译成一段电机程序。</p>
+<figure><img class="tutorial-diagram" src="../assets/lingbot-vla2/diagram-03.webp" width="1280" height="720" loading="lazy" alt="RGB 和语言进入 Qwen3-VL 主干，机器人状态直接进入动作专家，两条流共同生成动作"><figcaption>状态进入动作侧；不是把所有输入都塞进视觉语言主干。</figcaption></figure>
+<p>当前代码使用 Qwen3-VL-4B-Instruct 作为视觉语言主干，动作专家采用独立的 Transformer 层与连续动作输出。一个负责可迁移的多模态上下文，一个处理带噪动作和时间条件；但它们并非完全隔离，注意力把两条信息流连接起来。</p>
+<h2 id="attention">3. 联合注意力与 MoE 各做什么</h2>
+<p>每层中，两条流分别生成查询、键和值，再进入联合注意力。动作流因此能从当前场景和指令中取信息。注意力有方向：视觉语言前缀不能偷看动作后缀，同一动作块内部则可以双向交流，协调一段运动。</p>
+<p><strong>MoE 在动作专家的前馈网络里。</strong>当前公开配置有 32 个路由专家，每个 token 选择 4 个，另有共享专家。它用稀疏激活增加容量，并不是让 32 个完整机器人投票；也不能给每个专家预先贴上「左手」「抓杯」等技能标签。具体分工由训练形成。</p>
+<h2 id="flow">4. Flow Matching：从噪声到动作</h2>
+<p>可以把噪声看成一份杂乱的动作草稿。训练时有示范动作 <code>a</code>，也有高斯噪声 <code>ε</code>，随机选一个时刻把两者混合：</p>
+<div class="formula">x(t) = t · ε + (1 − t) · a<br>目标速度 u(t) = ε − a</div>
+<p>模型在图像、语言和状态的条件下，学习混合动作所在位置的变化方向。当前时间约定中，<code>t = 1</code> 是噪声，<code>t = 0</code> 是示范动作。训练比较预测速度与目标速度；<code>fm</code> 和 <code>L1_fm</code> 的误差形式不同，当前 RoboTwin 示例用后者。</p>
+<p>推理没有示范答案，从随机噪声开始，默认做 10 次欧拉更新：</p>
+<div class="formula">Δt = −1 / N<br>x(t + Δt) = x(t) + Δt · vθ(x(t), t | 图像, 指令, 状态)</div>
+<p>负时间步把轨迹从 1 推向 0。视觉语言前缀的 KV 可以先计算并缓存，后续迭代动作流。<strong>随机动作只存在于计算内部，机器人不会先实际乱动再整理。</strong></p>
+<h2 id="representation">5. 10、50、55，三个不同的轴</h2>
+<figure><img class="tutorial-diagram" src="../assets/lingbot-vla2/diagram-15.webp" width="1280" height="720" loading="lazy" alt="10 表示默认积分迭代次数，50 表示动作块时间步数，55 表示每步统一表示维度"><figcaption>算几轮、预测多少步、每步有多少数值，必须分开。</figcaption></figure>
+<p>55 维统一接口由手臂关节 14、双末端位姿 14、夹爪 2、灵巧手 12、腰 4、头 2、底盘 3，以及预留 4 维组成。它不是说机器人有 55 个物理关节，也不是每台机器人都使用全部字段。缺失部件可填充，有效维度用掩码计入动作损失，字段顺序和映射要查对应机器人配置。</p>
+<p>默认动作块包含 50 个时间步，但这不是固定的几秒：物理时间取决于数据与控制频率。10 次积分迭代只是生成计算次数，也不等于机器人执行 10 步。</p>
+<h2 id="teachers">6. 训练有教师，运行没有真实未来</h2>
+<p>二点零在图像和文本后加入学习到的当前、未来感知查询。训练时，LingBot-Depth 提供几何表征，DINO-Video 提供时间相关的视觉表征，查询通过蒸馏学习这些信息。这种辅助任务让动作学习不只盯着输出误差，也获得空间和变化趋势的监督。</p>
+<figure><img class="tutorial-diagram" src="../assets/lingbot-vla2/diagram-18.webp" width="1280" height="720" loading="lazy" alt="推理保留当前和未来查询，但不运行教师模型，也不输入真实未来帧"><figcaption>学习预测未来的表征，不等于运行时先生成未来电影。</figcaption></figure>
+<p>公开的 <code>sample_actions</code> 接口输入当前 RGB、语言、状态等，不需要真实未来图像或深度图。教师不在动作采样路径中运行，学习到的查询仍然保留；当前 YAML 允许动作流关注未来查询。不能把「不用教师」误解为「训练成果全部丢弃」，也不能误解为模型提前看到了真实未来。</p>
+<h2 id="loop">7. 动作如何走到真实机器人</h2>
+<p>生成的动作通常处于归一化空间，下发前必须反归一化，再映射为目标机器人使用的关节、夹爪或其他字段。控制器负责执行，部署系统负责限位、碰撞检查、时延管理、急停与人工接管。VLA 不能代替这些安全边界。</p>
+<figure><img class="tutorial-diagram" src="../assets/lingbot-vla2/diagram-22.webp" width="1280" height="720" loading="lazy" alt="预测 50 步，示例仅执行前 25 步，然后重新观察并预测"><figcaption>25 是公开实机示例的执行前段参数，不是所有机器人的规定值。</figcaption></figure>
+<p>执行一段后重新观测，才能让物体位移或抓取失败影响下一次预测。这是滚动闭环的价值，但闭环本身不保证成功。基础模型迁移到新的本体、夹具或任务，仍需要数据映射、任务适配和实机验证；不是接上机器人就能稳定插接线束。</p>
+<h2 id="reading-code">8. 从三处入口读源码</h2>
+<ol><li><strong>输入怎么准备：</strong>看机器人配置中的图像、状态、动作字段映射，以及归一化统计。</li><li><strong>损失怎么计算：</strong>在主模型中定位流匹配目标、有效维度掩码与辅助蒸馏；不要把不同配置的损失当成唯一方案。</li><li><strong>动作怎么执行：</strong>从 <code>sample_actions</code> 追到部署 policy，检查反归一化、动作截取与重新预测的触发条件。</li></ol>
+<p>学习顺序建议：先复述输入到执行的主线，再看 Flow Matching 的时间方向，最后逐层查看注意力与教师监督。已有运动学基础，可以搭配<a href="./kinematics.html">正运动学笔记</a>理解动作字段，再用<a href="./grasp-timeline.html">完整抓取时序</a>检查模型外的系统责任。</p>
+<h2 id="sources">9. 来源与实现边界</h2>
+<p>论文 v1 为 2026-07-07。代码核查固定在提交 <code class="commit-id">be969b8fd117fb70550c5d4bf4bc328211b5b1b6</code>，避免把后续变动静默混入本文。</p>
+<ul class="source-list"><li><a href="https://arxiv.org/html/2607.06403v1">官方论文：From Foundation to Application</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2">官方仓库与版本说明</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/lingbotvla/models/vla/lingbot_vla/modeling_lingbot_vla_v2.py">主模型：联合注意力、训练与 sample_actions</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/lingbotvla/models/vla/lingbot_vla/configuration_lingbot_vla.py">动作块与积分次数的默认配置</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/configs/vla/robotwin/robotwin.yaml">RoboTwin 后训练 YAML</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/configs/vla/real_robot/real_robot.yaml">实机后训练 YAML</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/tasks/vla/train_lingbotvla.py">训练教师构造</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/deploy/lingbot_vla_v2_policy.py">部署 policy：截取动作和重新预测</a></li></ul>
+<p class="callout"><strong>论文不等于每一份后训练配置。</strong>论文描述 loss-free MoE 负载均衡；当前公开后训练 YAML 使用 sequence auxiliary loss 与 router z-loss。部分未来查询屏蔽开关与旧文档示例不同。本文讲机制时标明论文，讲运行路径时以固定提交的实现为准。</p>
+<p class="references">动画中的轨迹和机器人均为教学示意。保留官方来源便于核查，不暗示本片由官方制作或背书。完整逐字讲稿与视频章节可在本页上方下载。</p>
+<nav class="note-nav" aria-label="笔记导航"><a class="prev" href="./grasp-timeline.html"><span>← 上一篇</span><strong>一次完整抓取：从看到到夹住</strong></a><a class="home" href="../index.html#notes"><span>系列索引</span><strong>全部技术笔记</strong></a></nav>
+</article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer><script src="../assets/lingbot-vla2/chapters.js" defer></script></body></html>
