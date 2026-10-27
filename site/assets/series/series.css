@@ -30,3 +30,9 @@
  .series .lede{font-size:16px}
  .series p,.series li{font-size:15px}
 }
+.series .route-title{font-size:19px;margin:28px 0 12px}
+.series .note-category .category-heading h2{margin:0 0 8px}
+.series .category-heading p{font-size:14px;line-height:1.7}
+.series .category-heading .category-title{font-size:17px}
+.series .category-topic{font-size:12px;margin:26px 0 -4px}
+.series .chain{margin-top:16px}
