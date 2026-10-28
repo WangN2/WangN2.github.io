@@ -10,8 +10,8 @@
  <meta property="og:type" content="article">
  <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
  <meta property="og:locale" content="zh_CN">
- <meta property="og:title" content="迁移的瓶颈不是数据量，是那个「专家」 · WangN2">
- <meta property="og:description" content="每换一台机器人、每换一个任务，真正贵的是重写生成示范的那套程序。让更强的模型来写它，是眼下最值得试的一步。">
+ <meta property="og:title" content="把大模型放在闭环外面 · WangN2">
+ <meta property="og:description" content="控制环要低延迟、错误可逆、能拿到本体感受，恰好是大模型最弱的三条。真正值钱的位置在环外。">
  <meta property="og:url" content="https://wangn2.github.io/notes/vla-g2-deploy.html">
  <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="og:image:type" content="image/png">
@@ -19,40 +19,40 @@
  <meta property="og:image:height" content="630">
  <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
  <meta name="twitter:card" content="summary_large_image">
- <meta name="twitter:title" content="迁移的瓶颈不是数据量，是那个「专家」 · WangN2">
- <meta name="twitter:description" content="每换一台机器人、每换一个任务，真正贵的是重写生成示范的那套程序。让更强的模型来写它，是眼下最值得试的一步。">
+ <meta name="twitter:title" content="把大模型放在闭环外面 · WangN2">
+ <meta name="twitter:description" content="控制环要低延迟、错误可逆、能拿到本体感受，恰好是大模型最弱的三条。真正值钱的位置在环外。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-28">
  <meta property="article:modified_time" content="2026-10-28">
  <meta property="article:section" content="具身模型">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"迁移的瓶颈不是数据量，是那个「专家」","description":"每换一台机器人、每换一个任务，真正贵的是重写生成示范的那套程序。让更强的模型来写它，是眼下最值得试的一步。","url":"https://wangn2.github.io/notes/vla-g2-deploy.html","mainEntityOfPage":"https://wangn2.github.io/notes/vla-g2-deploy.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["VLA","模仿学习","专家示范","迁移"],"datePublished":"2026-10-28","dateModified":"2026-10-28"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"把大模型放在闭环外面","description":"控制环要低延迟、错误可逆、能拿到本体感受，恰好是大模型最弱的三条。真正值钱的位置在环外。","url":"https://wangn2.github.io/notes/vla-g2-deploy.html","mainEntityOfPage":"https://wangn2.github.io/notes/vla-g2-deploy.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["VLA","模仿学习","专家示范","迁移"],"datePublished":"2026-10-28","dateModified":"2026-10-28"}</script>
  <!--/meta-->
- <title>迁移的瓶颈不是数据量，是那个「专家」 · WangN2</title>
- <meta name="description" content="每换一台机器人、每换一个任务，真正贵的是重写生成示范的那套程序。让更强的模型来写它，是眼下最值得试的一步。">
+ <title>把大模型放在闭环外面 · WangN2</title>
+ <meta name="description" content="控制环要低延迟、错误可逆、能拿到本体感受，恰好是大模型最弱的三条。真正值钱的位置在环外。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/vladeploy/vla.css">
 </head>
 <body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
 <main class="wrap"><article class="article">
- <p class="eyebrow">NOTE 10 / 具身模型 · 迁移方法</p>
- <h1>迁移的瓶颈不是数据量，<br>是那个「专家」</h1>
- <p class="lede">每换一台机器人、每换一个任务，真正要重做一遍的，是生成示范的那套程序。模型权重是公开的，专家脚本不是——所以「让更强的模型来写专家」，是眼下最值得试的一步。</p>
-  <div class="article-meta"><span><time datetime="2026-10-28">2026-10-28</time></span><span>约 9 分钟</span><span>具身模型</span><a class="series-link" href="../series/">全系列 ›</a></div>
+ <p class="eyebrow">NOTE 10 / 具身模型 · 环内与环外</p>
+ <h1>把大模型<br>放在闭环外面</h1>
+ <p class="lede">大家都想把大模型放进控制环里，让它看画面、出动作。可控制环要的三样东西——低延迟、错误可逆、能拿到本体感受——恰好是它最弱的三条。这篇文章想说的是：<strong>它该站在环外</strong>，而且环外有三个位置，比它现在待的地方值钱得多。</p>
+  <div class="article-meta"><span><time datetime="2026-10-28">2026-10-28</time></span><span>约 12 分钟</span><span>具身模型</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
- <p>这一篇是一次立场说明，配一份能直接开工的实验设计。它不报告成绩——微调仍在进行、真机尚未接入、模型生成专家也还没开始跑。<strong>它要说的是：下一步该往哪儿使劲，以及用什么标准判断「这条路走通了没有」。</strong></p>
- <p class="callout"><strong>范围。</strong>本文讨论的是<strong>仿真闭环</strong>里的迁移成本与实验设计，不含真机部署结论。文中数字都来自已实施的部分，计划的<strong>用「计划」「目标」「判定」标注</strong>，不混进结果里。</p>
+ <p>这一篇是一次判断，不是一个结果。它不报告成绩——微调仍在进行、真机尚未接入、模型生成专家也还没开始跑。<strong>它要说的是：大模型该站在具身闭环的哪一侧，以及为什么现在几乎所有人，都挤在错的那一侧。</strong></p>
+ <p class="callout"><strong>范围。</strong>本文是一次方法判断，基于<strong>仿真闭环</strong>的实现经验展开，不含真机部署结论。文中数字都来自已实施的部分，计划的<strong>用「计划」「目标」「判定」标注</strong>，不混进结果里。</p>
 
   <nav class="toc" aria-labelledby="toc-title">
    <p class="toc-title" id="toc-title">本文目录</p>
    <ol>
    <li><a href="#the-cost">1. 一次迁移到底贵在哪</a></li>
-   <li><a href="#the-question">2. 于是问题变得很具体</a></li>
+   <li><a href="#the-question">2. 换个问法：环内还是环外</a></li>
    <li><a href="#concepts">3. 三个必须掰开的概念</a></li>
    <li><a href="#diagnose">4. 但先别急着换老师</a></li>
-   <li><a href="#paths">5. 三条「让模型写专家」的路径</a></li>
-   <li><a href="#astra">6. 强策略能带来什么，拿不到什么</a></li>
-   <li><a href="#validator">7. 换老师之前，先有验收器</a></li>
-   <li><a href="#experiment">8. 最小实验：模型写的专家，能不能替代手写的</a></li>
+   <li><a href="#inside">5. 环内的位置，为什么现在不行</a></li>
+   <li><a href="#outside">6. 环外的四个工位</a></li>
+   <li><a href="#validator-leverage">7. 为什么「验收器」是杠杆点</a></li>
+   <li><a href="#self-proof">8. 必须设防：自证闭环</a></li>
    <li><a href="#base">9. 现有的链路，与真机迁移</a></li>
    <li><a href="#close">10. 这一篇的位置</a></li>
    </ol>
@@ -69,9 +69,38 @@
  <p>算力和采集时长都不是主要成本——那些是机器的时间。真正压在人身上的是<strong>「每换一个任务，就重写一版专家」</strong>：读懂新的接触几何、设计阶段顺序、调容差、处理异常、跑通采集。</p>
  <p>这也解释了为什么这条路线扩展得慢。资产导入是一次性投入，微调是配置问题，只有专家脚本是<strong>线性增长</strong>的人工投入——任务越多，欠的债越多。</p>
 
- <h2 id="the-question">2. 于是问题变得很具体</h2>
- <div class="formula">能不能让模型来写这个专家，而不是人来写？</div>
- <p>注意这里问的不是「让模型直接控制机器人」——那是另一件事，也是上一篇讲的 VLA 正在做的事。这里问的是更靠上游的一环：<strong>由谁产出训练数据</strong>。</p>
+ <h2 id="the-question">2. 换个问法：环内还是环外</h2>
+ <p>默认的思路是让模型进环内当策略：看画面、出动作、闭环控制。这个位置对模型的要求是三条——<strong>低延迟、错误可逆、能拿到本体感受</strong>。</p>
+ <p>而这恰好是它最弱的三条：</p>
+ <table class="coordinates"><thead><tr><th>要求</th><th>控制环的实际情况</th><th>大模型的现实</th></tr></thead><tbody>
+  <tr><td>延迟</td><td>控制周期 8–10 ms</td><td>本地推理已是数百毫秒；云侧一次往返 300 ms 起</td></tr>
+  <tr><td>错误可逆性</td><td>撞了就是撞了</td><td>幻觉无法回滚，也没有「撤销」</td></tr>
+  <tr><td>上下文</td><td>力、电流、编码器，都是高频低语义信号</td><td>它只看得见你喂进去的 token</td></tr>
+ </tbody></table>
+ <p>所以真正该问的不是「大模型能干什么」——它能干的太多了。该问的是：<strong>哪些环节延迟不重要、错了能发现、而且本质上是符号处理？</strong></p>
+ <p>答案是<strong>闭环外面那一圈</strong>。而那一圈，恰好是具身智能现在最贵、也最少人做好的部分。</p>
+
+ <h3>三条判据</h3>
+ <p>判断某个位置该不该放模型，只看三条：</p>
+ <ul>
+  <li><strong>延迟容忍</strong>：一分钟出结果可不可以？</li>
+  <li><strong>错误可检出</strong>：它错了，我能不能靠跑一遍发现？</li>
+  <li><strong>上下文是否充足</strong>：它要的信息，能不能真的放进输入里？</li>
+ </ul>
+ <p>第二条是分水岭。<strong>模型可以用在「错了能便宜地发现」的地方，绝不能用「错了不可逆」的地方。</strong>这条比模型强弱重要得多。</p>
+
+ <h3>八个位置，按三条判据排</h3>
+ <table class="coordinates"><thead><tr><th>位置</th><th>延迟</th><th>错误可检出</th><th>上下文</th><th>判断</th></tr></thead><tbody>
+  <tr><td>实时策略</td><td>✗</td><td>✗</td><td>✗</td><td><strong>最差位置</strong>，却是现在最挤的地方</td></tr>
+  <tr><td>在线重规划</td><td>△ 秒级</td><td>△</td><td>✗ 看不见力</td><td>谨慎</td></tr>
+  <tr><td>任务规格（阶段 / 约束 / 判据）</td><td>✓</td><td>✓</td><td>✓</td><td>好</td></tr>
+  <tr><td>示范生成（写专家）</td><td>✓</td><td>✓</td><td>✓</td><td>好</td></tr>
+  <tr><td><strong>验收器编写</strong></td><td>✓</td><td>✓</td><td>✓</td><td><strong>最好</strong></td></tr>
+  <tr><td>数据筛选与多样性检查</td><td>✓ 分钟级</td><td>✓</td><td>✓</td><td>好</td></tr>
+  <tr><td>失败归因</td><td>✓ 分钟级</td><td>△</td><td>✓</td><td>好</td></tr>
+  <tr><td>课程设计（下一步采什么）</td><td>✓ 小时级</td><td>△</td><td>✓</td><td>可试</td></tr>
+ </tbody></table>
+ <p>把「实时策略」和「验收器」放一起看：前者延迟要求最高、错了不可逆、还拿不到关键信号；后者没有延迟要求、错了跑一遍就知道、需要的上下文全在任务描述里。<strong>同样是「把大模型用在具身上」，两者的期望值差了一到两个数量级。</strong></p>
 
  <h2 id="concepts">3. 三个必须掰开的概念</h2>
  <p>在讨论「谁来当专家」之前，先固定三个说法，否则后面每句话都有歧义。</p>
@@ -120,67 +149,66 @@
  </tbody></table>
  <p>这三条在评测之前就该排好。<strong>先证明任务可解，再评模型；先看单步误差，再谈闭环。</strong>顺序反了，会把「映射错了」误判成「模型没学会」，然后去调一堆不该调的参数——包括换一个更贵的老师。</p>
 
- <h2 id="paths">5. 三条「让模型写专家」的路径</h2>
- <table class="coordinates"><thead><tr><th>路径</th><th>具体做法</th><th>前置条件</th><th>验证负担</th></tr></thead><tbody>
-  <tr><td><strong>A. 模型写专家程序</strong></td><td>用强模型生成或改写阶段机、容差、异常分支，人审后由程序照常跑</td><td>无</td><td><strong>低</strong>：脚本可读、可 diff、可单测</td></tr>
-  <tr><td><strong>B. 强策略当老师</strong></td><td>更强的 VLA 直接在仿真里 rollout，产出带真值的轨迹</td><td>老师本身要在这台机器人上达到可用成功率</td><td><strong>高</strong>：需要任务级验收器 + 分布检查</td></tr>
-  <tr><td><strong>C. 生成模型扩观测</strong></td><td>合成视觉多样性（光照、纹理、视角），动作仍用真值</td><td>可控的合成管线</td><td>中：要防合成分布误导</td></tr>
+ <h2 id="inside">5. 环内的位置，为什么现在不行</h2>
+ <p>以 <a href="https://arxiv.org/abs/2610.28457">GPT-6-Astra</a> 这类通用多模态策略为例。它是目前最接近「通用策略」的形态：把专家示范总结成任务指导与接触参考，结合多模态观测与交互历史生成指令，靠接触反馈做纠正；不做机器人专用预训练，也不做逐任务微调。</p>
+ <p>即便如此，把它放进这个闭环，仍然会撞三堵墙：</p>
+ <table class="coordinates"><thead><tr><th>墙</th><th>具体表现</th><th>后果</th></tr></thead><tbody>
+  <tr><td><strong>延迟</strong></td><td>单次推理约 0.79 秒，而一个动作块只覆盖 0.4 秒</td><td>闭环在等待里空转，测出来的「成功率」和实时跑的不是同一个数</td></tr>
+  <tr><td><strong>不可逆</strong></td><td>控制指令错了就是撞、是摔、是伤</td><td>没有回滚余地的位置，不应该交给会犯错的组件</td></tr>
+  <tr><td><strong>缺关键信号</strong></td><td>当前观测是三路 RGB 加关节状态，<strong>没有力或触觉</strong></td><td>这类模型最值钱的能力（接触反馈纠错）在现在的配置里拿不到</td></tr>
  </tbody></table>
- <p>三条路解决的是不同的问题：A 替代<strong>写脚本的人</strong>，B 替代<strong>写脚本这件事</strong>，C 替代<strong>采真实画面的成本</strong>。按投入产出排，顺序是 A → B → C。</p>
- <p>A 几乎零风险：脚本能读、能对比、能跑单测，出了问题一眼能看出来。它也是唯一能在<strong>本周</strong>得出结论的一条。</p>
+ <p>三堵墙里没有一条是「模型再强一点就能解决」的。延迟是部署形态问题，不可逆是物理问题，缺信号是传感器问题。<strong>把更强的模型塞进环内，是在用它的短板去拼别人的专项。</strong></p>
+ <p>还有一个常被忽略的事实：这类模型<strong>仍然需要示范</strong>——只是把示范压成上下文，不做梯度更新。它省的是训练，不是数据。所以在「谁来产出示范」这个问题上，它并没有替代什么，只是换了个消费者。</p>
 
- <h2 id="astra">6. 强策略能带来什么，拿不到什么</h2>
- <p>以 GPT-6-Astra 这类通用多模态策略为例，它的定位值得说清楚。这类工作（<a href="https://arxiv.org/abs/2610.28457">arXiv:2610.28457</a>）的核心是把专家示范<strong>总结成任务指导与接触参考</strong>，再结合多模态观测和交互历史生成指令，靠接触反馈做纠正；不做机器人专用预训练，也不做逐任务微调。</p>
- <p>这带来三个必须认清的点：</p>
- <table class="coordinates"><thead><tr><th>看起来</th><th>实际是</th></tr></thead><tbody>
-  <tr><td>「不需要示范数据了」</td><td><strong>仍然需要。</strong>只是把示范压成上下文，不做梯度更新。省的是训练，不是数据。</td></tr>
-  <tr><td>「它可以帮我写专家」</td><td><strong>它是策略，不是代码生成器。</strong>它输出动作，不输出阶段机。要写脚本得用通用代码模型，那是路径 A。</td></tr>
-  <tr><td>「它的成功率很能打」</td><td>那是<strong>接触丰富任务 + 有触觉</strong>的成绩。公开数据显示，触觉反馈在某些插入任务上把成功率从三成提到九成以上。</td></tr>
- </tbody></table>
- <p>最后一条是这篇最实际的一句话：<strong>当前环境的观测是三路 RGB 加关节状态，没有触觉</strong>。也就是说，这类模型最值钱的那部分能力，在现在的配置里拿不到。</p>
- <p>所以判断很清楚：<strong>路径 B 现在就上，等于用一个更贵的模型，去跑一个它拿不到关键信号的场景。</strong>先做 A，把「模型能不能写专家」这件事验证掉；B 等到两个条件之一成熟——环境补上力/触觉，或者先在任务级把老师验证到可用成功率。</p>
+ <h2 id="outside">6. 环外的四个工位</h2>
+ <p>把「环内」划掉之后，剩下四个位置，按我目前的判断，价值从低到高是：规格 → 示范 → 归因 → 验收器。</p>
 
- <h2 id="validator">7. 换老师之前，先有验收器</h2>
- <p>模型生成的示范和程序生成的示范，有一点根本不同：<strong>程序只要跑完，轨迹基本是对的；模型跑完，可能只是跑完了。</strong></p>
- <p>所以不管走 A 还是 B，生成端前面必须有一道机械验收。现在这道验收长这样：</p>
+ <h3>工位一：任务规格编译器</h3>
+ <p>现在「任务」是写死在专家脚本里的：六个阶段、每个阶段多少步、容差多少。人改了脚本，任务就跟着变，没有任何地方记录「这次任务到底要求什么」。</p>
+ <div class="formula">输入：一句任务描述 + 场景约束 + 机器人能力清单<br>输出：阶段序列 · 每阶段进入与退出条件 · 随机化范围 · 成功判据</div>
+ <p>让模型做的不是写代码，是写<strong>规格</strong>——一个介于自然语言和程序之间的中间产物。它有三条好处：可被机器检查（阶段覆盖是否完整）、可被复用（换机器人只改能力清单）、可被对照（这次和上次的任务定义差在哪）。</p>
+ <p><strong>失败模式</strong>：模型会把规格写得比实际能做到的更理想，比如「先观察再决定」。落到执行器时没有对应原语，整条链就断了。所以要加一条硬约束：<strong>规格里的每个原语，必须能在执行器里找到实现。</strong></p>
+
+ <h3>工位二：示范生成器</h3>
+ <p>这里要换一个说法，才说得清它为什么安全：</p>
+ <div class="formula">模型不需要「会做这个动作」，只需要「能描述这个动作」，<br>再由确定性求解器去执行这个描述。</div>
+ <p>这一步把「控制」换成了「描述」。描述错了，逆解会失败、轨迹会越界、预检会拒绝——<strong>错了能立刻发现</strong>，这就是它比直接控制安全的原因。</p>
+ <p><strong>失败模式</strong>：描述出来的动作在几何上合法、在物理上不可行——穿模、超出关节限位、和桌面干涉。所以描述必须过一遍物理预检才能执行，不能直接下发给仿真。</p>
+ <p>判断这条路走没走通，看四个数：<strong>开发时间</strong>（从任务描述到首个通过验收的回合，人时）、<strong>生成有效率</strong>（通过机械验收的回合占比，对照程序专家的 198/200）、<strong>多样性</strong>（轨迹簇数与阶段时长分布）、<strong>下游效果</strong>（用这份数据训一版，在同一种子上评测）。</p>
+ <p>判定线先写死，免得事后找理由：有效率低于 90% 说明脚本还不可用；开发时间缩短不到一半说明成本优势不成立；下游明显不如基线说明脚本覆盖不到关键状态——那是要加约束，不是加数据。</p>
+
+ <h3>工位三：失败归因器</h3>
+ <p>现在的做法是跑 20 回合、看到 0/20，然后靠人猜。模型在这个位置的价值不是给答案，是<strong>给一张假设表加每条的证伪方法</strong>：</p>
+ <div class="formula">输入：回合轨迹、接触记录、动作块与实际执行的偏差<br>输出：分层假设（数据对齐 / 映射 / 输出分布 / 视觉 / 时序）+ 每条的判别实验</div>
+ <p>判断它有没有用的标准很硬：<strong>它给出的每个假设，都要能对应一个两小时内跑完的实验。</strong>做不到就是空谈。</p>
+ <p><strong>失败模式</strong>：模型会倾向于给出「听起来合理但无法证伪」的解释，比如「可能是视觉分布不匹配」。好的归因必须落到可测量的量上——某一路相机在训练集和测试集上的像素分布差了多少。</p>
+
+ <h3>工位四：验收器编写</h3>
+ <p>这是我认为最值钱的一个，下一节单独说。</p>
+
+ <h2 id="validator-leverage">7. 为什么「验收器」是杠杆点</h2>
+ <p>大家想的是「让模型生成数据」。但数据对不对，取决于验收器。<strong>验收器是整个系统里唯一的杠杆点</strong>，因为它一次写好，同时解锁三件事：</p>
+ <div class="formula">验收器写好 → 能自动筛掉坏数据 → 才敢用模型生成数据<br>　　　　　→ 多来源数据可混用（人工 / 程序 / 模型三类专家）<br>　　　　　→ 有判据才说清怎么失败的 → 失败归因才有意义</div>
+ <p>还有两个被低估的属性：</p>
  <ul>
-  <li>逆解位置误差在阈值内（采集筛选用 5 mm 量级）；</li>
-  <li>阶段推进完整，没有跳阶段；</li>
-  <li>轨迹数值有限、维度正确、文件校验通过、视频帧数可解码。</li>
+  <li><strong>它是代码。</strong>而代码是大模型最强的模态，比让它输出动作强一个数量级。它可读、可审计、可版本化、可跑单测。</li>
+  <li><strong>它是可复用的资产。</strong>换任务时专家脚本要重写，验收器的骨架（接触、行程、保持时间、无深接触、步数上限）基本不变。</li>
  </ul>
- <p>换到「模型生成」之后，验收要再升一级——从<strong>轨迹合法性</strong>升到<strong>任务是否真的完成</strong>：</p>
- <div class="formula">接触 → 行程 ≥ 60% 保持 200 ms → 回落 &lt; 20% 保持 200 ms<br>→ 无深于 1 mm 的意外接触 → 在步数上限内完成</div>
- <p>这五条缺一条，就会出现「碰了一下算成功」「压住不放算成功」「撞了别处但按钮动了」这三种假阳性。按钮有重力和弹簧响应，<strong>非零行程不等于有效按压</strong>。</p>
- <p>除了成功率，生成数据还要看两个数：</p>
- <table class="coordinates"><thead><tr><th>指标</th><th>怎么算</th><th>为什么重要</th></tr></thead><tbody>
-  <tr><td><strong>有效率</strong></td><td>通过机械验收的回合 / 生成的总回合</td><td>程序专家的现状是 198/200。生成式如果只有 60%，等于三分之一的算力在制造垃圾</td></tr>
-  <tr><td><strong>多样性</strong></td><td>轨迹聚类数、初始状态覆盖、阶段时长分布</td><td>一百条只有三种走法，等于三条数据。多样性不够，训出来的模型只会背</td></tr>
- </tbody></table>
+ <p>具体让它做什么：</p>
+ <div class="formula">输入：任务判据约定（接触事件、行程百分比、保持时长、深接触阈值、步数上限）<br>输出：可执行的判定函数 + 一组「应该被判失败」的负样本</div>
+ <p>注意后半句。<strong>一个只会判成功的验收器没有价值</strong>，必须能证明它也会拒绝。</p>
 
- <h2 id="experiment">8. 最小实验：模型写的专家，能不能替代手写的</h2>
- <p>路径 A 可以在一到两天内得出结论。下面是我准备照这个跑的设计，写出来也是为了让它可被检查。</p>
- <table class="coordinates"><thead><tr><th>项</th><th>设计</th></tr></thead><tbody>
-  <tr><td><strong>任务</strong></td><td>同一个按钮按压任务，同一套仿真环境与评测判据</td></tr>
-  <tr><td><strong>两个专家</strong></td><td>人写版（现有六阶段脚本）· 模型写版（同一任务描述，由模型产出阶段机与容差，人只审不写）</td></tr>
-  <tr><td><strong>采集规模</strong></td><td>各 200 回合，同样的随机范围与验收条件</td></tr>
-  <tr><td><strong>下游对照</strong></td><td>各训相同步数，各自在同样的 10 + 20 个种子上评测</td></tr>
-  <tr><td><strong>控制变量</strong></td><td>环境、资产、归一化、判据、种子全部相同——只换「脚本由谁写」</td></tr>
+ <h2 id="self-proof">8. 必须设防：自证闭环</h2>
+ <p>这条路走到深处会撞上一个陷阱：</p>
+ <div class="formula">模型写专家 → 模型写验收器 → 模型判成功</div>
+ <p>三个环节都在模型手里，等于自己出题、自己答题、自己判卷。这时候「成功率 95%」可能只是「验收器写得很宽松」。这不是假想——判据写成什么样，结果就能是什么样。</p>
+ <p>三条防线，缺一不可：</p>
+ <table class="coordinates"><thead><tr><th>防线</th><th>做法</th><th>为什么有效</th></tr></thead><tbody>
+  <tr><td><strong>判据锚在物理量上</strong></td><td>接触事件、行程百分比、时间、是否穿模——全部来自仿真器，不来自语言模型</td><td>物理量不能被措辞放松</td></tr>
+  <tr><td><strong>负样本测试</strong></td><td>拿一批已知失败的轨迹喂进去，必须判失败；这批样本由人准备</td><td>外部锚，破了自证循环</td></tr>
+  <tr><td><strong>交叉验证</strong></td><td>程序专家的验收器与模型写的验收器，在同一批数据上结论要一致</td><td>不一致的地方就是分歧点，必须解释</td></tr>
  </tbody></table>
- <p>看四个数，不看感觉：</p>
- <ol>
-  <li><strong>开发时间</strong>：从任务描述到首个通过验收的回合，人时是多少。这是这条路径唯一真正想省的东西。</li>
-  <li><strong>生成有效率</strong>：模型脚本采出来的回合，通过机械验收的比例是多少（对照 198/200）。</li>
-  <li><strong>多样性</strong>：两条数据集的轨迹簇数与阶段时长分布差多少。</li>
-  <li><strong>下游效果</strong>：用两份数据各训一版，在同一种子上评测，差多少。</li>
- </ol>
- <p>判定线也先写死，免得事后找理由：</p>
- <table class="coordinates"><thead><tr><th>结果</th><th>结论</th></tr></thead><tbody>
-  <tr><td>有效率 &lt; 90%</td><td>脚本还不可用，先修生成端，别往下走</td></tr>
-  <tr><td>开发时间缩短 &lt; 50%</td><td>成本优势不成立，这条路径不值得继续投</td></tr>
-  <tr><td>下游成功率明显低于基线</td><td>模型写的脚本覆盖不到关键状态，需要加约束而不是加数据</td></tr>
-  <tr><td>有效率 ≥ 90% 且开发时间缩短 ≥ 50%</td><td><strong>路径 A 成立</strong>，可以开始考虑让 B 接棒</td></tr>
- </tbody></table>
- <p>这套设计里最容易被跳过的一步，是<strong>用同一个验收器跑一遍人写版</strong>。没有这个基准，「90%」和「50%」都是拍脑袋。</p>
+ <p>这三条里最重要的是第二条。<strong>验收器本身也要被验收</strong>，而验收它的东西不能来自同一双手。</p>
 
  <h2 id="base">9. 现有的链路，与真机迁移</h2>
  <p>上面讨论的都是「数据从哪来」。数据往下走的链路已经跑通，这里只列关键约束。</p>
