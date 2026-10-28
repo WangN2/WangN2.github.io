@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'../site');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
-const notes=['notes/kinematics.html','notes/collision-envelope.html','notes/apriltag.html','notes/tray-grasp.html','notes/swerve-base.html','notes/hand-eye.html','notes/costmap.html','notes/grasp-timeline.html','notes/lingbot-vla2.html'];
+const notes=['notes/kinematics.html','notes/collision-envelope.html','notes/apriltag.html','notes/tray-grasp.html','notes/swerve-base.html','notes/hand-eye.html','notes/costmap.html','notes/grasp-timeline.html','notes/lingbot-vla2.html','notes/vla-g2-deploy.html'];
 function body(s){return s.slice(s.indexOf('<article'),s.indexOf('</article>'));}
 function plain(html){return html.replace(/<script[\s\S]*?<\/script>/g,' ').replace(/<[^>]+>/g,' ');}
 function minutes(html){
@@ -16,7 +16,8 @@ test('each note publishes a real date, a reading estimate and a section label',(
   const date=meta[1].match(/<time datetime="(\d{4}-\d{2}-\d{2})">\1<\/time>/);
   assert.ok(date,note+' time element must use a machine readable date');
   assert.ok(!Number.isNaN(Date.parse(date[1])),note+' unparsable date');
-  assert.ok(date[1]<='2026-10-27',note+' date cannot be in the future');
+  const t=new Date(),today=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  assert.ok(date[1]<=today,note+' date cannot be in the future: '+date[1]+' > '+today);
   const shown=Number(meta[1].match(/约 (\d+) 分钟/)[1]);
   const expected=minutes(s.replace(/<div class="article-meta">[\s\S]*?<\/div>/,'').replace(/<nav class="toc"[\s\S]*?<\/nav>/,''));
   assert.ok(Math.abs(shown-expected)<=1,`${note}: stated ${shown} min, text computes ${expected} min`);
@@ -64,7 +65,7 @@ test('notes form one series with consistent previous and next links',()=>{
 test('homepage cards advertise the same dates and reading times as the notes',()=>{
  const home=read('index.html');
  const cards=[...home.matchAll(/<a class="article-card" href="\.\/(notes\/[^"]+)">([\s\S]*?)<\/a>/g)];
- assert.equal(cards.length,9);
+ assert.equal(cards.length,notes.length,'首页卡片数应与笔记清单一致');
  for(const [,href,markup] of cards){
   const time=markup.match(/<time datetime="(\d{4}-\d{2}-\d{2})">/);
   assert.ok(time,href+' card needs a date');

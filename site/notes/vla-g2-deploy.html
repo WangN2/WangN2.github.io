@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/vla-g2-deploy.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="把 VLA 部署到自有机器人：一条仿真链路 · WangN2">
+ <meta property="og:description" content="从自有资产、程序专家示范到微调与独立评测：五层链路怎么搭，以及为什么分数在三条对照补齐之前不能解释。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/vla-g2-deploy.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="把 VLA 部署到自有机器人：一条仿真链路 · WangN2">
+ <meta name="twitter:description" content="从自有资产、程序专家示范到微调与独立评测：五层链路怎么搭，以及为什么分数在三条对照补齐之前不能解释。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-28">
+ <meta property="article:modified_time" content="2026-10-28">
+ <meta property="article:section" content="具身模型">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"把 VLA 部署到自有机器人：一条仿真链路","description":"从自有资产、程序专家示范到微调与独立评测：五层链路怎么搭，以及为什么分数在三条对照补齐之前不能解释。","url":"https://wangn2.github.io/notes/vla-g2-deploy.html","mainEntityOfPage":"https://wangn2.github.io/notes/vla-g2-deploy.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["VLA","模仿学习","仿真部署","评测协议"],"datePublished":"2026-10-28","dateModified":"2026-10-28"}</script>
+ <!--/meta-->
+ <title>把 VLA 部署到自有机器人：一条仿真链路 · WangN2</title>
+ <meta name="description" content="从自有资产、程序专家示范到微调与独立评测：五层链路怎么搭，以及为什么分数在三条对照补齐之前不能解释。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/vladeploy/vla.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 10 / 具身模型 · 部署方案</p>
+ <h1>把 VLA 部署到<br>自有机器人：<br>一条仿真链路</h1>
+ <p class="lede">模型权重是公开的，但「让它控制你这台机器人」不是下载就能完成的事。中间要补四样东西：资产、示范、映射和一套说得清的评测。</p>
+  <div class="article-meta"><span><time datetime="2026-10-28">2026-10-28</time></span><span>约 7 分钟</span><span>具身模型</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p><a href="./lingbot-vla2.html">上一篇</a>讲的是 LingBot-VLA 2.0 内部怎么把指令变成动作。这一篇换个角度：把同一个模型接到一台改造过的自有机器人上，需要在工程上补哪些东西，以及<strong>做到什么程度才敢说「它行了」</strong>。</p>
+ <p class="callout"><strong>范围。</strong>本文描述的是一套<strong>仿真闭环</strong>的搭建方法。截至写稿时，链路已在 MuJoCo 里跑通，微调与独立评测在进行中，<strong>没有真机部署</strong>。文中不含任何真机成功率或产线验收结论。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#stage">1. 先说清楚做到哪一步</a></li>
+   <li><a href="#layers">2. 五层链路</a></li>
+   <li><a href="#concepts">3. 三个必须掰开的概念</a></li>
+   <li><a href="#protocol">4. 公平对照长什么样</a></li>
+   <li><a href="#criteria">5. 成功判据要机械化</a></li>
+   <li><a href="#timing">6. 时序：模型比动作慢</a></li>
+   <li><a href="#open">7. 评测闭环还差三步</a></li>
+   <li><a href="#migration">8. 迁移到真机：哪些能带走</a></li>
+   <li><a href="#tail">9. 这一篇的位置</a></li>
+   </ol>
+  </nav>
+ <h2 id="stage">1. 先说清楚做到哪一步</h2>
+ <p>这类项目最容易糊的地方，是「跑通了」三个字。所以先把状态拆成可核对的行：</p>
+ <table class="coordinates"><thead><tr><th>环节</th><th>状态</th><th>怎么理解</th></tr></thead><tbody>
+  <tr><td>自有资产导入仿真</td><td>已完成</td><td>结构、关节、碰撞几何、视觉网格分别处理</td></tr>
+  <tr><td>双臂与夹爪控制</td><td>仿真位置伺服</td><td>真机电机接口尚未对接</td></tr>
+  <tr><td>三路相机</td><td>虚拟相机可用</td><td>真机内外参与时间同步未做</td></tr>
+  <tr><td>程序专家示范</td><td>200 回合，198 条合格</td><td>合格率是<strong>示范</strong>合格率，不是模型成功率</td></tr>
+  <tr><td>数据转换</td><td>273,240 个时间步</td><td>归一化只统计训练集</td></tr>
+  <tr><td>微调前基线</td><td>验证 0/10 · 独立测试 0/20</td><td>原始权重在本适配协议下的起点</td></tr>
+  <tr><td>微调后评测</td><td>进行中</td><td>本文不下结论</td></tr>
+  <tr><td>真机控制</td><td>未接入</td><td>只有迁移路线，没有实施</td></tr>
+ </tbody></table>
+ <p>「0/20」不是故障，它是一个<strong>信息量很高的起点</strong>：公开权重在别人的机器人上学到的动作分布，和这台改造版的关节顺序、相机视角、按钮位置都对不上。0 分说明适配没做对，或者模型确实没学会——这两件事要靠后面的诊断分开。</p>
+
+ <h2 id="layers">2. 五层链路</h2>
+ <div class="formula">自有资产 → 仿真环境 → 程序专家示范 → 数据适配与微调 → 独立评测</div>
+ <p>每一层的输出都是下一层的输入，而且<strong>每一层都可能悄悄改变语义</strong>。这就是为什么单位、坐标系和时序要在这五层里各查一次。</p>
+ <table class="coordinates"><thead><tr><th>层</th><th>它负责什么</th><th>最容易被忽略的细节</th></tr></thead><tbody>
+  <tr><td><strong>资产</strong></td><td>把 URDF 变成可仿真、可渲染、可控制的模型</td><td>外观网格、碰撞几何、控制参数是三套东西；碰撞用凸包代理，不等于真实接触面</td></tr>
+  <tr><td><strong>环境</strong></td><td>场景、相机、伺服、夹爪耦合、成功判定</td><td>成功判定要在环境侧独立执行，不能让被测模型自己判</td></tr>
+  <tr><td><strong>示范</strong></td><td>用环境真值 + 阶段策略 + 逆解生成轨迹</td><td>专家读的是真值坐标，模型读的是图像——两者信息不对等</td></tr>
+  <tr><td><strong>适配</strong></td><td>字段名、关节顺序、单位、归一化、维度映射</td><td>训练与推理的归一化统计必须来自同一份数据</td></tr>
+  <tr><td><strong>评测</strong></td><td>独立种子、固定判据、逐回合记录</td><td>判据必须机械化到能被程序裁决</td></tr>
+ </tbody></table>
+
+ <h2 id="concepts">3. 三个必须掰开的概念</h2>
+ <p>这套东西里有两组词长得一样、含义完全不同。混用一次，后面所有结论都会歪。</p>
+ <table class="coordinates"><thead><tr><th>看起来一样</th><th>实际是两件事</th></tr></thead><tbody>
+  <tr><td><strong>「专家」</strong></td><td><strong>程序专家</strong>：用真值坐标和 IK 生成示范轨迹的程序。<br><strong>动作专家</strong>：VLA 网络内部负责生成动作的模块。两者除了中文名，没有任何关系。</td></tr>
+  <tr><td><strong>「微调前」</strong></td><td><strong>官方原始权重</strong>：没在这台机器人上做过梯度更新。<br><strong>严格零样本</strong>：连字段映射、归一化、相机视角都不用改。本项目属于前者——已经做了完整适配，所以叫「本协议下的基线」，不叫零样本。</td></tr>
+  <tr><td><strong>「198/200」</strong></td><td><strong>示范合格率</strong>：程序专家采的回合里，有多少条通过了数据完整性检查。<br><strong>模型成功率</strong>：模型在独立种子上跑出来的。两者可以差到 198 比 0。</td></tr>
+ </tbody></table>
+ <p>还有一条容易被含糊过去：<strong>1,000 步是优化器更新次数</strong>，不是 1,000 回合，也不是把数据完整遍历了 1,000 遍。这类量纲混用，会让「我们训了 1000 步」听起来比实际多得多。</p>
+
+ <h2 id="protocol">4. 公平对照长什么样</h2>
+ <p>要回答「微调有没有用」，就得让前后两次实验只差一个变量。下面这张表是<strong>事先固定</strong>的，不是事后凑的：</p>
+ <table class="coordinates"><thead><tr><th>项</th><th>微调前</th><th>微调后</th></tr></thead><tbody>
+  <tr><td>权重</td><td>官方原始权重</td><td>同一权重训到固定步数</td></tr>
+  <tr><td>机器人映射与归一化</td><td>相同</td><td>相同</td></tr>
+  <tr><td>验证 / 独立测试种子</td><td>10 / 20 个固定场景</td><td><strong>完全相同的 10 / 20 个</strong></td></tr>
+  <tr><td>推理精度</td><td>FP32</td><td>FP32</td></tr>
+  <tr><td>动作块与仿真时序</td><td>50×16，125 Hz</td><td>相同</td></tr>
+  <tr><td>检查点选择</td><td>—</td><td><strong>预先锁定步数，不按分数挑</strong></td></tr>
+ </tbody></table>
+ <p>最后一条最容易被破坏。一旦允许「挑分数最高的那个 checkpoint」，独立测试集立刻变成验证集，成绩就没有意义了。</p>
+
+ <h2 id="criteria">5. 成功判据要机械化</h2>
+ <p>「把按钮按下去了」这句话，程序是没法判的。所以判据要写成这种形式：</p>
+ <ul>
+  <li>右手指碰撞几何与按钮发生<strong>接触</strong>；</li>
+  <li>按钮行程达到至少 <strong>60%</strong>，连续保持 <strong>25 个控制步</strong>（约 0.2 秒）；</li>
+  <li>随后按钮回落低于 <strong>20%</strong>，同样保持 25 步；</li>
+  <li>任意物理子步都没有出现深于 <strong>1 mm</strong> 的非预期接触；</li>
+  <li>在最多 <strong>1,800</strong> 个控制步内完成。</li>
+ </ul>
+ <p>四条约束叠在一起，才排除掉「碰了一下就算成功」「压住不放也算成功」「撞了别的地方但按钮动了」这三种假阳性。<strong>按钮有重力和弹簧响应，非零行程不等于有效按压</strong>——这一条是所有接触类任务的共同陷阱。</p>
+
+ <h2 id="timing">6. 时序：模型比动作慢</h2>
+ <p>仿真侧的控制周期是 8 ms（125 Hz），模型每次输出未来 50 步，覆盖 0.4 秒。听起来刚好接上，但实测单次推理约 <strong>0.79 秒</strong>——已经超过一个动作块能覆盖的时长。</p>
+ <div class="formula">推理 0.79 s　&gt;　动作块覆盖 0.4 s　→　当前不是实时闭环</div>
+ <p>现在的做法是「执行完一个块，再推理下一个块」，中间会有一段没有新指令的等待。这意味着：<strong>在仿真里测出的成功率，和将来真机实时跑出来的成功率，不是同一个数</strong>。要缩短这个差距，得动动作块长度、异步推理、轨迹插值或者模型加速——而每一个改动都会改变任务行为，必须重新版本化、重新评测。</p>
+ <p>顺带说一个同样反直觉的量：训练量。下面这个计算器把「数据够不够」变成一个可以自己拨的数。</p>
+
+ <section class="vla-lab" aria-labelledby="vla-lab-title" data-ready="false">
+  <h3 id="vla-lab-title">训练量计算器</h3>
+  <p class="vla-hint">可用窗口 ≈ 回合数 ×（每回合步数 − 动作块 + 1）；实际采样 = 有效批次 × 更新步数。拖动滑块，看覆盖率怎么变——<strong>它衡量的是「模型把这些数据看了几遍」</strong>。</p>
+  <div class="vla-controls">
+   <label>示范回合 <output data-out="eps">198</output><input type="range" data-in="eps" min="10" max="500" step="1" value="198" aria-label="示范回合数"></label>
+   <label>每回合步数 <output data-out="steps">1380</output><input type="range" data-in="steps" min="300" max="3000" step="10" value="1380" aria-label="每回合控制步数"></label>
+   <label>动作块长度 <output data-out="chunk">50</output><input type="range" data-in="chunk" min="10" max="100" step="5" value="50" aria-label="动作块长度"></label>
+   <label>有效批次 <output data-out="batch">4</output><input type="range" data-in="batch" min="1" max="32" step="1" value="4" aria-label="有效批次"></label>
+   <label>更新步数 <output data-out="upd">1000</output><input type="range" data-in="upd" min="100" max="20000" step="100" value="1000" aria-label="优化器更新步数"></label>
+  </div>
+  <div class="vla-bar" aria-hidden="true"><i data-bar style="width:0%"></i><b class="vla-mark" style="left:100%">1 epoch</b></div>
+  <dl class="vla-readout">
+   <div><dt>可用训练窗口</dt><dd data-read="win">—</dd></div>
+   <div><dt>实际采样</dt><dd data-read="samp">—</dd></div>
+   <div><dt>覆盖率</dt><dd data-read="cov">—</dd></div>
+   <div><dt>到 1 epoch 还差</dt><dd data-read="need">—</dd></div>
+  </dl>
+  <p class="vla-status" data-status role="status">—</p>
+ </section>
+
+ <h2 id="open">7. 评测闭环还差三步</h2>
+ <p>分数要有解释力，需要三条对照。它们不是可选项：<strong>缺一条，同一个数字可以被解读成完全相反的结论。</strong>本轮处于训练进行中，下面三条按顺序排在评测之前。</p>
+ <table class="coordinates"><thead><tr><th>对照</th><th>回答什么问题</th><th>缺了会怎样</th></tr></thead><tbody>
+  <tr><td><strong>任务上界</strong><br>让程序专家在同一批种子、同一套判据下跑一遍</td><td>这套判据和这个随机化范围下，任务本来能不能完成？</td><td>看到 0 分时分不清是「模型不会」还是「任务在扰动下本身不可解」</td></tr>
+  <tr><td><strong>学习曲线</strong><br>200 / 500 / 1000 / 2000 步各评一次</td><td>训练是在学，还是只是跑了 1000 次更新？</td><td>单点成绩只能说明管线通没通，说明不了模型学没学会</td></tr>
+  <tr><td><strong>单步诊断</strong><br>用专家轨迹的观测做 teacher-forcing，比较预测动作与专家动作</td><td>误差出在数据映射，还是出在闭环时序？</td><td>闭环成功率是信息量最低的信号，只看它会一直猜</td></tr>
+ </tbody></table>
+ <p>顺序也有讲究：<strong>先证明任务可解，再评模型；先看单步误差，再谈闭环。</strong>反过来做，会把「数据映射错了」误判成「模型没学会」，然后去调一堆不该调的参数。</p>
+
+ <h2 id="migration">8. 迁移到真机：哪些能带走</h2>
+ <table class="coordinates"><thead><tr><th>模块</th><th>迁移时怎么处理</th></tr></thead><tbody>
+  <tr><td>模型权重与推理服务</td><td>经验证后复用，按目标算力重新部署</td></tr>
+  <tr><td>字段映射与任务语言</td><td>尽量保持语义一致</td></tr>
+  <tr><td>虚拟相机</td><td>换成真实相机：内参、外参、曝光、端到端延迟都要重测</td></tr>
+  <tr><td>仿真位置伺服</td><td>换成真机已确认的控制模式；限速、限位、超时、急停必须补</td></tr>
+  <tr><td>合成接触参数</td><td>全部重测；碰撞代理的结论不能外推到真机</td></tr>
+  <tr><td>成功判据</td><td>按钮行程曲线变了，<strong>判据本身要重做</strong></td></tr>
+ </tbody></table>
+ <p>最后一行最容易被漏掉：判据里「行程 ≥60%」是仿真弹簧的参数，真机上换个按钮就不成立。判据不是常量，它和硬件一起迁移。</p>
+ <p>推荐的迁移顺序：离线数据与轨迹检查 → 真实观测影子推理（只看不控） → 受限动作验收（小幅度、低速、有人守着） → 受控接触任务 → 独立任务评测。每一步都要有门，过不了就停。</p>
+
+ <h2 id="tail">9. 这一篇的位置</h2>
+ <p>前九篇讲的是<strong>推导与测量</strong>：运动学可以算对，示教站位只能测对。这一篇是另一种东西——<strong>学习</strong>：它不给公式，只给分布，所以它的结论比前九篇都更依赖评测设计。</p>
+ <p>也正因为它依赖评测，「说不清楚就别说」比「先报个数」重要得多。前九篇里最值钱的是那些边界与门限，这一篇里最值钱的，是那三条还没跑完的对照。</p>
+
+ <p class="references">相关笔记：<a href="./lingbot-vla2.html">LingBot-VLA 2.0 原理</a>（模型内部） · <a href="./grasp-timeline.html">一次完整抓取</a>（工程链路对照） · <a href="./tray-grasp.html">料盘抓取</a>（示教与重算）</p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./lingbot-vla2.html"><span>← 上一篇</span><strong>LingBot-VLA 2.0：从看懂指令到连续动作</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/vladeploy/vla.js"></script>
+</body>
+</html>
