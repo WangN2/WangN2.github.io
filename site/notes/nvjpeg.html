@@ -10,7 +10,7 @@
  <meta property="og:type" content="article">
  <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
  <meta property="og:locale" content="zh_CN">
- <meta property="og:title" content="nvJPEG 是怎么快起来的 · WangN2">
+ <meta property="og:title" content="nvJPEG 基础原理 · WangN2">
  <meta property="og:description" content="JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。">
  <meta property="og:url" content="https://wangn2.github.io/notes/nvjpeg.html">
  <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
@@ -19,15 +19,15 @@
  <meta property="og:image:height" content="630">
  <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
  <meta name="twitter:card" content="summary_large_image">
- <meta name="twitter:title" content="nvJPEG 是怎么快起来的 · WangN2">
+ <meta name="twitter:title" content="nvJPEG 基础原理 · WangN2">
  <meta name="twitter:description" content="JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-29">
  <meta property="article:modified_time" content="2026-10-29">
  <meta property="article:section" content="视觉管线">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"nvJPEG 是怎么快起来的","description":"JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。","url":"https://wangn2.github.io/notes/nvjpeg.html","mainEntityOfPage":"https://wangn2.github.io/notes/nvjpeg.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["nvJPEG","GPU 解码","并行"],"datePublished":"2026-10-29","dateModified":"2026-10-29"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"nvJPEG 基础原理","description":"JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。","url":"https://wangn2.github.io/notes/nvjpeg.html","mainEntityOfPage":"https://wangn2.github.io/notes/nvjpeg.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["nvJPEG","GPU 解码","并行"],"datePublished":"2026-10-29","dateModified":"2026-10-29"}</script>
  <!--/meta-->
- <title>nvJPEG 是怎么快起来的 · WangN2</title>
+ <title>nvJPEG 基础原理 · WangN2</title>
  <meta name="description" content="JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/nvjpeg/nvjpeg.css">
@@ -35,7 +35,7 @@
 <body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
 <main class="wrap"><article class="article">
  <p class="eyebrow">NOTE 11 / 视觉管线 · 解码原理</p>
- <h1>nvJPEG<br>是怎么快起来的</h1>
+ <h1>nvJPEG 基础原理</h1>
  <p class="lede">JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快——它让那一半，和另外一半同时进行。</p>
   <div class="article-meta"><span><time datetime="2026-10-29">2026-10-29</time></span><span>约 6 分钟</span><span>视觉管线</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
