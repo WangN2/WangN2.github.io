@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/genie4-vs-astra.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="Genie 4 与 Astra · WangN2">
+ <meta property="og:description" content="一个是造世界的，一个是在世界里动手的。把两者的效果证据摆在一起看，能看清各自被验证到了什么程度。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/genie4-vs-astra.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="Genie 4 与 Astra · WangN2">
+ <meta name="twitter:description" content="一个是造世界的，一个是在世界里动手的。把两者的效果证据摆在一起看，能看清各自被验证到了什么程度。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-29">
+ <meta property="article:modified_time" content="2026-10-29">
+ <meta property="article:section" content="具身模型">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Genie 4 与 Astra","description":"一个是造世界的，一个是在世界里动手的。把两者的效果证据摆在一起看，能看清各自被验证到了什么程度。","url":"https://wangn2.github.io/notes/genie4-vs-astra.html","mainEntityOfPage":"https://wangn2.github.io/notes/genie4-vs-astra.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["Genie 4","GPT-6-Astra","世界模型","策略模型"],"datePublished":"2026-10-29","dateModified":"2026-10-29"}</script>
+ <!--/meta-->
+ <title>Genie 4 与 Astra · WangN2</title>
+ <meta name="description" content="一个是造世界的，一个是在世界里动手的。把两者的效果证据摆在一起看，能看清各自被验证到了什么程度。">
+ <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 13 / 具身模型 · 路线对比</p>
+ <h1>Genie 4 与 Astra</h1>
+ <p class="lede">一个是造世界的，一个是在世界里动手的。放在一张表上看，能看清各自被验证到了什么程度。</p>
+  <div class="article-meta"><span><time datetime="2026-10-29">2026-10-29</time></span><span>约 5 分钟</span><span>具身模型</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>这两周具身领域出了两个东西：Google 的 Genie 4（世界模型）和 OpenAI 的 GPT-6-Astra（策略模型）。经常被放在一起讨论，但它们不是同一类东西，直接比“谁更强”是错位的。这篇把它们摆在一起，是想看清一件事：<strong>各自的效果证据，被验证到了什么程度。</strong></p>
+ <p class="callout"><strong>范围。</strong>只对比公开可查的效果证据，不做能力预测。Genie 4 的信息来自发布会与媒体报道，Astra 来自论文。两者证据等级不同，文中会标出来。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#what">1. 各自是什么</a></li>
+   <li><a href="#evidence">2. 效果证据摆在一起</a></li>
+   <li><a href="#robotics">3. 一个容易混淆的地方</a></li>
+   <li><a href="#diff">4. 三个关键差异</a></li>
+   <li><a href="#access">5. 现在能不能试</a></li>
+   <li><a href="#meaning">6. 对我们的项目意味着什么</a></li>
+   <li><a href="#close">7. 收尾</a></li>
+   </ol>
+  </nav>
+ <h2 id="what">1. 各自是什么</h2>
+ <p>Genie 4 是<strong>世界模型</strong>。给一段文字，实时生成一个可以走进去的虚拟世界：能改变天气、加入物体、用键盘控制镜头，场景会跟着变化。这一代加了原生音频（声音随场景生成，不是后期配）和实时对话。</p>
+ <p>Astra 是<strong>策略模型</strong>。它看观测、读指令，直接输出动作。它的特别之处是把专家示范总结成“任务指导 + 触觉参考”，再靠接触反馈纠错。不做机器人专用预训练，也不做逐任务微调。</p>
+ <p>一句话区分：<strong>Genie 4 输出画面，Astra 输出动作。</strong></p>
+
+ <h2 id="evidence">2. 效果证据摆在一起</h2>
+ <p>这是这篇的重点。两者公开的东西，形式完全不一样。</p>
+ <table class="coordinates compare"><thead><tr><th>对比项</th><th>Genie 4</th><th>GPT-6-Astra</th></tr></thead><tbody>
+  <tr><td><strong>公开形式</strong></td><td>发布会演示视频</td><td>论文（arXiv:2610.28457）</td></tr>
+  <tr><td><strong>有没有数字</strong></td><td>没有</td><td>有，且给了完整协议</td></tr>
+  <tr><td><strong>具体效果</strong></td><td>萨克斯手在雾湖中演奏、枫树种子旋转飘落、阿波罗人形机器人在生成场景里下跳棋</td><td>五个 UniVTAC 任务平均 93.8%；插入孔任务靠触觉从 31% 提到 99%</td></tr>
+  <tr><td><strong>怎么验证的</strong></td><td>无法验证——目前只对受信任测试者开放</td><td>固定任务、固定判据、可复算</td></tr>
+  <tr><td><strong>承认的短板</strong></td><td>长会话细节漂移、物体恒常性丢失、复杂物理与空间精度待解决</td><td>依赖示范作上下文、推理延迟、跨任务泛化尚未验证</td></tr>
+ </tbody></table>
+ <p>这个对照说明一件事：<strong>Genie 4 目前证明的是“能做到”，Astra 证明的是“多稳定”。</strong>前者是能力演示，后者是可复算的实验。</p>
+ <p>演示能回答“这条路通不通”，回答不了“它在多宽的条件下成立”。这不是贬低 Genie 4——一个实时生成可交互世界的系统，本来就没打算在这一轮给出基准分数。但作为使用者要清楚自己在看什么。</p>
+
+ <h2 id="robotics">3. 一个容易混淆的地方</h2>
+ <p>发布会里那个“阿波罗下跳棋”，很容易被读成“Genie 4 能训练机器人”。其实不是。</p>
+ <p>那个演示的分工是：<strong>Gemini 4 Argon 拆解任务步骤，Genie 4 实时渲染对应的场景</strong>。Argon 是规划器，Genie 4 是渲染器，机器人在这个闭环里是“被演示的对象”，不是“被训练的策略”。</p>
+ <p>而 Google 这一轮真正有机器人数据的，也是 Argon 而不是 Genie 4：</p>
+ <ul>
+  <li>SO-101 六自由度臂做 pick-and-place，三次尝试从 58.9 秒压到 17.4 秒，靠读自己的日志和腕部录像诊断失败；</li>
+  <li>从一张桌面照片自主搭建 MuJoCo 数字孪生，采 4,500 多条域随机化回合，真机成功率 56% → 75%，用时 35 s → 24 s。</li>
+ </ul>
+ <p>注意第二条：<strong>它用的不是 Genie 4，是 MuJoCo</strong>。因为训练策略需要真实的接触物理，而世界模型现在给不了。</p>
+
+ <h2 id="diff">4. 三个关键差异</h2>
+ <p><strong>第一，错误代价不同。</strong>世界模型画面崩了，重跑一次就行；策略输出崩了，机器人已经撞上去了。这决定了前者可以试错，后者必须先在仿真里验收。</p>
+ <p><strong>第二，物理真值不同。</strong>Genie 4 追求的是“看起来对”，它不需要保证杯子被推之后滑 3 厘米而不是 30 厘米。Astra 必须对，因为动作要落到电机上。屏幕上的真实，不等于物理上的准确——这句话对训练数据尤其致命：在视频世界里学到的因果，未必在物理世界成立。</p>
+ <p><strong>第三，它们接不上。</strong>Astra 最强的地方是触觉与接触反馈；Genie 4 生成的画面里没有力、没有力矩、没有形变。你可以用它造视觉多样性——光照、纹理、视角、场景布局——但造不出“按下去的阻力”。</p>
+ <p>所以它们不是竞品，是上下游。但这条上下游在<strong>触觉</strong>这里断了。</p>
+
+ <h2 id="access">5. 现在能不能试</h2>
+ <p>直接说结论：<strong>普通人现在还拿不到 Genie 4。</strong></p>
+ <p>当前阶段是<strong>研究预览</strong>，只面向受信任测试者。官方公布的后续路径是三段式：</p>
+ <ol>
+  <li>Project Genie（面向 Google AI Ultra 订阅用户）——<strong>标为即将推出</strong></li>
+  <li>Gemini API 与 AI Studio 的早期伙伴入口——同样<strong>即将推出</strong></li>
+  <li>更大范围开放——没有时间表</li>
+ </ol>
+ <p>几件需要知道的事：<strong>没有公开权重</strong>；生成的视频与音频带 SynthID 水印；Google 明确说短会话能保持连贯，但长模拟、多次复杂编辑、场景移动仍会导致细节漂移。</p>
+ <p>所以现在能做的只有两件：订阅 AI Ultra 等 Project Genie 上线，或者以企业身份去谈早期伙伴。网上那些“入口”“免费方案”之类的说法，目前没有官方依据。</p>
+ <p>相比之下 Astra 的路径清楚得多：有论文、有任务定义、有协议。真要用，可以按它的设定在自己的仿真里复现——前提是你有触觉信号，或者能证明没有触觉时它的优势还在。</p>
+
+ <h2 id="meaning">6. 对我们的项目意味着什么</h2>
+ <p>你现在的仿真环境是 MuJoCo，有真实接触解算、碰撞、行程判定。这些恰好是 Genie 4 缺的，也恰好是 Astra 依赖的。</p>
+ <table class="coordinates"><thead><tr><th>想做什么</th><th>该看谁</th><th>现实判断</th></tr></thead><tbody>
+  <tr><td>增加视觉多样性</td><td>Genie 4</td><td>拿不到；MuJoCo 域随机化 + 图像增强已能覆盖大部分</td></tr>
+  <tr><td>造接触丰富的数据</td><td>都不行</td><td>Genie 没有力；Astra 要触觉硬件，目前没有</td></tr>
+  <tr><td>当老师生成动作</td><td>Astra</td><td>要先证明它在无触觉环境里还成</td></tr>
+  <tr><td>当推理与规划层</td><td>Gemini 4 Argon</td><td>这个现在就能用</td></tr>
+ </tbody></table>
+ <p>一句话：<strong>Genie 4 解决“见得多”，Astra 解决“摸得准”。</strong>而当前的瓶颈是标定得对、验收得清，两个都帮不上核心的忙。</p>
+
+ <h2 id="close">7. 收尾</h2>
+ <p>如果一定要比：<strong>Astra 今天就能被检验，Genie 4 还不能。</strong></p>
+ <p>但如果 Genie 4 真的解决了物理一致性，它在机器人训练里的价值会超过任何一个策略模型——因为它会变成“无限的数据”和“无限的测试场”。</p>
+ <p>那一天还没到。Google 自己说得很清楚：它现在是早期研究模型，而且不开放。</p>
+
+ <p class="references">相关笔记：<a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（环内 / 环外的分工） · <a href="./lingbot-vla2.html">LingBot-VLA 2.0 原理</a>（策略模型内部） · <a href="./optimizer-muon.html">优化器与 Muon</a>（训练侧的另一个变量）</p>
+ <p class="references">外部参考：<a href="https://deepmind.google/blog/genie-4-a-new-generation-of-world-simulation">Genie 4 官方发布</a> · <a href="https://arxiv.org/abs/2610.28457">GPT-6-Astra 论文</a> · <a href="https://mixed-news.com/en/gemini-4-argon-robotics-self-improvement-58-9-to-17-4-seconds/">Gemini 4 Argon 的机器人结果</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./optimizer-muon.html"><span>← 上一篇</span><strong>优化器与 Muon</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+</body>
+</html>

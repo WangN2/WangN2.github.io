@@ -25,6 +25,7 @@
 .article-meta span{display:inline-flex;align-items:center;gap:6px}
 .article-meta span+span::before{content:"";width:3px;height:3px;border-radius:50%;background:#a9bccd;margin-right:14px}
 .article-meta .series-link{margin-left:auto;font-size:12.5px;white-space:nowrap}
+.article table.compare th:first-child,.article table.compare td:first-child{min-width:5.4em}
 .toc{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 22px 12px;margin:0 0 38px;box-shadow:0 2px 10px #19334d06}
 .toc-title{font-size:11px;letter-spacing:.16em;font-weight:650;color:var(--muted);margin:0 0 10px}
 .toc ol{margin:0;padding:0;list-style:none}
