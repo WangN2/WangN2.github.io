@@ -1,0 +1,16 @@
+.svd-lab{margin:34px 0 42px;padding:22px 22px 18px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 12px #19334d08}
+.svd-lab h3{font-size:19px;margin:0 0 6px}
+.svd-lab .svd-hint{font-size:13px;line-height:1.75;color:var(--muted);margin:0 0 16px;max-width:680px}
+.svd-lab canvas{display:block;width:100%;height:320px;border:1px solid #e2eaf2;border-radius:10px;background:#fbfdff}
+.svd-ctrl{display:flex;align-items:center;gap:12px;margin:14px 0 0;font-size:12.5px;color:var(--muted)}
+.svd-ctrl input[type=range]{flex:1;accent-color:var(--blue);cursor:pointer}
+.svd-ctrl output{font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;min-width:3.4em;text-align:right}
+.svd-legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:11.5px;color:var(--muted);margin:12px 0 0}
+.svd-legend span{display:inline-flex;align-items:center;gap:6px}
+.svd-legend i{width:16px;height:3px;border-radius:2px;display:inline-block}
+.svd-readout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 0}
+.svd-readout div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fbfdff}
+.svd-readout dt{font-size:10.5px;letter-spacing:.11em;color:var(--muted);margin:0 0 4px}
+.svd-readout dd{margin:0;font-size:12.5px;line-height:1.45;font-variant-numeric:tabular-nums;color:var(--ink)}
+.svd-lab .svd-status{font-size:12.5px;line-height:1.7;color:var(--muted);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}
+@media(max-width:700px){.svd-lab canvas{height:260px}.svd-readout{grid-template-columns:1fr}}

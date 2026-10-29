@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/optimizer-muon.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="优化器与 Muon · WangN2">
+ <meta property="og:description" content="从奇异值的病态说起：为什么少数几个方向会吃掉全部更新量，Muon 又用什么办法把它拉平。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/optimizer-muon.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="优化器与 Muon · WangN2">
+ <meta name="twitter:description" content="从奇异值的病态说起：为什么少数几个方向会吃掉全部更新量，Muon 又用什么办法把它拉平。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-29">
+ <meta property="article:modified_time" content="2026-10-29">
+ <meta property="article:section" content="训练方法">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"优化器与 Muon","description":"从奇异值的病态说起：为什么少数几个方向会吃掉全部更新量，Muon 又用什么办法把它拉平。","url":"https://wangn2.github.io/notes/optimizer-muon.html","mainEntityOfPage":"https://wangn2.github.io/notes/optimizer-muon.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["优化器","Muon","奇异值"],"datePublished":"2026-10-29","dateModified":"2026-10-29"}</script>
+ <!--/meta-->
+ <title>优化器与 Muon · WangN2</title>
+ <meta name="description" content="从奇异值的病态说起：为什么少数几个方向会吃掉全部更新量，Muon 又用什么办法把它拉平。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/optimizer/opt.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 12 / 训练方法 · 优化器</p>
+ <h1>优化器与 Muon</h1>
+ <p class="lede">优化器之间的差别，说到底只有一件事：用什么样的尺子，去量「这个方向有多陡」。</p>
+  <div class="article-meta"><span><time datetime="2026-10-29">2026-10-29</time></span><span>约 7 分钟</span><span>训练方法</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>起因是看到一个训练配置里写的是 Muon 而不是 AdamW。于是把这条线梳理了一遍：奇异值到底在说什么、Newton–Schulz 是什么、学习率为什么不能照搬、余弦衰减又在干什么。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#map">1. 先看都有哪些优化器</a></li>
+   <li><a href="#sigma">2. 奇异值：少数几个方向特别陡，是什么意思</a></li>
+   <li><a href="#ns">3. Newton–Schulz 迭代是什么</a></li>
+   <li><a href="#lr">4. Muon 的学习率语义</a></li>
+   <li><a href="#cosine">5. 余弦衰减是什么，为什么用它</a></li>
+   <li><a href="#limits">6. 什么情况下别用</a></li>
+   <li><a href="#close">7. 收尾</a></li>
+   </ol>
+  </nav>
+ <h2 id="map">1. 先看都有哪些优化器</h2>
+ <p>梯度是一个向量，但「往哪走、走多远」取决于你怎么定义距离。换了尺子，最速下降的方向就变了。按这把尺子分类，现有的优化器大致是这么几档：</p>
+ <table class="coordinates"><thead><tr><th>尺子</th><th>代表</th><th>更新式</th></tr></thead><tbody>
+  <tr><td>欧氏距离</td><td>SGD、动量、Nesterov</td><td>Δ = −η·g</td></tr>
+  <tr><td>逐坐标缩放</td><td>AdaGrad、RMSProp、<strong>Adam / AdamW</strong>、Lion</td><td>Δ = −η·m / (√v + ε)</td></tr>
+  <tr><td>行与列的低秩近似</td><td>Adafactor、Shampoo、SOAP</td><td>用 Kronecker 因子做预条件</td></tr>
+  <tr><td>矩阵的谱结构</td><td><strong>Muon</strong></td><td>Δ = −η·U Vᵀ</td></tr>
+  <tr><td>二阶曲率估计</td><td>Sophia、K-FAC</td><td>用曲率替换学习率</td></tr>
+ </tbody></table>
+ <p>AdamW 仍然是默认答案。想换的动力一般只有三个：省显存、省算力，或者在大规模上拿到更好的缩放。</p>
+ <p>Muon 属于第四类。它不问「每个参数该走多大」，它问「这张权重矩阵的更新，在谱的意义上该是什么形状」。</p>
+
+ <h2 id="sigma">2. 奇异值：少数几个方向特别陡，是什么意思</h2>
+ <p>先把一句话拆开看：<strong>神经网络的梯度矩阵通常很病态，少数几个方向的奇异值极大，其余极小。</strong></p>
+ <p>一张权重矩阵 W 的梯度 G 也是个矩阵。矩阵可以理解成一个「线性变换」：给它一个输入方向，它输出一个方向，并把这个方向的长度乘上一个倍数。这个倍数就是奇异值。</p>
+ <p>所以 σ 大，意味着：<strong>沿着那个输入方向稍微动一动权重，这一层的输出就会剧烈变化，损失跟着剧烈变化。</strong>反过来，σ 很小意味着那个方向上怎么动，损失几乎没反应。</p>
+ <p>一个具体的例子。假设某层只有两个方向，σ = 100 和 σ = 1。你用梯度下降：</p>
+ <ul>
+  <li>步长被最陡方向限制死。走大了，那个方向直接发散，所以学习率最多到 1/100 量级。</li>
+  <li>在最陡方向上，一步就能走到底。</li>
+  <li>在平的方向上，每步只挪 1% 的距离，要走一百步。</li>
+ </ul>
+ <p>这就是「病态」的实际后果：<strong>不是慢，是快慢差了一百倍，而你只能按最慢的那个来定步长。</strong></p>
+
+ <section class="svd-lab" aria-labelledby="svd-lab-title" data-ready="false">
+  <h3 id="svd-lab-title">条件数怎么拖慢收敛</h3>
+  <p class="svd-hint">两条分量的初值都是 0.9。步长取「陡方向能承受的最大值」，于是陡方向一步归零，平方向按固定比例慢慢衰减。拖动滑块改变曲率比。</p>
+  <canvas data-canvas role="img" aria-label="椭圆等高线上的两条优化轨迹：橙线梯度下降在最陡方向一步到位、在平缓方向反复磨；蓝线一步到原点">两条轨迹的对比图。</canvas>
+  <div class="svd-legend">
+   <span><i style="background:#176dae"></i>陡方向（一步归零）</span>
+   <span><i style="background:#b0592f"></i>平方向（慢慢衰减）</span>
+  </div>
+  <div class="svd-ctrl">
+   <label for="svd-k">曲率比</label>
+   <input id="svd-k" type="range" data-in="kappa" min="2" max="40" step="1" value="12" aria-label="曲率比">
+   <output data-out="kappa">κ = 12</output>
+  </div>
+  <dl class="svd-readout">
+   <div><dt>条件数 σ₁/σ₂</dt><dd data-read="cond">—</dd></div>
+   <div><dt>平方向降到 1% 需要</dt><dd data-read="steps">—</dd></div>
+   <div><dt>谱拉平后需要</dt><dd data-read="muon">—</dd></div>
+  </dl>
+  <p class="svd-status" data-status role="status">—</p>
+ </section>
+
+ <p>有一段话值得单独说，因为它解释了为什么这件事值得修。</p>
+ <p><strong>陡的方向，往往是已经学会的东西；平的方向，才是还没学会的。</strong>梯度的大小衡量的是「这里的损失对参数有多敏感」，不是「这里还差多少要学」。已经拟合好的方向，梯度照样很大；真正欠拟合的方向，梯度反而很小。</p>
+ <p>结果就是：梯度下降把绝大部分更新预算，花在了给已经做对的事情继续加码上。</p>
+ <p>那 Adam 为什么不够？因为 Adam 的预条件是<strong>逐坐标</strong>的——它给每个参数单独一个缩放系数。如果病态恰好沿着坐标轴，它确实能修好。但如果那几个陡方向是相对于坐标轴<strong>斜着</strong>的，逐坐标缩放就看不见它们。这是对角预条件的固有局限。</p>
+ <p>Muon 的做法是：不要逐坐标，直接把这整张矩阵的谱拉平。</p>
+
+ <h2 id="ns">3. Newton–Schulz 迭代是什么</h2>
+ <p>目标很明确：给定梯度矩阵 G，求它的极分解里那个正交因子 U Vᵀ。其中 G = U Σ Vᵀ。</p>
+ <p>注意这一步做了什么：<strong>把 Σ 丢掉了</strong>。保留下来的 UVᵀ，所有奇异值都等于 1——每个方向等权。</p>
+ <p>问题是，正儿八经做 SVD 太贵。GPU 上的 SVD 既慢，又不好批处理，还吃不到张量核的算力。于是改用迭代逼近。</p>
+ <p>经典的 Newton–Schulz 迭代长这样：</p>
+ <div class="formula">X ← ½ · X · (3I − XᵀX)</div>
+ <p>它是「牛顿法求矩阵逆平方根」的矩阵版本。收敛是二次的——误差在一步之内平方——但有个前提：初始的奇异值要接近 1。差得远就不收敛。</p>
+ <p>所以 Muon 用的不是这个原版，而是一条五次多项式，系数是调出来的：</p>
+ <div class="formula">X ← aX + b(XXᵀ)X + c(XXᵀ)²X<br>a = 3.4445　b = −4.7750　c = 2.0315</div>
+ <p>迭代 5 次。整个过程只有矩阵乘法——没有分解，没有求逆，全是 GEMM，能在张量核上跑。</p>
+ <p>可以把这条多项式理解成一条「把数值往 1 推」的曲线：落在一定范围内的奇异值，每迭代一次就更靠近 1。迭代 5 次，足够把常见的谱压平。</p>
+ <p>有一个细节容易被忽略：<strong>结果不必精确等于 1。</strong>多项式的不动点不是 1，五步之后所有奇异值会落到同一个常数上。这就够了——重要的是它们<strong>彼此相等</strong>，整体那个常数会被学习率的尺度因子吸收掉。</p>
+ <p>至于 5 步够不够，2026 年有一篇工作专门测了这件事（<a href="https://arxiv.org/abs/2606.04058">Spectral Scaling Laws of Muon</a>）。结论是分层的：中浅层的谱随模型规模变化温和（约 M^−0.25），5 步在更大规模上依然够用；但部分靠后的层变化很剧烈（最高到 M^−0.96），到前沿规模会掉进「NS 推不动」的区域，需要增加迭代或重调系数。</p>
+
+ <h2 id="lr">4. Muon 的学习率语义</h2>
+ <p>这是从 AdamW 迁过来最容易踩的一脚：<strong>两个 lr 不是同一个量纲，不能直接换算。</strong></p>
+ <p>AdamW 的更新是 m / (√v + ε)。由于除以了梯度的均方根，更新被归一化了——每个参数每步的位移大致就是 η，与梯度大小无关。所以 AdamW 的 lr 是一个<strong>逐参数的步长</strong>。</p>
+ <p>Muon 的更新是 UVᵀ，它的<strong>谱范数等于 1</strong>。这说的是整个矩阵的尺度，不是单个元素的尺度。</p>
+ <p>两者之间差着一个形状因子。一个 m×n 的矩阵，如果所有奇异值都是 1，那么它的元素均方根是：</p>
+ <div class="formula">RMS = √(rank / (m·n)) = 1 / √(max(m, n))</div>
+ <p>也就是说，同样一步，4096×4096 的矩阵每个元素只动 1/64，而 256×256 的动 1/16。差了四倍，只因为形状不同。</p>
+ <p>所以实现里必须乘一个尺度因子，常见的是：</p>
+ <div class="formula">scale = 0.2 · √(max(m, n))</div>
+ <p>乘完之后元素 RMS 变成 0.2，与形状无关了。这时候 Muon 的等效步长才可比——但它仍然不是 AdamW 的 η，需要单独标定。</p>
+ <p>还有一处同样不能照搬：<strong>权重衰减</strong>。AdamW 里的 wd 是相对于「更新 RMS ≈ η」定义的；Muon 的更新 RMS 是另一个数，直接搬过来衰减力度就变了。Moonshot 在把 Muon 推到 3B/16B 规模时补的关键一步，就是把 wd 重新标定到与 AdamW 的更新 RMS 匹配。</p>
+
+ <h2 id="cosine">5. 余弦衰减是什么，为什么用它</h2>
+ <p>学习率随训练进度变化，最常见的一条曲线是：</p>
+ <div class="formula">η(t) = η_min + ½(η_max − η_min)(1 + cos(π·t/T))</div>
+ <p>t 从 0 走到 T，η 从 η_max 平滑降到 η_min。形状像一个缓慢的「S」：开头掉得慢，中段掉得快，结尾又慢下来。</p>
+ <p>为什么是这条曲线？三个理由。</p>
+ <p><strong>开头要慢降</strong>，因为大学习率的价值在于探索——在损失面上走得更远，躲开差的初始化。这时候降太快，等于提前放弃探索。</p>
+ <p><strong>结尾也要慢降</strong>，因为小学习率的价值在于稳定——让参数在极小值附近沉下来，而不是被梯度噪声推着到处晃。余弦在 t=T 处的导数为零，正好给出一个平滑的收尾。</p>
+ <p><strong>它没有额外的超参。</strong>阶梯衰减要你决定「第几轮降、降多少」，余弦只要一个总步数 T，剩下的交给曲线。这也是它在实践中流行的实际原因。</p>
+ <p>它通常和 warmup 搭配：最前面几百步把 lr 从零线性拉起来。原因是 Adam 的二阶矩估计在最初几步还很粗糙，此时用满学习率容易把参数推飞。</p>
+ <p>不过余弦也有被质疑的地方：它把 lr 衰减到接近零，最后一大段步数其实走不了多远。于是近几年大模型训练里更流行 <strong>warmup + 稳定 + 末尾衰减</strong>（WSD）——中间保持恒定，只在最后一段降。好处是可以在稳定段任意截断一个 checkpoint 继续训练，不必为每次延长重新规划整条曲线。</p>
+
+ <h2 id="limits">6. 什么情况下别用</h2>
+ <p>几条边界，都是实践中会撞上的。</p>
+ <p>第一，<strong>只适用于二维权重</strong>。embedding、输出层、偏置、归一化层一律交给 AdamW。embedding 稀疏且非平稳，正交化没有意义；卷积层则要先摊平成二维。</p>
+ <p>第二，<strong>超参不能迁移</strong>。lr 和 wd 的语义都变了，照搬一定出问题。</p>
+ <p>第三，<strong>NS 是近似</strong>。小奇异值推不动就是推不动，规模越大、层越深，越要检查这件事。</p>
+ <p>第四，<strong>小数据微调不值得</strong>。收益来自大规模长训练，几百步的微调里，优化器的差别会被「训练量本身不够」盖过去。</p>
+
+ <h2 id="close">7. 收尾</h2>
+ <p>回到开头那句话：优化器的差别在于用哪把尺子。</p>
+ <p>SGD 用欧氏距离，Adam 用逐坐标的尺度，Muon 用矩阵的谱。三者的演进方向是一致的——<strong>让尺子更贴近问题本身的结构</strong>。</p>
+ <p>但尺子再好，也只是让每一步更有效。它不改变「要多少步才够」这件事，也不改变数据质量决定上限这件事。</p>
+
+ <p class="references">相关笔记：<a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（训练量与评测设计） · <a href="./lingbot-vla2.html">LingBot-VLA 2.0 原理</a>（动作专家与流匹配） · <a href="./nvjpeg.html">nvJPEG 基础原理</a>（另一条「换个组织方式就快了」的线）</p>
+ <p class="references">外部参考：<a href="https://arxiv.org/abs/2606.04058">Spectral Scaling Laws of Muon（arXiv:2606.04058）</a> · <a href="https://github.com/KellerJordan/modded-nanogpt">KellerJordan/modded-nanogpt</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./nvjpeg.html"><span>← 上一篇</span><strong>nvJPEG 基础原理</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/optimizer/opt.js"></script>
+</body>
+</html>
