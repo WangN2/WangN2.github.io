@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/nvjpeg.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="nvJPEG 是怎么快起来的 · WangN2">
+ <meta property="og:description" content="JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/nvjpeg.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="nvJPEG 是怎么快起来的 · WangN2">
+ <meta name="twitter:description" content="JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-29">
+ <meta property="article:modified_time" content="2026-10-29">
+ <meta property="article:section" content="视觉管线">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"nvJPEG 是怎么快起来的","description":"JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。","url":"https://wangn2.github.io/notes/nvjpeg.html","mainEntityOfPage":"https://wangn2.github.io/notes/nvjpeg.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["nvJPEG","GPU 解码","并行"],"datePublished":"2026-10-29","dateModified":"2026-10-29"}</script>
+ <!--/meta-->
+ <title>nvJPEG 是怎么快起来的 · WangN2</title>
+ <meta name="description" content="JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/nvjpeg/nvjpeg.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 11 / 视觉管线 · 解码原理</p>
+ <h1>nvJPEG<br>是怎么快起来的</h1>
+ <p class="lede">JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快——它让那一半，和另外一半同时进行。</p>
+  <div class="article-meta"><span><time datetime="2026-10-29">2026-10-29</time></span><span>约 6 分钟</span><span>视觉管线</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>这篇只讲机制：它把解码拆成了什么、每一段交给谁、数据怎么在中间走、为什么这样拆就快了。</p>
+ <p class="callout"><strong>范围。</strong>以 nvJPEG 的解码路径为主，编码只讲结构上的对称性。不涉及参数调优，也不涉及视频解码（那是 NVDEC）。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#serial">1. 真正的难处：不是慢，是串行</a></li>
+   <li><a href="#split">2. 切分：把串行的留在 CPU</a></li>
+   <li><a href="#memory">3. 为什么内存要特殊处理</a></li>
+   <li><a href="#backends">4. 三种后端，其实是三种流水线架构</a></li>
+   <li><a href="#pipeline">5. 分阶段 API：让重叠真正发生</a></li>
+   <li><a href="#bottleneck">6. 重叠之后，谁说了算</a></li>
+   <li><a href="#encode">7. 编码：把流水线反过来走</a></li>
+   <li><a href="#close">8. 收尾：它换的是流水线，不是算法</a></li>
+   </ol>
+  </nav>
+ <h2 id="serial">1. 真正的难处：不是慢，是串行</h2>
+ <p>很多人以为 JPEG 解码慢是因为计算量大。不是。它慢，是因为<strong>有一部分工作没法并行</strong>。</p>
+ <p>解码拆开是五步：</p>
+ <table class="coordinates"><thead><tr><th>阶段</th><th>做什么</th><th>能不能并行</th></tr></thead><tbody>
+  <tr><td>熵解码</td><td>比特流 → DCT 系数的整数</td><td><strong>几乎不能</strong></td></tr>
+  <tr><td>反量化</td><td>系数乘回量化表</td><td>能，完全独立</td></tr>
+  <tr><td>反余弦变换</td><td>每个 8×8 块变回像素</td><td>能，块与块无关</td></tr>
+  <tr><td>色度上采样</td><td>把缩小的 Cb/Cr 放大</td><td>能</td></tr>
+  <tr><td>色彩转换</td><td>YCbCr → RGB</td><td>能，逐像素</td></tr>
+ </tbody></table>
+ <p>为什么第一段不能并行？两个原因。</p>
+ <p>一是变长编码。Huffman 码字没有固定长度，你不解完前一个符号，就不知道下一个比特从哪里开始。这是一条纯粹的前缀依赖链。</p>
+ <p>二是<strong>直流系数的差分预测</strong>。JPEG 里每个块的直流系数不是独立存的，而是存「和前一个块的差值」。所以块 N 的直流值依赖块 N-1，一路链下去。</p>
+ <p>这条链有一个例外：<strong>重启间隔</strong>。编码器每隔若干块插入一个重启标记，把预测器清零。有了它，一条流就可以切成几段独立解码。这也解释了为什么某些 GPU 路径会明确要求「无重启间隔」，而另一些恰好能利用它。</p>
+ <p>于是问题清楚了：<strong>后面四步占了绝大部分计算量，却全卡在第一步上。</strong></p>
+
+ <h2 id="split">2. 切分：把串行的留在 CPU</h2>
+ <p>nvJPEG 的答案很直接：既然第一步串行，就让它留在 CPU；后面四步是纯并行的像素运算，交给 GPU。</p>
+ <div class="formula">CPU：熵解码 → DCT 系数<br>　　　↓　页锁定内存，异步拷贝<br>GPU：反量化 → 反余弦 → 上采样 → 色彩转换 → RGB（直接落在显存）</div>
+ <p>这个切法有两个关键结果。</p>
+ <p>第一，<strong>结果不用回来了</strong>。传统做法是 CPU 解完得到一张 RGB 图放在主机内存，再整体拷到显存——那是一次几 MB 的传输。现在像素直接在显存里生成，那一趟省掉了。</p>
+ <p>第二，<strong>两段可以同时跑</strong>。CPU 在解第 N+1 张的比特流时，GPU 正在算第 N 张的反变换。这才是整套设计真正的收益来源——不是某一段变快了，是两段叠在一起了。</p>
+ <p>注意中间那一跳搬的是<strong>系数</strong>，不是像素。系数的体积和一帧 RGB 在同一量级，所以这一跳并没有被消灭，只是被<strong>掩盖</strong>在计算后面。</p>
+
+ <h2 id="memory">3. 为什么内存要特殊处理</h2>
+ <p>上面那句「异步拷贝」听起来轻松，前提是那块主机内存必须是<strong>页锁定</strong>的。</p>
+ <p>普通 <code>malloc</code> 出来的页可能被操作系统换到磁盘。为了安全，CUDA 在拷贝时必须先把页锁住、拷完再解锁——这个开销让传输慢一个数量级，而且无法真正异步。</p>
+ <p>所以 nvJPEG 让调用方显式创建页锁定缓冲，并把它挂在解码状态上。库内部所有主机侧的中间结果都放这里：熵解码出来的系数，以及某些路径下的临时数据。</p>
+ <p>同理，显存侧也有一块由调用方提供的设备缓冲。这两块缓冲加一个解码状态，就构成了 nvJPEG 里那个「解码器」的实际内存模型。</p>
+ <p>这也解释了一个常见现象：同样的代码，换成普通内存就慢一半，而且不报错。</p>
+
+ <h2 id="backends">4. 三种后端，其实是三种流水线架构</h2>
+ <p>后端不是一个调优参数，它选择的是<strong>这条流水线怎么组织</strong>。</p>
+ <table class="coordinates"><thead><tr><th>后端</th><th>CPU 做什么</th><th>GPU 做什么</th><th>本质</th></tr></thead><tbody>
+  <tr><td>HYBRID</td><td>熵解码</td><td>反变换与色彩转换</td><td>两段流水线</td></tr>
+  <tr><td>GPU_HYBRID</td><td>只有解析</td><td>熵解码也上 GPU</td><td>三段都进 GPU</td></tr>
+  <tr><td>HARDWARE</td><td>无</td><td>无</td><td>整条固化进固定功能单元</td></tr>
+ </tbody></table>
+ <p>第二种值得多说一句。GPU 做 Huffman 是出了名的低效——这是图形学界的老结论。nvJPEG 只在<strong>批量足够大</strong>时才启用它（文档里的阈值是 50 张），因为批量小的时候，GPU 熵解码的额外开销反而盖过收益。</p>
+ <p>第三种是另一条路。Ampere 之后，A100 这类卡上有一颗 NVJPG 单元，把整个解码流程做成硬件电路。它不跑 kernel，也就没有启动开销，吞吐最高。代价是能力被裁死：只支持 baseline、单 scan、1 或 3 通道，不支持 4:1:1 和 4:1:0 采样。</p>
+ <p>所以选后端这件事，本质是问：<strong>你的数据流长什么样，配得上哪条流水线。</strong></p>
+
+ <h2 id="pipeline">5. 分阶段 API：让重叠真正发生</h2>
+ <p>如果只调一个 <code>nvjpegDecode()</code>，库内部会帮你把三段串起来跑——但你没法让第 N+1 张的熵解码和第 N 张的计算重叠，因为接口是阻塞语义的。</p>
+ <p>要重叠，就得把三段拆开。这就是「分阶段 API」存在的全部理由：</p>
+ <div class="formula">nvjpegDecodeJpegHost()　　　　　　→　熵解码，产出系数<br>nvjpegDecodeJpegTransferToDevice()　→　系数送显存<br>nvjpegDecodeJpegDevice()　　　　　→　反变换与色彩转换</div>
+ <p>拆开之后，三段就是三个<strong>可以各自排队</strong>的资源：CPU、PCIe、GPU。它们能同时对不同的图片工作。</p>
+ <p>下面这张时间线把这件事画出来了。六张图，同样的总工作量，只看排布方式。</p>
+
+ <section class="pipe-lab" aria-labelledby="pipe-lab-title" data-ready="false">
+  <h3 id="pipe-lab-title">三条资源的时间线</h3>
+  <p class="pipe-hint">每张图都必须依次经过 CPU 熵解码、PCIe 拷贝、GPU 反变换；每个资源一次只能服务一张图。切换模式，看同样的工作怎么排。</p>
+  <div class="pipe-modes" role="group" aria-label="调度模式">
+   <button type="button" data-mode="serial" aria-pressed="false">串行</button>
+   <button type="button" data-mode="pipe" aria-pressed="true">分阶段重叠</button>
+  </div>
+  <canvas data-canvas role="img" aria-label="三行时间线：CPU 熵解码、PCIe 拷贝、GPU 反变换，展示串行与重叠两种排布">三行时间线，展示串行与重叠两种排布。</canvas>
+  <div class="pipe-legend">
+   <span><i style="background:#176dae"></i>CPU 熵解码</span>
+   <span><i style="background:#9db6cb"></i>PCIe 拷贝</span>
+   <span><i style="background:#19334d"></i>GPU 反变换</span>
+  </div>
+  <div class="pipe-ctrl">
+   <label for="pipe-gpu">GPU 单张耗时</label>
+   <input id="pipe-gpu" type="range" data-in="gpu" min="0.4" max="3.2" step="0.1" value="1.5" aria-label="GPU 单张耗时">
+   <output data-out="gpu">1.5</output>
+  </div>
+  <dl class="pipe-readout">
+   <div><dt>当前总时长</dt><dd data-read="total">—</dd></div>
+   <div><dt>串行需要</dt><dd data-read="serial">—</dd></div>
+   <div><dt>重叠带来的加速</dt><dd data-read="speed">—</dd></div>
+  </dl>
+  <p class="pipe-status" data-status role="status">—</p>
+ </section>
+
+ <h2 id="bottleneck">6. 重叠之后，谁说了算</h2>
+ <p>把时间线拉长看，会发现一件有意思的事：重叠并不能让总时间无限变短。</p>
+ <p>流水线的吞吐由<strong>最慢的那一段</strong>决定。六张图、三段等长的时候，理想总时长是「一段的长度 × 6 加上填充」，而不是「三段之和 × 6」。加速比的上限就是三段之和除以最慢那段——在默认参数下大概两倍。</p>
+ <p>拖动上面的滑块就能看到瓶颈转移：把 GPU 时间拉到最长，整条线被 GPU 卡住，CPU 早早解完无事可做；反过来压短 GPU，瓶颈就跑到 CPU 那边去。</p>
+ <p>这也解释了为什么批量小时收益会消失：流水线要「灌满」才有重叠。只解一两张图，填充和排空的时间占比太高，串行反而更简单。</p>
+
+ <h2 id="encode">7. 编码：把流水线反过来走</h2>
+ <p>编码是同一套结构的逆序：色彩转换（RGB → YCbCr）、色度下采样、正余弦变换、量化、熵编码。</p>
+ <p>对应地，CPU 在编码路径上做的事变成了熵编码，GPU 做前面的像素变换。同样的分工理由：熵编码也是变长、有依赖的串行过程。</p>
+ <p>有意思的是<strong>转码</strong>。如果你只是想改元数据、换个容器，并不需要重算一遍余弦变换——库提供了直接搬运量化表与元数据的接口，让系数原封不动地重新打包。</p>
+ <p>这才是「无损转码」这个词的准确含义：<strong>不是解压再压，是绕过反变换和正变换，直接搬系数。</strong>一旦经过一次完整的解码再编码，量化的损失就叠加了两次。</p>
+
+ <h2 id="close">8. 收尾：它换的是流水线，不是算法</h2>
+ <p>回头看，nvJPEG 没有发明新的解码算法。它只做了三件事：</p>
+ <p>把串行的部分留在它擅长的处理器上；把并行的部分交给更擅长的处理器；再用分阶段的接口，让两半同时进行。</p>
+ <p>所以它不是「更快的 libjpeg-turbo」。它是<strong>同一条算法，换了一种组织方式</strong>。</p>
+ <p>这句话反过来也成立：如果你的数据量根本喂不饱这条流水线，组织方式再好也没有收益——那时候 CPU 就该老老实实干活。</p>
+
+ <p class="references">相关笔记：<a href="./apriltag.html">AprilTag 视觉定位</a>（像素从哪来） · <a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（延迟与部署形态） · <a href="./grasp-timeline.html">一次完整抓取</a>（链路时序）</p>
+ <p class="references">外部参考：<a href="https://docs.nvidia.com/cuda/nvjpeg/index.html">nvJPEG 官方文档</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./vla-g2-deploy.html"><span>← 上一篇</span><strong>把大模型放在闭环外面</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/nvjpeg/nvjpeg.js"></script>
+</body>
+</html>
