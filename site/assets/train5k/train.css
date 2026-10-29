@@ -1,0 +1,6 @@
+.train-article figure{margin:26px 0}
+.train-article figure img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;background:#fff}
+.train-article figcaption{font-size:13px;color:var(--muted);line-height:1.7;margin-top:10px}
+.train-article .formula{overflow-x:auto}
+.gate-table td:first-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.train-article figcaption{font-size:12.5px}}
