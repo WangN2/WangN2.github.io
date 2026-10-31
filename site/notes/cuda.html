@@ -37,10 +37,10 @@
  <p class="eyebrow">NOTE 15 / 计算基础 · CUDA 与算子</p>
  <h1>CUDA 与算子</h1>
  <p class="lede">GPU 快的不是每个核，而是同一时刻有几千份活正在飞。CUDA 把这件硬件事实，抽象成了网格、线程块和共享内存。</p>
-  <div class="article-meta"><span><time datetime="2026-10-31">2026-10-31</time></span><span>约 9 分钟</span><span>计算基础</span><a class="series-link" href="../series/">全系列 ›</a></div>
+  <div class="article-meta"><span><time datetime="2026-10-31">2026-10-31</time></span><span>约 12 分钟</span><span>计算基础</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>这篇想解释清楚两件事：CUDA 到底做了什么让程序变快，以及「算子」这个词在工程里指什么、它是怎么跑起来的。</p>
- <p class="callout"><strong>范围。</strong>讲执行模型与访存层次，不涉及具体 API 手把手。数字是数量级，不同代际的卡差别很大。</p>
+ <p class="callout"><strong>范围。</strong>讲执行模型与访存层次，以 softmax 为例给出一版能编译的代码，但不铺开整个 API。数字是数量级，不同代际的卡差别很大。</p>
 
   <nav class="toc" aria-labelledby="toc-title">
    <p class="toc-title" id="toc-title">本文目录</p>
@@ -53,7 +53,8 @@
    <li><a href="#operator">6. 算子是什么</a></li>
    <li><a href="#how">7. 算子怎么工作：四个决定</a></li>
    <li><a href="#case">8. 案例：把 softmax 从三趟压成一趟</a></li>
-   <li><a href="#close">9. 收尾</a></li>
+   <li><a href="#code">9. 两版代码</a></li>
+   <li><a href="#close">10. 收尾</a></li>
    </ol>
   </nav>
 
@@ -182,7 +183,113 @@
  <p>flash attention 做的事情，正是把上面这个在线技巧搬进分块循环：每处理一块 K 和 V，就用 running max 和 running sum 去<strong>重标定已经累加的输出</strong>，永远不落地整个分数矩阵。换句话说，它不是在注意力上做了个新算法，而是把 softmax 的在线写法推广到了 attention 的分块结构里。</p>
  <p>这也是为什么这一类工作的收益常常是几倍而不是几个百分点：它们省的是显存往返，而不是算术。</p>
 
- <h2 id="close">9. 收尾</h2>
+ <h2 id="code">9. 两版代码</h2>
+ <p>前面那四条决定落到代码上，大概就是下面这些行。用一个线程块处理一行，块内 256 个线程。</p>
+
+ <h3>先解决每个块都要用的归约</h3>
+ <p>求和、求最大值这类操作，每个线程先算自己那份，再在块内合并。合并用共享内存两两对折，比原子操作快得多：</p>
+<pre><code>// 块内归约：共享内存上两两合并，直到只剩一个值
+__device__ float block_max(float v, float* s) {
+    s[threadIdx.x] = v;
+    __syncthreads();
+    for (int off = blockDim.x &gt;&gt; 1; off &gt; 0; off &gt;&gt;= 1) {
+        if (threadIdx.x &lt; off)
+            s[threadIdx.x] = fmaxf(s[threadIdx.x], s[threadIdx.x + off]);
+        __syncthreads();               // 每一轮都要同步
+    }
+    return s[0];
+}
+
+__device__ float block_sum(float v, float* s) {
+    s[threadIdx.x] = v;
+    __syncthreads();
+    for (int off = blockDim.x &gt;&gt; 1; off &gt; 0; off &gt;&gt;= 1) {
+        if (threadIdx.x &lt; off)
+            s[threadIdx.x] += s[threadIdx.x + off];
+        __syncthreads();
+    }
+    return s[0];
+}</code></pre>
+ <p>两个循环里的 <code>__syncthreads()</code> 不能省。每一轮都有一半线程读取另一半刚写下的值，没有屏障就会读到上一轮的旧数据。</p>
+
+ <h3>朴素版：三趟</h3>
+<pre><code>__global__ void softmax_naive(const float* __restrict__ x,
+                              float* __restrict__ y,
+                              int rows, int cols) {
+    __shared__ float s[1024];
+    const int row = blockIdx.x;          // 一个块负责一行
+    const int tid = threadIdx.x;
+    const float* xr = x + (size_t)row * cols;
+    float*       yr = y + (size_t)row * cols;
+
+    // 第一趟：这一行的最大值
+    float m = -INFINITY;
+    for (int i = tid; i &lt; cols; i += blockDim.x) m = fmaxf(m, xr[i]);
+    m = block_max(m, s);
+    __syncthreads();                     // 复用 s 之前必须同步
+
+    // 第二趟：算指数，顺手写回 y，同时求和
+    float sum = 0.f;
+    for (int i = tid; i &lt; cols; i += blockDim.x) {
+        const float e = __expf(xr[i] - m);
+        yr[i] = e;
+        sum += e;
+    }
+    sum = block_sum(sum, s);
+    __syncthreads();
+
+    // 第三趟：读回 y，除以和，再写回
+    const float inv = 1.f / sum;
+    for (int i = tid; i &lt; cols; i += blockDim.x) yr[i] *= inv;
+}
+
+softmax_naive&lt;&lt;&lt;rows, 256&gt;&gt;&gt;(x, y, rows, cols);</code></pre>
+ <p>三段循环对应三趟显存访问，和前面算的一致。<code>i += blockDim.x</code> 这种写法叫跨步循环：列数不整除线程数时也能覆盖全部元素，而且每次访问都是连续的，正好满足合并访存。</p>
+
+ <h3>在线版：一趟求 (m, l)，一趟写出</h3>
+<pre><code>__global__ void softmax_online(const float* __restrict__ x,
+                               float* __restrict__ y,
+                               int rows, int cols) {
+    __shared__ float s[1024];
+    const int row = blockIdx.x;
+    const int tid = threadIdx.x;
+    const float* xr = x + (size_t)row * cols;
+    float*       yr = y + (size_t)row * cols;
+
+    // 一趟：每个线程只留下自己那部分的 (m, l)
+    float m = -INFINITY, l = 0.f;
+    for (int i = tid; i &lt; cols; i += blockDim.x) {
+        const float mi = fmaxf(m, xr[i]);
+        l = l * __expf(m - mi) + __expf(xr[i] - mi);   // 重标定 + 累加
+        m = mi;
+    }
+
+    // 线程之间：先合并最大值，再把各自的 l 换到新基准
+    const float gm = block_max(m, s);
+    __syncthreads();
+    const float gl = block_sum(l * __expf(m - gm), s);
+
+    // 第二趟：只剩写出
+    const float inv = 1.f / gl;
+    for (int i = tid; i &lt; cols; i += blockDim.x)
+        yr[i] = __expf(xr[i] - gm) * inv;
+}</code></pre>
+ <p>全篇最关键的是这一行：</p>
+ <div class="formula">gl = block_sum( l * __expf(m - gm), s )</div>
+ <p>每个线程手里的 <code>l</code> 是按<strong>自己的</strong> <code>m</code> 算出来的，基准不一样，不能直接相加。所以要先在块内求出全局最大 <code>gm</code>，再用 <code>exp(m − gm)</code> 把每个线程的 <code>l</code> 缩放到同一个基准上，最后才求和。</p>
+ <p>这一步和第二节的交互里第 2、3 步触发的是同一个动作，只是从「一个线程内重标定」变成了「线程之间重标定」。我用一组十个数做过数值核对：<code>m = -INFINITY</code> 的线程贡献 <code>exp(−∞) = 0</code>、<code>0 × 0 = 0</code>，不会产生 NaN，最终结果与标准 softmax 逐位一致。</p>
+
+ <h3>四个容易写错的地方</h3>
+ <p><strong>第一，<code>__syncthreads()</code> 的位置。</strong>它必须被块内所有线程执行到。放进 <code>if (tid &lt; off)</code> 里面，或者放进只有部分线程会走的分支，整块会挂死。</p>
+ <p><strong>第二，复用共享内存前要同步。</strong>上面 <code>block_max</code> 返回之后，<code>s[0]</code> 里还留着最大值；紧接着 <code>block_sum</code> 第一行就写 <code>s[threadIdx.x]</code>。中间那个 <code>__syncthreads()</code> 就是为这件事留的。</p>
+ <p><strong>第三，<code>__expf</code> 是有代价的。</strong>它是硬件近似指令，比 <code>expf</code> 快好几倍，但精度大约差两个 ulp。做推理没问题，做需要严格复现的数值实验就别用。</p>
+ <p><strong>第四，一个块只适合不太长的一行。</strong>行有几万列时，一个块吃不满 SM，得拆成两段：第一个 kernel 并行算出每行的 (m, l) 落到显存，第二个 kernel 再读回来归一化。前面说的「块间不能同步」，代价就在这里。</p>
+
+ <p>编译很简单，注意指定架构：</p>
+<pre><code>nvcc -O3 -arch=sm_80 softmax.cu -o softmax</code></pre>
+ <p>块大小取 128 到 256 之间比较稳。<code>__shared__ float s[1024]</code> 决定了 <code>blockDim.x</code> 不能超过 1024；再大就要换成动态共享内存或分块。</p>
+
+ <h2 id="close">10. 收尾</h2>
  <p>回头看，CUDA 没有发明新的数学，也没有让单个核变快。它做了三件事：把并行拆成网格与块，让同一时刻有几千份活在飞；把内存分层，让复用发生在离计算最近的地方；把这两件事抽象成一套可编程的模型。</p>
  <p>而算子，就是这套模型在具体问题上的落地。同一个矩阵乘，朴素写法是「算得对」，分块写法是「少读几次」——<strong>差别从来不在算术上。</strong></p>
 
