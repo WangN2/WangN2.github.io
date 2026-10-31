@@ -55,7 +55,9 @@
    <li><a href="#close">8. 收尾</a></li>
    </ol>
   </nav>
- <h2 id="what">1. CUDA 是什么</h2>
+  <figure class="cuda-player"><video id="cuda-video" controls preload="metadata" playsinline width="1920" height="1080" poster="../assets/cuda/poster.jpg" aria-label="CUDA 与算子讲解视频，1 分 36 秒，中文字幕"><source src="../assets/cuda/cuda-explainer.mp4" type="video/mp4"><track kind="captions" src="../assets/cuda/captions.vtt" srclang="zh-CN" label="中文字幕" default>你的浏览器不支持内嵌视频，可直接<a href="../assets/cuda/cuda-explainer.mp4">下载观看</a>。</video><figcaption>讲解视频（1 分 36 秒，中文字幕）：从延迟隐藏讲到分块访存。</figcaption></figure>
+
+<h2 id="what">1. CUDA 是什么</h2>
  <p>它不是一个语言，是三层东西叠在一起的平台。</p>
  <p><strong>第一层是硬件</strong>：一块由许多 SM（流式多处理器）组成的芯片，每个 SM 里有几十到上百个执行单元，外接几 GB 到几十 GB 的显存。</p>
  <p><strong>第二层是编程模型</strong>：C/C++ 的扩展。你写一个标了 <code>__global__</code> 的函数，用 <code>&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;</code> 启动它，NVIDIA 的编译器把它编译成能在 GPU 上跑的机器码，运行时负责把它塞进硬件。</p>
