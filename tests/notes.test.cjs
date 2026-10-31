@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'../site');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
-const notes=['notes/kinematics.html','notes/collision-envelope.html','notes/apriltag.html','notes/tray-grasp.html','notes/swerve-base.html','notes/hand-eye.html','notes/costmap.html','notes/grasp-timeline.html','notes/lingbot-vla2.html','notes/vla-g2-deploy.html','notes/nvjpeg.html','notes/optimizer-muon.html','notes/genie4-vs-astra.html','notes/train-5k.html'];
+const notes=['notes/kinematics.html','notes/collision-envelope.html','notes/apriltag.html','notes/tray-grasp.html','notes/swerve-base.html','notes/hand-eye.html','notes/costmap.html','notes/grasp-timeline.html','notes/lingbot-vla2.html','notes/vla-g2-deploy.html','notes/nvjpeg.html','notes/optimizer-muon.html','notes/genie4-vs-astra.html','notes/train-5k.html','notes/cuda.html'];
 function body(s){return s.slice(s.indexOf('<article'),s.indexOf('</article>'));}
 function plain(html){return html.replace(/<script[\s\S]*?<\/script>/g,' ').replace(/<[^>]+>/g,' ');}
 function minutes(html){

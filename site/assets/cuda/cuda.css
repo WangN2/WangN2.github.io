@@ -1,0 +1,22 @@
+.cuda-lab{margin:34px 0 42px;padding:22px 22px 18px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 12px #19334d08}
+.cuda-lab h3{font-size:19px;margin:0 0 6px}
+.cuda-lab .cuda-hint{font-size:13px;line-height:1.75;color:var(--muted);margin:0 0 16px;max-width:680px}
+.cuda-row{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.cuda-row canvas{flex:0 0 auto;width:300px;height:300px;border:1px solid #e2eaf2;border-radius:10px;background:#fbfdff}
+.cuda-side{flex:1 1 300px;min-width:260px}
+.cuda-ctrl{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.cuda-ctrl label{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.cuda-ctrl button{font:inherit;font-size:12.5px;cursor:pointer;padding:7px 14px;border-radius:8px;border:1px solid #ced9e3;background:#fff;color:var(--ink);width:fit-content}
+.cuda-ctrl button:hover{background:#edf5fc}
+.cuda-ctrl select{font:inherit;font-size:13px;color:var(--ink);padding:6px 8px;border:1px solid #ced9e3;border-radius:7px;background:#fff}
+.cuda-bars{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.cuda-bar{display:grid;grid-template-columns:72px 1fr 88px;gap:10px;align-items:center;font-size:12px;color:var(--muted)}
+.cuda-bar i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,#b0592f,#d98a63);min-width:2px}
+.cuda-bar.tiled i{background:linear-gradient(90deg,#176dae,#5a9bcc)}
+.cuda-bar b{font-variant-numeric:tabular-nums;color:var(--ink);text-align:right}
+.cuda-readout{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0;padding:0}
+.cuda-readout div{border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:#fbfdff}
+.cuda-readout dt{font-size:10px;letter-spacing:.1em;color:var(--muted);margin:0 0 3px}
+.cuda-readout dd{margin:0;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.cuda-lab .cuda-status{font-size:12.5px;line-height:1.7;color:var(--muted);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}
+@media(max-width:640px){.cuda-row canvas{width:100%;height:260px}}

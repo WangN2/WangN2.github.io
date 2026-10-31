@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/cuda.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="CUDA 与算子：从线程网格到一次矩阵乘 · WangN2">
+ <meta property="og:description" content="GPU 快的不是每个核，是同时有几千份活在飞。CUDA 把这件事抽象成网格、线程块与共享内存。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/cuda.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="CUDA 与算子：从线程网格到一次矩阵乘 · WangN2">
+ <meta name="twitter:description" content="GPU 快的不是每个核，是同时有几千份活在飞。CUDA 把这件事抽象成网格、线程块与共享内存。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-10-31">
+ <meta property="article:modified_time" content="2026-10-31">
+ <meta property="article:section" content="计算基础">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"CUDA 与算子：从线程网格到一次矩阵乘","description":"GPU 快的不是每个核，是同时有几千份活在飞。CUDA 把这件事抽象成网格、线程块与共享内存。","url":"https://wangn2.github.io/notes/cuda.html","mainEntityOfPage":"https://wangn2.github.io/notes/cuda.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["CUDA","GPU","算子","矩阵乘法"],"datePublished":"2026-10-31","dateModified":"2026-10-31"}</script>
+ <!--/meta-->
+ <title>CUDA 与算子：从线程网格到一次矩阵乘 · WangN2</title>
+ <meta name="description" content="GPU 快的不是每个核，是同时有几千份活在飞。CUDA 把这件事抽象成网格、线程块与共享内存。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/cuda/cuda.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 15 / 计算基础 · CUDA 与算子</p>
+ <h1>CUDA 与算子</h1>
+ <p class="lede">GPU 快的不是每个核，而是同一时刻有几千份活正在飞。CUDA 把这件硬件事实，抽象成了网格、线程块和共享内存。</p>
+  <div class="article-meta"><span><time datetime="2026-10-31">2026-10-31</time></span><span>约 7 分钟</span><span>计算基础</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>这篇想解释清楚两件事：CUDA 到底做了什么让程序变快，以及「算子」这个词在工程里指什么、它是怎么跑起来的。</p>
+ <p class="callout"><strong>范围。</strong>讲执行模型与访存层次，不涉及具体 API 手把手。数字是数量级，不同代际的卡差别很大。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#what">1. CUDA 是什么</a></li>
+   <li><a href="#why">2. 为什么快：不是核快，是在飞的活多</a></li>
+   <li><a href="#model">3. 执行模型：网格、线程块、warp</a></li>
+   <li><a href="#memory">4. 内存层次：性能真正的战场</a></li>
+   <li><a href="#tiling">5. 加速怎么发生：以矩阵乘法为例</a></li>
+   <li><a href="#operator">6. 算子是什么</a></li>
+   <li><a href="#how">7. 算子怎么工作：四个决定</a></li>
+   <li><a href="#close">8. 收尾</a></li>
+   </ol>
+  </nav>
+ <h2 id="what">1. CUDA 是什么</h2>
+ <p>它不是一个语言，是三层东西叠在一起的平台。</p>
+ <p><strong>第一层是硬件</strong>：一块由许多 SM（流式多处理器）组成的芯片，每个 SM 里有几十到上百个执行单元，外接几 GB 到几十 GB 的显存。</p>
+ <p><strong>第二层是编程模型</strong>：C/C++ 的扩展。你写一个标了 <code>__global__</code> 的函数，用 <code>&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;</code> 启动它，NVIDIA 的编译器把它编译成能在 GPU 上跑的机器码，运行时负责把它塞进硬件。</p>
+ <p><strong>第三层是生态</strong>：cuBLAS、cuDNN、TensorRT、nvJPEG 这些库，以及 PyTorch、TensorFlow 底下那一整层。绝大多数人不会直接写 kernel，而是通过这一层间接使用 GPU。</p>
+ <p>三层的分工是：硬件提供并行度，模型让你能描述并行，生态把常见的并行模式提前写好。</p>
+
+ <h2 id="why">2. 为什么快：不是核快，是在飞的活多</h2>
+ <p>先看一个常被忽略的事实：<strong>GPU 的单核比 CPU 慢</strong>。它的频率更低，没有乱序执行，没有复杂的分支预测，缓存也小得多。</p>
+ <p>它赢在另一个维度。</p>
+ <figure><img src="../assets/cuda/fig1_cpu_gpu.png" width="1800" height="760" loading="lazy" alt="左图 CPU 为少量大核与大缓存，右图 GPU 为大量小型处理单元"><figcaption>图 1｜CPU 为延迟优化，GPU 为吞吐优化。</figcaption></figure>
+ <p>CPU 有几十个核，每个核都在拼命把单条指令的延迟压到最低：预测分支、重排指令、预取数据。它擅长「一件事尽快做完」。</p>
+ <p>GPU 有几千个线程位置。它的策略完全相反：<strong>不打算让任何一条指令变快，而是让很多条指令同时在飞。</strong></p>
+ <p>这里有个关键机制叫<strong>延迟隐藏</strong>。访问一次显存要等四五百个周期，如果只有一个线程在跑，这段等待就是纯浪费。但一个 SM 上同时驻留着几十个 warp，第一个 warp 卡在等数据，调度器立刻切到第二个、第三个——等第一个的数据回来，它已经等了几十个 warp 的时间，看上去「不卡」。</p>
+ <p>所以 GPU 的加速不是把 1 秒变成 0.01 秒，而是<strong>把原本互相等待的时间填满</strong>。这也决定了它的前提：任务必须能拆成大量互不依赖的小工作。拆不开，几千个线程位置就是空的。</p>
+
+ <h2 id="model">3. 执行模型：网格、线程块、warp</h2>
+ <p>CUDA 用三层结构描述并行。</p>
+ <figure><img src="../assets/cuda/fig2_model.png" width="1800" height="820" loading="lazy" alt="上半部分是网格、线程块与 warp 的映射关系，下半部分是寄存器、共享内存、L2 与显存的延迟对比"><figcaption>图 2｜一次 kernel 启动是一个网格；网格切成线程块；线程块切成 warp。</figcaption></figure>
+ <p><strong>网格（grid）</strong>：一次 kernel 启动对应的全部线程。</p>
+ <p><strong>线程块（block）</strong>：网格切成若干块，块与块之间可以完全独立地调度到不同的 SM 上，没有先后顺序保证。</p>
+ <p><strong>warp</strong>：硬件真正的执行单位，32 个线程一组。同一个 warp 里的 32 个线程<strong>执行同一条指令</strong>，只是数据不同——这叫 SIMT。如果它们在一个条件分支里走了不同路径，硬件会把两条路径串行各跑一遍，这叫 warp 分歧，是性能杀手。</p>
+ <p>块内可以用 <code>__syncthreads()</code> 做屏障同步，块之间不行（除非用协作组）。这个限制决定了算法的组织方式：<strong>凡是需要全局同步的步骤，就得拆成多个 kernel 或者两阶段完成。</strong></p>
+
+ <h2 id="memory">4. 内存层次：性能真正的战场</h2>
+ <p>如果只记住一句，就是这句：<strong>GPU 上的算子快不快，几乎全看它怎么用内存。</strong></p>
+ <p>看图 2 下半部分那张表。寄存器一个周期，共享内存三十个周期，L2 两百个周期，显存五百个周期——差了三个数量级。</p>
+ <p>于是所有高性能 kernel 都遵循同一个套路：<strong>把要重复使用的数据搬到离计算单元最近的地方，算完再走。</strong></p>
+ <p>还有一个容易被忽略的细节：<strong>合并访存</strong>。当一个 warp 的 32 个线程访问连续的一段地址时，硬件会把它们合并成一次内存事务；如果它们东一个西一个，就要发 32 次。同样的字节数，带宽差一个数量级。</p>
+ <p>所以写 kernel 的第一原则不是「怎么算得快」，而是「<strong>怎么让 32 个线程一次把数据拿回来</strong>」。</p>
+
+ <h2 id="tiling">5. 加速怎么发生：以矩阵乘法为例</h2>
+ <p>矩阵乘法是最好用的例子，因为它有明确的「复用」可以榨。</p>
+ <p>朴素写法是三重循环：每个输出元素 C[i][j]，都要读 A 的一整行和 B 的一整列。N×N 的矩阵算下来，全局内存要读 <strong>2N³</strong> 次。</p>
+ <p>但同一行 A 被 N 个输出元素共用，同一列 B 也被 N 个输出元素共用。这些复用全被浪费了。</p>
+ <figure><img src="../assets/cuda/fig3_tiling.png" width="1800" height="700" loading="lazy" alt="矩阵 A 的一段行、矩阵 B 的一段列被高亮，对应到 C 上的一个输出块"><figcaption>图 3｜一个输出块只需要 A 的一个行面板和 B 的一个列面板。</figcaption></figure>
+ <p>分块（tiling）的做法是：把 C 切成若干 T×T 的块，算一块的时候，把 A 的对应行面板和 B 的列面板先搬到共享内存，然后块内所有线程反复用它。</p>
+ <p>这样每个面板只从显存读一次，被复用 T 次。全局访问从 2N³ 降到 2N³/T——<strong>计算量一点没变，省掉的全是重复读</strong>。</p>
+
+ <section class="cuda-lab" aria-labelledby="cuda-lab-title" data-ready="false">
+  <h3 id="cuda-lab-title">分块省掉了多少次全局读</h3>
+  <p class="cuda-hint">左边是输出矩阵 C 的分块，橙色是当前正在算的块，它的行和列对应的就是 A、B 要搬进共享内存的面板。右边把两种写法的全局读次数画在一起。</p>
+  <div class="cuda-row">
+   <canvas data-canvas role="img" aria-label="输出矩阵 C 的分块网格，当前块被高亮">分块网格示意图。</canvas>
+   <div class="cuda-side">
+    <div class="cuda-ctrl">
+     <label>矩阵 N <select data-in="N"><option>8</option><option selected>16</option><option>32</option><option>64</option></select></label>
+     <label>块边长 T <select data-in="T"><option>2</option><option selected>4</option><option>8</option><option>16</option></select></label>
+     <button type="button" class="pipe-nav" data-play>播放</button>
+    </div>
+    <div class="cuda-bars">
+     <div class="cuda-bar"><span>朴素</span><i data-bar="naive" style="width:100%"></i><b data-num="naive">—</b></div>
+     <div class="cuda-bar tiled"><span>分块</span><i data-bar="tiled" style="width:100%"></i><b data-num="tiled">—</b></div>
+    </div>
+    <dl class="cuda-readout">
+     <div><dt>朴素全局读</dt><dd data-read="naive">—</dd></div>
+     <div><dt>分块全局读</dt><dd data-read="tiled">—</dd></div>
+     <div><dt>访存减少</dt><dd data-read="speed">—</dd></div>
+     <div><dt>块数</dt><dd data-read="tile">—</dd></div>
+    </dl>
+   </div>
+  </div>
+  <p class="cuda-status" data-status role="status">—</p>
+ </section>
+
+ <h2 id="operator">6. 算子是什么</h2>
+ <p>这个词在两个语境里指两件东西，很容易混。</p>
+ <p><strong>在深度学习框架里</strong>，算子是一个数学操作：矩阵乘、卷积、softmax、LayerNorm、ReLU。它是计算图上的一个节点，有输入张量、输出张量和形状推导规则。你写 <code>torch.matmul</code>，用的就是这样一个算子。</p>
+ <p><strong>在 CUDA 里</strong>，算子最终落成一个或多个 kernel——也就是真正在 GPU 上跑的那些函数。</p>
+ <p>两者的关系是：<strong>一个算子可以有多种实现，框架在运行时挑一个给你。</strong>同一个卷积，可能走 cuDNN 的某个融合 kernel，也可能走手写的特化版本，还可能走编译器生成的。挑哪个，取决于形状、数据类型、显存布局，甚至当时哪块缓存是热的。</p>
+ <p>所以「算子性能」其实是两层：<strong>算法层面选了什么分解方式</strong>，和<strong>实现层面访存组织得好不好</strong>。</p>
+
+ <h2 id="how">7. 算子怎么工作：四个决定</h2>
+ <p>不管什么算子，写出来都要回答四个问题。</p>
+ <p><strong>第一，怎么切分。</strong>把输出张量切成块，每个线程块负责一块。GEMM 是两级分块（块级、线程级），卷积是先把输出按空间切块，再在内层展开成矩阵乘。</p>
+ <p><strong>第二，怎么访存。</strong>块内要复用的数据放进共享内存；相邻线程访问相邻地址，保证合并；必要时做向量化读取，一次取 128 位而不是 32 位。</p>
+ <p><strong>第三，怎么映射线程。</strong>哪个维度对应 <code>threadIdx.x</code>，哪个对应 <code>threadIdx.y</code>。映射方式直接决定了访存是否连续——这是最容易写错、也最影响性能的一步。</p>
+ <p><strong>第四，怎么处理边界。</strong>当形状不是块大小的整数倍时，多出来的线程要早退，又不能破坏同步。这是 kernel 里一半的 <code>if</code> 语句的来源。</p>
+ <p>拿 softmax 举例，它比 GEMM 更能说明问题。softmax 要减去最大值再取指数求和，天然是两趟：第一趟求最大值和和，第二趟才能归一化。对一行做没问题，但如果一整行放不进一个线程块，就得拆成跨块归约——两个 kernel，中间落一次显存。后来有人把两趟合成一趟（在线 softmax），代价是要边算边修正，这就是 flash attention 那类工作的起点。</p>
+ <p>再往上一层是<strong>融合</strong>：把几个算子合成一个 kernel，省掉中间结果写回显存再读出来的往返。在带宽受限的模型里，这一步的收益往往比把单个算子优化 10% 更大。</p>
+
+ <h2 id="close">8. 收尾</h2>
+ <p>回头看，CUDA 没有发明新的数学，也没有让单个核变快。它做了三件事：把并行拆成网格与块，让同一时刻有几千份活在飞；把内存分层，让复用发生在离计算最近的地方；把这两件事抽象成一套可编程的模型。</p>
+ <p>而算子，就是这套模型在具体问题上的落地。同一个矩阵乘，朴素写法是「算得对」，分块写法是「少读几次」——<strong>差别从来不在算术上。</strong></p>
+
+ <p class="references">相关笔记：<a href="./nvjpeg.html">nvJPEG 基础原理</a>（同样是「把能并行的搬到 GPU」） · <a href="./optimizer-muon.html">优化器与 Muon</a>（训练侧的计算） · <a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（推理延迟从哪来）</p>
+ <p class="references">外部参考：<a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/">CUDA C Programming Guide</a> · <a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/">CUDA Best Practices Guide</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./train-5k.html"><span>← 上一篇</span><strong>把 VLA 装进 G2：一次 0/30 的排障</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/cuda/cuda.js"></script>
+</body>
+</html>
