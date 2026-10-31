@@ -37,7 +37,7 @@
  <p class="eyebrow">NOTE 15 / 计算基础 · CUDA 与算子</p>
  <h1>CUDA 与算子</h1>
  <p class="lede">GPU 快的不是每个核，而是同一时刻有几千份活正在飞。CUDA 把这件硬件事实，抽象成了网格、线程块和共享内存。</p>
-  <div class="article-meta"><span><time datetime="2026-10-31">2026-10-31</time></span><span>约 7 分钟</span><span>计算基础</span><a class="series-link" href="../series/">全系列 ›</a></div>
+  <div class="article-meta"><span><time datetime="2026-10-31">2026-10-31</time></span><span>约 9 分钟</span><span>计算基础</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>这篇想解释清楚两件事：CUDA 到底做了什么让程序变快，以及「算子」这个词在工程里指什么、它是怎么跑起来的。</p>
  <p class="callout"><strong>范围。</strong>讲执行模型与访存层次，不涉及具体 API 手把手。数字是数量级，不同代际的卡差别很大。</p>
@@ -52,7 +52,8 @@
    <li><a href="#tiling">5. 加速怎么发生：以矩阵乘法为例</a></li>
    <li><a href="#operator">6. 算子是什么</a></li>
    <li><a href="#how">7. 算子怎么工作：四个决定</a></li>
-   <li><a href="#close">8. 收尾</a></li>
+   <li><a href="#case">8. 案例：把 softmax 从三趟压成一趟</a></li>
+   <li><a href="#close">9. 收尾</a></li>
    </ol>
   </nav>
   <figure class="cuda-player"><video id="cuda-video" controls preload="metadata" playsinline width="1920" height="1080" poster="../assets/cuda/poster.jpg" aria-label="CUDA 与算子讲解视频，1 分 36 秒，中文字幕"><source src="../assets/cuda/cuda-explainer.mp4" type="video/mp4"><track kind="captions" src="../assets/cuda/captions.vtt" srclang="zh-CN" label="中文字幕" default>你的浏览器不支持内嵌视频，可直接<a href="../assets/cuda/cuda-explainer.mp4">下载观看</a>。</video><figcaption>讲解视频（1 分 36 秒，中文字幕）：从延迟隐藏讲到分块访存。</figcaption></figure>
@@ -140,7 +141,49 @@
  <p>拿 softmax 举例，它比 GEMM 更能说明问题。softmax 要减去最大值再取指数求和，天然是两趟：第一趟求最大值和和，第二趟才能归一化。对一行做没问题，但如果一整行放不进一个线程块，就得拆成跨块归约——两个 kernel，中间落一次显存。后来有人把两趟合成一趟（在线 softmax），代价是要边算边修正，这就是 flash attention 那类工作的起点。</p>
  <p>再往上一层是<strong>融合</strong>：把几个算子合成一个 kernel，省掉中间结果写回显存再读出来的往返。在带宽受限的模型里，这一步的收益往往比把单个算子优化 10% 更大。</p>
 
- <h2 id="close">8. 收尾</h2>
+ <h2 id="case">8. 案例：把 softmax 从三趟压成一趟</h2>
+ <p>前面讲的都是结构。这一节拿一个具体的算子走一遍，看那四条决定落到代码里是什么样子。</p>
+ <p>选 softmax，因为它几乎出现在每个注意力头里，而且它的瓶颈特别典型：<strong>算得很少，搬得很多。</strong></p>
+ <p>定义很熟：</p>
+ <div class="formula">softmax(x)ᵢ = exp(xᵢ − max) / Σⱼ exp(xⱼ − max)</div>
+ <p>减 max 是为了数值稳定。exp 增长太快，输入只要到几十就会溢出成 inf，减掉最大值能把指数控制在 1 以内，结果不变。</p>
+
+ <h3>朴素写法：一行数据走三遍</h3>
+ <p>写成 kernel，最自然的拆法是三个 pass：</p>
+ <p>第一遍读完这一行，求最大值。第二遍再读一遍，算 exp(x−max) 并累加求和。第三遍读回来做除法。</p>
+ <p>一行数据被<strong>读三次、写两次</strong>（第二遍写出指数，第三遍写出结果），搬运量是 5 倍数据大小。</p>
+ <p>而它算了多少次？每个元素大概三次浮点运算：减、取指、加。按 4 字节数据算，算术强度不到 1 FLOP/Byte——远低于 GPU 的算力带宽比。这意味着不管算力多强，这个算子都快不起来：<strong>它卡在带宽上，不在算力上。</strong></p>
+
+ <h3>在线写法：一趟算出 max 和 sum</h3>
+ <p>能不能只读一遍就把最大值和指数和都拿到？可以，代价是维护两个累加量：</p>
+ <div class="formula">m ← max(m, xᵢ)<br>l ← l · exp(m_old − m_new) + exp(xᵢ − m_new)</div>
+ <p>关键在那个 <strong>exp(m_old − m_new)</strong>。当新的最大值出现时，之前累加的和对「新基准」来说偏大，必须整体缩一次；没有新最大值时这个因子等于 1，乘了也不变。</p>
+ <p>下面可以把这六个数走一遍。注意第二次和第三次都触发了重标定。</p>
+
+ <section class="softmax-lab" aria-labelledby="sm-title" data-ready="false">
+  <h3 id="sm-title">在线 softmax 的单步演算</h3>
+  <p class="sm-hint">输入一行 6 个数，一次遍历同时更新 running max（m）与 running sum（l）。走完之后第二趟再写出归一化结果。</p>
+  <div class="sm-actions">
+   <button type="button" data-step>单步</button>
+   <button type="button" data-play>播放</button>
+   <button type="button" data-reset>重置</button>
+  </div>
+  <table>
+   <thead><tr><th>步</th><th>xᵢ</th><th>m（running max）</th><th>l（running sum）</th><th>说明</th></tr></thead>
+   <tbody data-rows></tbody>
+  </table>
+  <p class="sm-out">归一化结果 <code data-out>—</code></p>
+  <p class="sm-status" data-status role="status">—</p>
+ </section>
+
+ <p>走完一遍拿到 (m, l)，第二趟用 exp(xᵢ−m)/l 写出结果。总搬运从 5 倍降到 3 倍——<strong>读两遍、写一遍</strong>。算术一点没变，省的全是带宽。</p>
+
+ <h3>这个技巧在哪儿用</h3>
+ <p>注意力机制里，softmax 作用在一个 N×N 的分数矩阵上。标准做法是：算完整个矩阵、对它做 softmax、再乘 V。那个 N×N 矩阵必须落显存，序列一长就爆。</p>
+ <p>flash attention 做的事情，正是把上面这个在线技巧搬进分块循环：每处理一块 K 和 V，就用 running max 和 running sum 去<strong>重标定已经累加的输出</strong>，永远不落地整个分数矩阵。换句话说，它不是在注意力上做了个新算法，而是把 softmax 的在线写法推广到了 attention 的分块结构里。</p>
+ <p>这也是为什么这一类工作的收益常常是几倍而不是几个百分点：它们省的是显存往返，而不是算术。</p>
+
+ <h2 id="close">9. 收尾</h2>
  <p>回头看，CUDA 没有发明新的数学，也没有让单个核变快。它做了三件事：把并行拆成网格与块，让同一时刻有几千份活在飞；把内存分层，让复用发生在离计算最近的地方；把这两件事抽象成一套可编程的模型。</p>
  <p>而算子，就是这套模型在具体问题上的落地。同一个矩阵乘，朴素写法是「算得对」，分块写法是「少读几次」——<strong>差别从来不在算术上。</strong></p>
 

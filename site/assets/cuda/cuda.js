@@ -65,3 +65,56 @@
  });
  draw();root.dataset.ready='true';
 })();
+
+/* 在线 softmax：一次遍历同时维护 running max 与 running sum。 */
+(function(){
+ const root=document.querySelector('.softmax-lab');
+ if(!root)return;
+ const X=[0.5,1.2,2.0,-0.4,1.1,0.2];
+ const body=root.querySelector('[data-rows]'), out=root.querySelector('[data-out]');
+ const btnStep=root.querySelector('[data-step]'), btnPlay=root.querySelector('[data-play]'),
+       btnReset=root.querySelector('[data-reset]'), status=root.querySelector('[data-status]');
+ let i=0, m=-Infinity, l=0, timer=null;
+
+ function reset(){
+  i=0; m=-Infinity; l=0; body.innerHTML=''; out.textContent='—';
+  status.textContent='点「单步」或「播放」，看 running max 与 running sum 怎么变化。';
+  btnStep.disabled=false; btnPlay.textContent='播放';
+  if(timer){clearInterval(timer);timer=null;}
+ }
+
+ function step(){
+  if(i>=X.length) return;
+  const x=X[i], mOld=m, first=(m===-Infinity);
+  m=Math.max(m,x);
+  const rescale=first?1:Math.exp(mOld-m);
+  l=l*rescale+Math.exp(x-m);
+  const note = first ? '初始化' : (rescale<1 ? '重标定 ×'+rescale.toFixed(3) : '无需重标定');
+  const cells=[String(i+1), x.toFixed(1), m.toFixed(1), l.toFixed(4), note];
+  const tr=document.createElement('tr');
+  cells.forEach(t=>{const td=document.createElement('td');td.textContent=t;tr.appendChild(td);});
+  if(i===X.length-1) tr.classList.add('last');
+  body.appendChild(tr);
+  i++;
+  if(i===X.length) finish();
+ }
+
+ function finish(){
+  out.textContent=X.map(x=>(Math.exp(x-m)/l).toFixed(3)).join('  ');
+  status.textContent='得到 m = '+m.toFixed(1)+'、l = '+l.toFixed(4)+'，第二趟用 exp(x−m)/l 写出结果。'
+   +'结果与两趟算法逐位一致，但搬运次数从 5 次降到 3 次。';
+  btnStep.disabled=true;
+  if(timer){clearInterval(timer);timer=null;btnPlay.textContent='播放';}
+ }
+
+ btnStep.addEventListener('click',step);
+ btnPlay.addEventListener('click',()=>{
+  if(timer){clearInterval(timer);timer=null;btnPlay.textContent='播放';return;}
+  if(i>=X.length) reset();
+  btnPlay.textContent='暂停';
+  timer=setInterval(()=>{ if(i>=X.length){clearInterval(timer);timer=null;btnPlay.textContent='播放';return;} step(); },900);
+ });
+ btnReset.addEventListener('click',reset);
+ reset();
+ root.dataset.ready='true';
+})();

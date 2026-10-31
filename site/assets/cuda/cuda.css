@@ -26,3 +26,19 @@
 .cuda-readout dd{margin:0;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink)}
 .cuda-lab .cuda-status{font-size:12.5px;line-height:1.7;color:var(--muted);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}
 @media(max-width:640px){.cuda-row canvas{width:100%;height:260px}}
+.softmax-lab{margin:34px 0 42px;padding:22px 22px 18px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 12px #19334d08}
+.softmax-lab h3{font-size:19px;margin:0 0 6px}
+.softmax-lab .sm-hint{font-size:13px;line-height:1.75;color:var(--muted);margin:0 0 14px;max-width:680px}
+.sm-actions{display:flex;gap:8px;margin-bottom:14px}
+.sm-actions button{font:inherit;font-size:12.5px;cursor:pointer;padding:7px 14px;border-radius:8px;border:1px solid #ced9e3;background:#fff;color:var(--ink)}
+.sm-actions button:hover{background:#edf5fc}
+.sm-actions button:disabled{opacity:.45;cursor:default}
+.softmax-lab table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.softmax-lab th,.softmax-lab td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:right}
+.softmax-lab th:first-child,.softmax-lab td:first-child{text-align:left}
+.softmax-lab th{font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.softmax-lab td:last-child,.softmax-lab th:last-child{text-align:left;color:var(--muted)}
+.softmax-lab tr.last td{background:#f2f7fc}
+.softmax-lab .sm-out{font-size:12.5px;color:var(--muted);margin:14px 0 0}
+.softmax-lab .sm-out code{font-size:13px;color:var(--ink);background:#eef4f9;padding:3px 7px;border-radius:5px}
+.softmax-lab .sm-status{font-size:12.5px;line-height:1.7;color:var(--muted);margin:10px 0 0;padding-top:12px;border-top:1px solid var(--line)}
