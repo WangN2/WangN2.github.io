@@ -61,11 +61,12 @@
  <p><strong>第二层是编程模型</strong>：C/C++ 的扩展。你写一个标了 <code>__global__</code> 的函数，用 <code>&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;</code> 启动它，NVIDIA 的编译器把它编译成能在 GPU 上跑的机器码，运行时负责把它塞进硬件。</p>
  <p><strong>第三层是生态</strong>：cuBLAS、cuDNN、TensorRT、nvJPEG 这些库，以及 PyTorch、TensorFlow 底下那一整层。绝大多数人不会直接写 kernel，而是通过这一层间接使用 GPU。</p>
  <p>三层的分工是：硬件提供并行度，模型让你能描述并行，生态把常见的并行模式提前写好。</p>
+ <figure><img src="../assets/cuda/fig0_layers.png" width="1420" height="900" loading="lazy" alt="三层堆叠：最上层是 PyTorch、cuBLAS 等生态库，中间是 kernel 与共享内存等编程模型，最下层是 SM 阵列与显存等硬件"><figcaption>图 1｜三层：生态、编程模型、硬件。越往下越接近硬件，也越决定性能的上限。</figcaption></figure>
 
  <h2 id="why">2. 为什么快：不是核快，是在飞的活多</h2>
  <p>先看一个常被忽略的事实：<strong>GPU 的单核比 CPU 慢</strong>。它的频率更低，没有乱序执行，没有复杂的分支预测，缓存也小得多。</p>
  <p>它赢在另一个维度。</p>
- <figure><img src="../assets/cuda/fig1_cpu_gpu.png" width="1800" height="760" loading="lazy" alt="左图 CPU 为少量大核与大缓存，右图 GPU 为大量小型处理单元"><figcaption>图 1｜CPU 为延迟优化，GPU 为吞吐优化。</figcaption></figure>
+ <figure><img src="../assets/cuda/fig1_cpu_gpu.png" width="1300" height="640" loading="lazy" alt="左图 CPU 为少量大核与大缓存，右图 GPU 为大量小型处理单元"><figcaption>图 2｜CPU 为延迟优化，GPU 为吞吐优化。</figcaption></figure>
  <p>CPU 有几十个核，每个核都在拼命把单条指令的延迟压到最低：预测分支、重排指令、预取数据。它擅长「一件事尽快做完」。</p>
  <p>GPU 有几千个线程位置。它的策略完全相反：<strong>不打算让任何一条指令变快，而是让很多条指令同时在飞。</strong></p>
  <p>这里有个关键机制叫<strong>延迟隐藏</strong>。访问一次显存要等四五百个周期，如果只有一个线程在跑，这段等待就是纯浪费。但一个 SM 上同时驻留着几十个 warp，第一个 warp 卡在等数据，调度器立刻切到第二个、第三个——等第一个的数据回来，它已经等了几十个 warp 的时间，看上去「不卡」。</p>
@@ -73,7 +74,7 @@
 
  <h2 id="model">3. 执行模型：网格、线程块、warp</h2>
  <p>CUDA 用三层结构描述并行。</p>
- <figure><img src="../assets/cuda/fig2_model.png" width="1800" height="820" loading="lazy" alt="上半部分是网格、线程块与 warp 的映射关系，下半部分是寄存器、共享内存、L2 与显存的延迟对比"><figcaption>图 2｜一次 kernel 启动是一个网格；网格切成线程块；线程块切成 warp。</figcaption></figure>
+ <figure><img src="../assets/cuda/fig2_exec.png" width="1300" height="690" loading="lazy" alt="上半部分是网格与线程块的对应关系，下半部分是一个线程块拆成四个 warp、每个 warp 32 线程锁步执行"><figcaption>图 3｜一次 kernel 启动是一个网格；网格切成线程块；线程块切成 warp。</figcaption></figure>
  <p><strong>网格（grid）</strong>：一次 kernel 启动对应的全部线程。</p>
  <p><strong>线程块（block）</strong>：网格切成若干块，块与块之间可以完全独立地调度到不同的 SM 上，没有先后顺序保证。</p>
  <p><strong>warp</strong>：硬件真正的执行单位，32 个线程一组。同一个 warp 里的 32 个线程<strong>执行同一条指令</strong>，只是数据不同——这叫 SIMT。如果它们在一个条件分支里走了不同路径，硬件会把两条路径串行各跑一遍，这叫 warp 分歧，是性能杀手。</p>
@@ -81,7 +82,8 @@
 
  <h2 id="memory">4. 内存层次：性能真正的战场</h2>
  <p>如果只记住一句，就是这句：<strong>GPU 上的算子快不快，几乎全看它怎么用内存。</strong></p>
- <p>看图 2 下半部分那张表。寄存器一个周期，共享内存三十个周期，L2 两百个周期，显存五百个周期——差了三个数量级。</p>
+ <figure><img src="../assets/cuda/fig3_memory.png" width="1300" height="560" loading="lazy" alt="内存层次：寄存器约一个周期、共享内存与 L1 约三十个周期、L2 约两百个周期、显存约五百个周期"><figcaption>图 4｜从寄存器到显存，差了三个数量级。</figcaption></figure>
+ <p>看图 4。寄存器一个周期，共享内存三十个周期，L2 两百个周期，显存五百个周期——差了三个数量级。</p>
  <p>于是所有高性能 kernel 都遵循同一个套路：<strong>把要重复使用的数据搬到离计算单元最近的地方，算完再走。</strong></p>
  <p>还有一个容易被忽略的细节：<strong>合并访存</strong>。当一个 warp 的 32 个线程访问连续的一段地址时，硬件会把它们合并成一次内存事务；如果它们东一个西一个，就要发 32 次。同样的字节数，带宽差一个数量级。</p>
  <p>所以写 kernel 的第一原则不是「怎么算得快」，而是「<strong>怎么让 32 个线程一次把数据拿回来</strong>」。</p>
@@ -90,7 +92,7 @@
  <p>矩阵乘法是最好用的例子，因为它有明确的「复用」可以榨。</p>
  <p>朴素写法是三重循环：每个输出元素 C[i][j]，都要读 A 的一整行和 B 的一整列。N×N 的矩阵算下来，全局内存要读 <strong>2N³</strong> 次。</p>
  <p>但同一行 A 被 N 个输出元素共用，同一列 B 也被 N 个输出元素共用。这些复用全被浪费了。</p>
- <figure><img src="../assets/cuda/fig3_tiling.png" width="1800" height="700" loading="lazy" alt="矩阵 A 的一段行、矩阵 B 的一段列被高亮，对应到 C 上的一个输出块"><figcaption>图 3｜一个输出块只需要 A 的一个行面板和 B 的一个列面板。</figcaption></figure>
+ <figure><img src="../assets/cuda/fig4_tiling.png" width="1300" height="600" loading="lazy" alt="矩阵 A 的第 0 到 1 行、矩阵 B 的第 0 到 1 列被高亮，对应矩阵 C 左上角的一个输出块"><figcaption>图 5｜一个输出块只需要 A 的一个行面板和 B 的一个列面板。</figcaption></figure>
  <p>分块（tiling）的做法是：把 C 切成若干 T×T 的块，算一块的时候，把 A 的对应行面板和 B 的列面板先搬到共享内存，然后块内所有线程反复用它。</p>
  <p>这样每个面板只从显存读一次，被复用 T 次。全局访问从 2N³ 降到 2N³/T——<strong>计算量一点没变，省掉的全是重复读</strong>。</p>
 

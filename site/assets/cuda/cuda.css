@@ -1,3 +1,6 @@
+.article figure{margin:26px 0}
+.article figure img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;background:#fff}
+.article figcaption{font-size:13px;color:var(--muted);line-height:1.7;margin-top:10px}
 .cuda-lab{margin:34px 0 42px;padding:22px 22px 18px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 12px #19334d08}
 .cuda-lab h3{font-size:19px;margin:0 0 6px}
 .cuda-lab .cuda-hint{font-size:13px;line-height:1.75;color:var(--muted);margin:0 0 16px;max-width:680px}
