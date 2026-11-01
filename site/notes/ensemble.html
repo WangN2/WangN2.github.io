@@ -56,6 +56,9 @@
  <pre tabindex="0"><code>weight: [5, in_features, out_features]
 bias:   [5, 1, out_features]</code></pre>
  <p>不是五个 <code>nn.Linear</code>，是<strong>一个三维张量</strong>。所以「经过 layer1 到 layer5」这句话在视觉上成立，在物理上不成立——每一层内部都是五个互不共享参数的子网络，一层一层往下走的是五份并行的数据流。</p>
+ <figure><img src="../assets/ensemble/fig2_shape.png" width="1420" height="700" loading="lazy" alt="三张并列的 in×out 权重矩阵，第一张被高亮，标注索引 W[k,i,j]；下方给出单成员 2800 个权重、五成员 14000 个"><figcaption>图 1｜三维张量的读法：第一维选哪一张表，后两维就是那张表里的行列。</figcaption></figure>
+ <p>换个说法：<code>[in, out]</code> 是一张表，行是输入特征、列是输出特征，格子里的数就是「第 i 个输入接到第 j 个输出」的权重。<code>[5, in, out]</code> 就是<b>五张这样的表摞在一起</b>，索引写成 <code>W[k][i][j]</code>——先翻到第 k 张，再取第 i 行第 j 列。</p> <p>五张表之间没有任何共享。所以显存是五倍、浮点运算也是五倍，换来的就是「五次独立的预测」。</p>
+
 
  <h2 id="gemm">2. 一次前向里真正发生了什么</h2>
  <p>输入 <code>x: [B, in]</code> 被广播成五份，和权重做一次批量矩阵乘：</p>
@@ -117,7 +120,7 @@ bias:   [5, 1, out_features]</code></pre>
 
  <h2 id="moe">5. 与 MoE 的分野</h2>
  <p>两者在结构上确实像：都是多个子网络、都靠并行算。但用法完全相反。</p>
- <figure><img src="../assets/ensemble/fig1_ensemble_vs_moe.png" width="1420" height="700" loading="lazy" alt="左图集成模型：输入分给全部成员，再汇总成均值与方差；右图 MoE：输入经路由器只激活部分专家，加权求和"><figcaption>图 1｜左边全员参与后聚合，右边路由选少数后加权。</figcaption></figure>
+ <figure><img src="../assets/ensemble/fig1_ensemble_vs_moe.png" width="1420" height="700" loading="lazy" alt="左图集成模型：输入分给全部成员，再汇总成均值与方差；右图 MoE：输入经路由器只激活部分专家，加权求和"><figcaption>图 2｜左边全员参与后聚合，右边路由选少数后加权。</figcaption></figure>
  <table class="coordinates compare"><thead><tr><th>对比项</th><th>Ensemble</th><th>MoE</th></tr></thead><tbody>
   <tr><td>参与方式</td><td>全员无条件参与</td><td>路由器选 top-k，其余休眠</td></tr>
   <tr><td>聚合方式</td><td>求均值 / 采样</td><td>按门控权重加权求和</td></tr>
