@@ -1,0 +1,23 @@
+.cem-lab{margin:34px 0 42px;padding:22px 22px 18px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 12px #19334d08}
+.cem-lab h3{font-size:19px;margin:0 0 6px}
+.cem-lab .cm-hint{font-size:13px;line-height:1.75;color:var(--muted);margin:0 0 16px;max-width:700px}
+.cm-row{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+.cm-row canvas{flex:0 0 auto;border:1px solid #e2eaf2;border-radius:10px;background:#fbfdff}
+.cm-side{flex:1 1 260px;min-width:240px}
+.cm-actions{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.cm-actions button{font:inherit;font-size:12.5px;cursor:pointer;padding:7px 13px;border-radius:8px;border:1px solid #ced9e3;background:#fff;color:var(--ink)}
+.cm-actions button:hover{background:#edf5fc}
+.cm-actions button:disabled{opacity:.45;cursor:default}
+.cm-ctrl{display:flex;flex-direction:column;gap:9px;margin-bottom:12px}
+.cm-ctrl label{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.cm-ctrl input[type=range]{flex:1;accent-color:var(--blue);cursor:pointer}
+.cm-ctrl output{font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;min-width:3.4em;text-align:right}
+.cm-readout{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0;padding:0}
+.cm-readout div{border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:#fbfdff}
+.cm-readout dt{font-size:10px;letter-spacing:.1em;color:var(--muted);margin:0 0 3px}
+.cm-readout dd{margin:0;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.cem-lab .cm-status{font-size:12.5px;line-height:1.7;color:var(--muted);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}
+.cem-lab .cm-legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:11.5px;color:var(--muted);margin:12px 0 0}
+.cem-lab .cm-legend span{display:inline-flex;align-items:center;gap:6px}
+.cem-lab .cm-legend i{width:12px;height:12px;border-radius:50%;display:inline-block}
+@media(max-width:680px){.cm-row canvas{width:100%!important;height:auto!important}}

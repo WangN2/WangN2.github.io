@@ -96,7 +96,7 @@
 
   <h2 id="pupil-apriltags">5. pupil-apriltags 的正确调用方式</h2>
   <p><code>pupil-apriltags</code> 是 AprilTag 3 的 Python 绑定，包名与导入名不同：安装时使用 <code>pupil-apriltags</code>，代码中导入 <code>pupil_apriltags</code>。不要与另一个名为 <code>apriltag</code> 的 Python 包混用 API。</p>
-  <pre><code>import cv2
+  <pre tabindex="0"><code>import cv2
 from pupil_apriltags import Detector
 
 detector = Detector(families="tag36h11")

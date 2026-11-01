@@ -188,7 +188,7 @@
 
  <h3>先解决每个块都要用的归约</h3>
  <p>求和、求最大值这类操作，每个线程先算自己那份，再在块内合并。合并用共享内存两两对折，比原子操作快得多：</p>
-<pre><code>// 块内归约：共享内存上两两合并，直到只剩一个值
+<pre tabindex="0"><code>// 块内归约：共享内存上两两合并，直到只剩一个值
 __device__ float block_max(float v, float* s) {
     s[threadIdx.x] = v;
     __syncthreads();
@@ -213,7 +213,7 @@ __device__ float block_sum(float v, float* s) {
  <p>两个循环里的 <code>__syncthreads()</code> 不能省。每一轮都有一半线程读取另一半刚写下的值，没有屏障就会读到上一轮的旧数据。</p>
 
  <h3>朴素版：三趟</h3>
-<pre><code>__global__ void softmax_naive(const float* __restrict__ x,
+<pre tabindex="0"><code>__global__ void softmax_naive(const float* __restrict__ x,
                               float* __restrict__ y,
                               int rows, int cols) {
     __shared__ float s[1024];
@@ -247,7 +247,7 @@ softmax_naive&lt;&lt;&lt;rows, 256&gt;&gt;&gt;(x, y, rows, cols);</code></pre>
  <p>三段循环对应三趟显存访问，和前面算的一致。<code>i += blockDim.x</code> 这种写法叫跨步循环：列数不整除线程数时也能覆盖全部元素，而且每次访问都是连续的，正好满足合并访存。</p>
 
  <h3>在线版：一趟求 (m, l)，一趟写出</h3>
-<pre><code>__global__ void softmax_online(const float* __restrict__ x,
+<pre tabindex="0"><code>__global__ void softmax_online(const float* __restrict__ x,
                                float* __restrict__ y,
                                int rows, int cols) {
     __shared__ float s[1024];
@@ -286,7 +286,7 @@ softmax_naive&lt;&lt;&lt;rows, 256&gt;&gt;&gt;(x, y, rows, cols);</code></pre>
  <p><strong>第四，一个块只适合不太长的一行。</strong>行有几万列时，一个块吃不满 SM，得拆成两段：第一个 kernel 并行算出每行的 (m, l) 落到显存，第二个 kernel 再读回来归一化。前面说的「块间不能同步」，代价就在这里。</p>
 
  <p>编译很简单，注意指定架构：</p>
-<pre><code>nvcc -O3 -arch=sm_80 softmax.cu -o softmax</code></pre>
+<pre tabindex="0"><code>nvcc -O3 -arch=sm_80 softmax.cu -o softmax</code></pre>
  <p>块大小取 128 到 256 之间比较稳。<code>__shared__ float s[1024]</code> 决定了 <code>blockDim.x</code> 不能超过 1024；再大就要换成动态共享内存或分块。</p>
 
  <h2 id="close">10. 收尾</h2>

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/cem.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="CEM 与 Diffusion：采样优化和分布生成 · WangN2">
+ <meta property="og:description" content="CEM 不关心动作长什么样，只关心哪条轨迹分数高。Diffusion 反过来。两者不是替代关系，是分工关系。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/cem.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="CEM 与 Diffusion：采样优化和分布生成 · WangN2">
+ <meta name="twitter:description" content="CEM 不关心动作长什么样，只关心哪条轨迹分数高。Diffusion 反过来。两者不是替代关系，是分工关系。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-11-01">
+ <meta property="article:modified_time" content="2026-11-01">
+ <meta property="article:section" content="规划与生成">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"CEM 与 Diffusion：采样优化和分布生成","description":"CEM 不关心动作长什么样，只关心哪条轨迹分数高。Diffusion 反过来。两者不是替代关系，是分工关系。","url":"https://wangn2.github.io/notes/cem.html","mainEntityOfPage":"https://wangn2.github.io/notes/cem.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["CEM","MPPI","Diffusion","模型预测控制"],"datePublished":"2026-11-01","dateModified":"2026-11-01"}</script>
+ <!--/meta-->
+ <title>CEM 与 Diffusion：采样优化和分布生成 · WangN2</title>
+ <meta name="description" content="CEM 不关心动作长什么样，只关心哪条轨迹分数高。Diffusion 反过来。两者不是替代关系，是分工关系。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/cem/cem.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 17 / 规划与生成 · 优化器</p>
+ <h1>CEM 与 Diffusion</h1>
+ <p class="lede">CEM 不关心动作长什么样，只关心哪条轨迹分数高；Diffusion 反过来。这不是替代关系，是分工关系。</p>
+  <div class="article-meta"><span><time datetime="2026-11-01">2026-11-01</time></span><span>约 6 分钟</span><span>规划与生成</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>起因是读到一段 CEM 的实现。这段代码不长，但把「基于模型的规划器」里最核心的一步说清楚了：<strong>在已知当前状态的条件下，找一段能让未来累积奖励最大的动作序列</strong>。</p>
+ <p class="callout"><strong>范围。</strong>以这段 CEM 实现为主线，顺带把它和 MPPI、Diffusion / Flow Matching 的关系理清。不涉及策略梯度、离线 RL 的训练细节。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#what">1. 这就是 CEM</a></li>
+   <li><a href="#code">2. 逐行拆开</a></li>
+   <li><a href="#local">3. 它到底有多强，也有多弱</a></li>
+   <li><a href="#mppi">4. 亲缘：CEM 和 MPPI</a></li>
+   <li><a href="#nogra">5. 为什么不求导</a></li>
+   <li><a href="#vs">6. 和 Diffusion / Flow Matching 的四个维度</a></li>
+   <li><a href="#combo">7. 它们怎么结合</a></li>
+   <li><a href="#close">8. 收尾</a></li>
+   </ol>
+  </nav>
+ <h2 id="what">1. 这就是 CEM</h2>
+ <p>交叉熵方法（Cross-Entropy Method）。名字来自它最初的推导——最小化两个分布之间的交叉熵，但在强化学习的这个版本里，实际做法更直白：<strong>采样一批，挑出最好的几个，再用这几个重新估计分布，重复几次</strong>。</p>
+ <p>它属于「估计分布算法（EDA）」这一族，区别于随机射击（random shooting）：随机射击只采一轮取最好，CEM 会用精英重新拟合一个分布，下一轮在更好的地方采。</p>
+ <p>这段实现常见于 MOPO、MBPO 这类基于模型的强化学习代码库，做的是模型预测控制（MPC）那一步。</p>
+
+ <h2 id="code">2. 逐行拆开</h2>
+ <pre tabindex="0"><code>class CEM:
+    def __init__(self, n_sequence, elite_ratio, fake_env, upper_bound, lower_bound):
+        self.n_sequence = n_sequence    # 每次采样多少条动作序列
+        self.elite_ratio = elite_ratio  # 精英比例
+        self.upper_bound = upper_bound  # 动作物理上限
+        self.lower_bound = lower_bound  # 动作物理下限
+        self.fake_env = fake_env        # 学出来的动力学模型
+
+    def optimize(self, state, init_mean, init_var):
+        mean, var = init_mean, init_var
+        X = truncnorm(-2, 2, loc=np.zeros_like(mean), scale=np.ones_like(var))
+        state = np.tile(state, (self.n_sequence, 1))
+
+        for _ in range(5):
+            lb_dist = mean - self.lower_bound
+            ub_dist = self.upper_bound - mean
+            constrained_var = np.minimum(
+                np.minimum(np.square(lb_dist / 2), np.square(ub_dist / 2)), var)
+
+            action_sequences = [X.rvs() for _ in range(self.n_sequence)] \
+                               * np.sqrt(constrained_var) + mean
+
+            returns = self.fake_env.propagate(state, action_sequences)[:, 0]
+
+            elites = action_sequences[np.argsort(returns)][-int(self.elite_ratio * self.n_sequence):]
+
+            new_mean = np.mean(elites, axis=0)
+            new_var = np.var(elites, axis=0)
+            mean = 0.1 * mean + 0.9 * new_mean
+            var = 0.1 * var + 0.9 * new_var
+
+        return mean</code></pre>
+
+ <h3>输入的形状</h3>
+ <p><code>init_mean</code> 和 <code>init_var</code> 不是两个数，而是一条轨迹的扁平化参数：规划十步、每步七个关节，就是七十维。所以「均值」其实是一个七十维向量，代表<strong>一条标的轨迹</strong>。</p>
+
+ <h3>为什么用截断正态</h3>
+ <p><code>truncnorm(-2, 2)</code> 把采样限制在两个标准差以内。纯高斯会在尾部偶尔吐出极端值，而这些极端值扔进动力学模型里会得到毫无意义的结果，白占算力。截断掉，采样更集中在有意义的区域。</p>
+
+ <h3>方差为什么被压缩</h3>
+ <p>这段是整份代码里最不像算法、但最实际的一行：</p>
+ <pre tabindex="0"><code>constrained_var = np.minimum(
+    np.minimum(np.square(lb_dist / 2), np.square(ub_dist / 2)), var)</code></pre>
+ <p>因为采样被截断在 ±2σ，所以只要 σ ≤ (mean − lower)/2，那么 mean − 2σ 就仍然在下界之上。反过来，如果均值已经贴着边界，允许的方差就必须变小，否则一半的采样都落在界外。</p>
+ <p>这是「<strong>先约束分布，再采样</strong>」而不是「采样完再裁剪」。后者会把所有出界的点挤到边界上，形成一个人为的尖峰，分布会变形。</p>
+
+ <h3>精英与平滑</h3>
+ <p>排序取前 15%，用它们的均值和方差做下一轮的分布。但新参数不直接用，而是 <code>0.1·旧 + 0.9·新</code>。</p>
+ <p>这一步是经验性的：完全信任精英会让分布收缩太快，两三步就退化成一个点，后续再采样也没有探索能力；保留一点历史，相当于给收敛加了个阻尼。</p>
+
+ <h2 id="local">3. 它到底有多强，也有多弱</h2>
+ <p>先把一个常见误解纠正掉：<strong>CEM 不是「比梯度法更不容易陷入局部最优」</strong>。</p>
+ <p>它就是围绕当前均值做的局部搜索。均值在哪，它大概率就收敛到哪个峰。下面这个实验能直接看到：目标函数有两个峰，初始均值放在较小的那个附近，CEM 会老老实实收敛到近处的峰。</p>
+
+ <section class="cem-lab" aria-labelledby="cm-title" data-ready="false">
+  <h3 id="cm-title">CEM 的收敛过程</h3>
+  <p class="cm-hint">蓝点是当前分布的均值，椭圆是 1σ 与 2σ。每步采样、择优、用精英重估分布。背景颜色是目标函数值，越深越高。</p>
+  <div class="cm-row">
+   <canvas data-canvas role="img" aria-label="二维目标函数上的 CEM 迭代：采样点、精英点、均值轨迹与分布椭圆">CEM 采样与收敛过程。</canvas>
+   <div class="cm-side">
+    <div class="cm-actions">
+     <button type="button" data-next>单步</button>
+     <button type="button" data-play>自动</button>
+     <button type="button" data-reset>重置</button>
+    </div>
+    <div class="cm-ctrl">
+     <label>样本数 <input type="range" data-in="n" min="20" max="200" step="10" value="60"><output data-out="n">60</output></label>
+     <label>精英比例 <input type="range" data-in="elite" min="0.05" max="0.5" step="0.05" value="0.15"><output data-out="elite">15%</output></label>
+     <label>平滑系数 α <input type="range" data-in="alpha" min="0.1" max="1" step="0.1" value="0.9"><output data-out="alpha">0.90</output></label>
+    </div>
+    <dl class="cm-readout">
+     <div><dt>迭代轮次</dt><dd data-read="iter">0</dd></div>
+     <div><dt>见过的最好值</dt><dd data-read="cur">—</dd></div>
+     <div><dt>当前均值</dt><dd data-read="pos">—</dd></div>
+    </dl>
+   </div>
+  </div>
+  <div class="cm-legend">
+   <span><i style="background:#5d7083"></i>普通样本</span>
+   <span><i style="background:#b0592f"></i>精英</span>
+   <span><i style="background:#176dae"></i>均值轨迹</span>
+  </div>
+  <p class="cm-status" data-status role="status">—</p>
+ </section>
+
+ <p>把 α 调到 1.0（完全信任精英），你会看到分布塌得更快；调到 0.2 又会太慢。样本数减少、精英比例调高，同样会让它更早塌缩——这也是为什么实际代码里这些参数要按任务调。</p>
+
+ <h2 id="mppi">4. 亲缘：CEM 和 MPPI</h2>
+ <p>说到采样规划，绕不开 MPPI（Model Predictive Path Integral）。它和 CEM 结构几乎一样，只在最后一步不同。</p>
+ <table class="coordinates compare"><thead><tr><th>对比项</th><th>CEM</th><th>MPPI</th></tr></thead><tbody>
+  <tr><td>怎么用样本</td><td>只取前 k 个精英，其余丢弃</td><td>全部样本按 exp(R/λ) 加权</td></tr>
+  <tr><td>更新式</td><td>mean ← 精英的均值</td><td>mean ← Σ wᵢ·aᵢ</td></tr>
+  <tr><td>超参</td><td>精英比例</td><td>温度 λ</td></tr>
+  <tr><td>行为差异</td><td>更快、更锐</td><td>更平滑、保留次优信息</td></tr>
+ </tbody></table>
+ <p>两种都能用，差别在手感和调参。CEM 那个「只留前 k 个」的剪枝更激进，收敛快但对精英比例敏感；MPPI 的指数加权更柔和，代价是 λ 好时很好、差时很差。</p>
+
+ <h2 id="nogra">5. 为什么不求导</h2>
+ <p>这里要分清楚：「不用梯度」是<strong>因为不能用</strong>，不是因为它更好。</p>
+ <p>动力学模型如果是神经网络，技术上可以求导，但沿十几步展开之后，梯度会变得很噪，而且对模型误差极其敏感——模型的微小偏差会被反向传播放大。CEM 的容错性来自它的评估方式：它只看每条轨迹的最终分数，不依赖局部的梯度方向。</p>
+ <p>代价也很清楚：<strong>算力换稳定性</strong>。每走一步都要在模型里并行推演几百条未来轨迹，这是实打实的开销。所以基于 CEM 的规划器通常需要 GPU，且模型要足够快。</p>
+
+ <h2 id="vs">6. 和 Diffusion / Flow Matching 的四个维度</h2>
+ <p>这两者的关系，用「谁在解什么问题」来看最清楚。</p>
+ <table class="coordinates compare"><thead><tr><th>对比项</th><th>CEM</th><th>Diffusion / Flow Matching</th></tr></thead><tbody>
+  <tr><td>解什么问题</td><td>给定目标，找极值（优化）</td><td>给定数据，拟合分布（生成）</td></tr>
+  <tr><td>知识从哪来</td><td>来自<strong>当前的奖励函数</strong>，现场算</td><td>来自<strong>训练数据</strong>，离线学</td></tr>
+  <tr><td>每一步做什么</td><td>采样 → 打分 → 重估分布</td><td>从噪声出发，逐步去噪</td></tr>
+  <tr><td>会不会陷在局部</td><td>会，它是局部搜索</td><td>不会「陷」，但会生成「不像」的动作</td></tr>
+ </tbody></table>
+ <p>所以它们在机器人系统里的位置不一样：CEM 是<strong>运行时</strong>的规划器，Diffusion / Flow Matching 是<strong>训练出来的先验</strong>。</p>
+ <p>一句话概括：<strong>CEM 是「没有说明书的试错」，Diffusion 是「看过几万份说明书之后的直觉」。</strong>前者精确但慢、依赖模型；后者像人但需要数据、且不一定满足约束。</p>
+
+ <h2 id="combo">7. 它们怎么结合</h2>
+ <p>现在的主流做法不是二选一，而是把两者接起来。常见三种接法：</p>
+ <p><strong>一、把 Diffusion 当采样器。</strong>原来 CEM 从高斯里随机撒点，改成从 Diffusion 里采一批「像人」的候选轨迹，再用奖励函数打分、选精英。这样同样 500 条样本，覆盖的都是合理动作，效率高得多。</p>
+ <p><strong>二、把奖励当引导。</strong>在去噪的每一步加一个朝高奖励方向的修正（reward / classifier guidance）。这不是采样之后挑，而是让生成过程本身朝着目标偏。</p>
+ <p><strong>三、生成后择优。</strong>模型生成十条，用物理引擎或奖励模型算一下分，挑最好的执行。最简单，也最贵。</p>
+ <p>三种做法可以叠加。真正决定效果的不是选哪种，而是<strong>奖励函数写得对不对</strong>——如果奖励本身不能反映任务成败，再好的生成器也只是在错误的目标上跑得更快。</p>
+
+ <h2 id="close">8. 收尾</h2>
+ <p>这段 CEM 代码之所以值得读，是因为它把「规划」拆成了三个可检查的动作：采样、打分、重估。三个动作各自都能替换——采样换成 Diffusion，打分换成学出来的奖励模型，重估换成 MPPI 的加权——但骨架不变。</p>
+ <p>所以看待新论文时，可以先问一句：它换的是这三个动作里的哪一个？换完有没有解决原来那个动作的瓶颈？</p>
+
+ <p class="references">相关笔记：<a href="./lingbot-vla2.html">LingBot-VLA 2.0 原理</a>（flow matching 怎么生成动作） · <a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（模型与闭环的分工） · <a href="./grasp-timeline.html">一次完整抓取</a>（规划落到执行时的时序）</p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./calibration.html"><span>← 上一篇</span><strong>机器人标定：内参、外参、手眼与时间</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/cem/cem.js"></script>
+</body>
+</html>
