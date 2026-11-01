@@ -1,0 +1,10 @@
+.article .audit-table{width:100%;border-collapse:collapse;font-size:.94rem;line-height:1.65;margin:1.2rem 0 2rem;display:block;overflow-x:auto}
+.article .audit-table th,.article .audit-table td{padding:.85rem 1rem;border-bottom:1px solid #dce4ee;vertical-align:top;text-align:left;min-width:7rem}
+.article .audit-table th{background:#f0f5fa;font-weight:700}.article .audit-table td:first-child{font-weight:650}
+.article .audit-table.compare th:first-child,.article .audit-table.compare td:first-child{min-width:8.5rem}
+.article .flow-list{list-style:none;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.5rem;margin:1.5rem 0}
+.article .flow-list li{background:#edf4fa;border:1px solid #d9e5ef;border-radius:.65rem;padding:1rem .65rem;text-align:center;font-size:.86rem;font-weight:650;position:relative}
+.article .flow-list li:not(:last-child)::after{content:'→';position:absolute;right:-.7rem;top:40%;z-index:2;color:#60748a}
+.article .case-note{background:#f1f6fb;border-left:3px solid #467ba9;padding:1rem 1.3rem;border-radius:.3rem;margin:1.5rem 0}
+.article code{overflow-wrap:anywhere}
+@media(max-width:670px){.article .flow-list{grid-template-columns:1fr}.article .flow-list li:not(:last-child)::after{content:'↓';right:50%;top:auto;bottom:-.7rem}.article .audit-table{font-size:.84rem}}

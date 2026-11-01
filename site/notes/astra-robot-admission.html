@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="canonical" href="https://wangn2.github.io/notes/astra-robot-admission.html">
+<meta name="theme-color" content="#f7f9fc"><meta name="author" content="WangN2">
+<link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="当 AI Agent 遇到真机：Astra 的权限、准入与调试困境 · WangN2">
+<meta property="og:description" content="一次线束料盘 PickTool 真机测试的执行复盘：384 处源码检查、两条不同的执行路径，以及为什么识别风险不等于解决问题。">
+<meta property="og:url" content="https://wangn2.github.io/notes/astra-robot-admission.html">
+<meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+<meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="当 AI Agent 遇到真机：Astra 的权限、准入与调试困境 · WangN2">
+<meta name="twitter:description" content="一次线束料盘 PickTool 真机测试的执行复盘：384 处源码检查、两条不同的执行路径，以及为什么识别风险不等于解决问题。">
+<meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+<meta property="article:published_time" content="2026-11-02"><meta property="article:modified_time" content="2026-11-02"><meta property="article:section" content="工程复盘">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"当 AI Agent 遇到真机：Astra 的权限、准入与调试困境","description":"一次线束料盘 PickTool 真机测试的执行复盘：384 处源码检查、两条不同的执行路径，以及为什么识别风险不等于解决问题。","url":"https://wangn2.github.io/notes/astra-robot-admission.html","mainEntityOfPage":"https://wangn2.github.io/notes/astra-robot-admission.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["机器人调试","AI Agent","准入门禁"],"datePublished":"2026-11-02","dateModified":"2026-11-02"}</script>
+<title>当 AI Agent 遇到真机：Astra 的权限、准入与调试困境 · WangN2</title>
+<meta name="description" content="一次 G2 PickTool 真机测试复盘：区分平台审批、模型自加准入、工程硬约束和真实运动保护，讨论 Agent 研发闭环。">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="stylesheet" href="../assets/astra/astra.css">
+</head><body>
+<header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+<p class="eyebrow">NOTE 18 / 工程复盘 · AI Agent</p>
+<h1>当 AI Agent 遇到真机：<br>Astra 的权限、准入与调试困境</h1>
+<p class="lede">给 AI 一句“你已获授权，可以继续测试”，为什么机器人还是一动不动？这次线束料盘 PickTool 调试，暴露出的不是单纯的模型胆小，而是<strong>模型判断、工程准入与物理安全三套机制混在了一起</strong>。</p>
+<div class="article-meta"><span><time datetime="2026-11-02">2026-11-02</time></span><span>约 7 分钟</span><span>工程复盘</span><a class="series-link" href="../series/">全系列 ›</a></div>
+<p class="case-note"><strong>阅读边界。</strong>本文根据一次实际开发会话与 Astra 输出的准入审计摘要整理，并非第三方独立复测结果。审计提到的 384 处检查没有逐一复核源码；模型内部决策和未公开的平台策略也不可见。因此本文区分“日志可证实的事实”和“工程推断”。本文记录的这轮测试没有执行新的机械臂运动，不能算抓取成功。</p>
+<nav class="toc" aria-labelledby="toc-title"><p class="toc-title" id="toc-title">本文目录</p><ol>
+<li><a href="#expect">期望的研发闭环</a></li><li><a href="#events">现场发生了什么</a></li><li><a href="#gates">384 处检查究竟意味着什么</a></li><li><a href="#root">四层权限和校验不能混为一谈</a></li><li><a href="#design">怎样让 Agent 重新聚焦故障</a></li><li><a href="#lesson">结论：风险识别之后还要有问题收敛</a></li>
+</ol></nav>
+<h2 id="expect">1. 我原本想要的，只是一个研发闭环</h2>
+<p>场景是轮臂式 G2 机器人在汽车仪表线束工位执行料盘 PickTool：机器人对位料盘孔，闭爪接近，指尖插入孔心，撑开卡接，随后提起并退出。这里有细小的装配间隙、位置标定、末端工具几何、力学接触和真实物料，不是浏览器里的运动学演示。</p>
+<p>开发负责人的需求很直白：<strong>我通过现有编排系统下发 PickTool；遇到故障，Agent 看日志、找原因、改代码、验证，再由我复测。</strong>Agent 不需要另起一套动作编排，也不应该把每次失败都扩展为一轮架构改造。</p>
+<ol class="flow-list"><li>人工编排<br>下发任务</li><li>执行器<br>运行任务</li><li>Agent<br>定位失败</li><li>最小修复<br>离线验证</li><li>人工决定<br>实机复测</li></ol>
+<h2 id="events">2. 现场发生了什么</h2>
+<p>第一轮对话中，Astra 指出当前 <code>motion_plan_request_full</code> 会直接执行，手头 Python 接口没有暴露经过确认的完整规划轨迹；与此同时，新的指尖没有确认纳入现有碰撞模型。它要求提供现场验证过的“仅规划并返回轨迹”接口。开发负责人说明官方接口已认证，要求继续。</p>
+<p>Astra 接受了“官方认证”这个事实，却依然暂停接近动作。这个判断有真实技术依据：<strong>SDK 获认证，不代表当前自制指尖的几何一定被碰撞检查覆盖</strong>；而“规划并执行”接口也不能冒充“可供执行前独立审查的完整轨迹”。</p>
+<p>问题出现在后续处理。Astra 转而开发新指尖碰撞模型适配，几分钟后又清理了刚开始的转换器实验。结果是：夹爪空载开合和定位、站位计算已经完成，但接近、插入、卡接、提起和退出都没有完成这轮真机测试。</p>
+<p>随后开发负责人要求列出所有准入条件。Astra 输出了一份源码审计索引，记录了 <strong>384 处显式检查</strong>。其中既有静态参数校验，也有执行保护、阶段验收和调试专用检查。它不是 384 个都必须单独盖章的“许可”。</p>
+<p>负责人与 Astra 又明确了一次职责：“我进行编排任务下发，执行 PickTool；遇到问题，解决问题。”最终 Astra 停止扩展独立调试入口，承诺跟踪现有编排任务而不是自己发起新动作。<strong>这一轮的结果是工作方式被纠正，而不是抓取已经成功。</strong></p>
+<h2 id="gates">3. 384 处检查，真正卡住的是什么？</h2>
+<p>审计中最有价值的发现，并不是检查数量，而是<strong>正式抓取 <code>planned</code> 路径和分步调试路径并不相同</strong>。如果把后一条路径的缺口直接说成前一条路径的阻断，就会误判问题。</p>
+<table class="audit-table compare"><thead><tr><th>项目</th><th>当时状态</th><th>工程判断</th></tr></thead><tbody>
+<tr><td>标定资格</td><td><code>offline_candidate</code>，未达到 <code>hardware_reviewed</code></td><td>正式抓取入口的真实项目准入；需要依据现场标定证据满足，不能直接改状态冒充通过</td></tr>
+<tr><td>孔心审核</td><td><code>hardware_reviewed=false</code></td><td>正式抓取 observe 阶段的实际阻断条件</td></tr>
+<tr><td>分步调试开关</td><td>分步调试开关（一个环境变量）未启用</td><td>只针对对应调试路径；不能据此宣称正式 planned 路径也被此开关阻断</td></tr>
+<tr><td>连续路径资格</td><td><code>qualify_continuous_path</code> 缺失</td><td>分步 approach 的真实实现缺口；不等于正式路径缺少同名函数</td></tr>
+<tr><td>夹爪调试接口</td><td>调试 <code>step</code> 与现有客户端 <code>execute</code> 不兼容</td><td>接口适配问题，不是安全策略本身</td></tr>
+<tr><td>新指尖碰撞覆盖</td><td>尚未证实新指尖几何纳入碰撞模型</td><td>会直接影响接近、插孔等运动的风险评估；不能跳过这项实体保护</td></tr>
+</tbody></table>
+<p>另一些检查必须随实机状态变化而重新生效，例如急停、控制模式、关节限位、故障状态、反馈新鲜度、运动互斥和失败停止。它们不是“Agent 犹豫”，而是机器真正运动前必须可靠满足的条件。</p>
+<p>同时也有可以复用的静态证据，例如没有变化的 SDK 接口签名、示教文件哈希、已验证的模型版本和软件单测。关键是对每项验证说清楚：<strong>谁提出、谁执行、何时失效、失败会阻断哪个动作。</strong></p>
+<h2 id="root">4. 四层权限，为什么不能放进一个“安全”筐里</h2>
+<table class="audit-table compare"><thead><tr><th>层级</th><th>典型来源</th><th>可以如何调整</th></tr></thead><tbody>
+<tr><td>平台与工具权限</td><td>Codex 审批、沙箱、工具授权</td><td>在产品和组织允许的范围内配置；更高优先级的强制限制不能靠提示词覆盖</td></tr>
+<tr><td>项目准入</td><td>任务状态机、<code>hardware_reviewed</code>、调试开关、配置契约</td><td>可以审查路径归属、去重和资格产生流程；不能伪造完成状态</td></tr>
+<tr><td>机器人运行保护</td><td>控制器急停、限位、碰撞约束、保护停机</td><td>需要由可靠的机器人控制系统实施；运行时安全条件不能靠缓存代替</td></tr>
+<tr><td>模型自行判断</td><td>“我还需要更多证明”或新增前置研发</td><td>要求给出实际规则、日志或代码依据；无证据的附加验证不应自动变成强制门槛</td></tr>
+</tbody></table>
+<p>这也解释了为何“我已经授权运动”没有一次性解决问题：<strong>人的任务授权、Agent 的工具调用许可、项目的软件准入和机器人的实时安全状态不是同一种授权。</strong>用户可以批准实验目的，却无法凭一句话让尚未建模的实体几何突然变得安全。</p>
+<p>反过来，模型也不能一概用“为了安全”来拒绝推进。没有命中正式路径的调试缺口，应该标记为调试路径的缺口；对当前运动没有影响的架构优化，应该进入待办，而不是扩大当次准入。</p>
+<p>对于“Astra 是否因为加入了特定训练数据才变保守”，这次记录不足以回答。后训练和指令策略可能影响模型风格，但没有模型内部可验证证据时，只能说是<strong>可能的行为来源</strong>，不能当作故障结论。</p>
+<h2 id="design">5. 如果重做这套协作，我会把 Agent 放在哪里？</h2>
+<p>最直接的改法不是取消检查，而是让<strong>检查归它真正的所有者管理</strong>。授权采用有范围、有时效的任务级声明；静态证据随版本绑定并可复用；动态状态始终由机器人执行链路判断。Astra 负责研发排障，不再兼任一个可以随时追加规则的“最终安全官”。</p>
+<ol>
+<li><strong>任务只从编排入口进入。</strong>Agent 默认观察本次 PickTool 的执行结果，不主动另发实机动作。</li>
+<li><strong>阻断必须定位到执行路径。</strong>记录错误码、源码位置、触发阶段，以及是否属于正式路径，不能把所有检查笼统合并。</li>
+<li><strong>一次只收敛最小故障。</strong>比如确认新指尖碰撞模型是否被规划链使用；不能把它顺带变成通用轨迹规划平台研发。</li>
+<li><strong>复用不变的证据。</strong>代码和标定版本未变时，可以复用静态测试结论；现场状态、接触风险与实时控制约束不能复用过期结果。</li>
+<li><strong>失败不自动等于授权新运动。</strong>Agent 修好代码、通过离线验证之后，仍由负责人决定是否在现场重新测试。</li>
+<li><strong>区分五类结果。</strong>已编译、已仿真、已下发、已运动、已完成抓取，必须分别报告，绝不能互相替代。</li>
+</ol>
+<p>这实际上是一种三方分工：<strong>人决定任务与试验边界，Agent 负责证据驱动的诊断和修复，Robot Executor 负责独立且可验证的运动保护。</strong>这样，Agent 即使偏谨慎，也不会无限扩展自己的“准入职责”；即使偏激进，也不能绕过硬件侧保护。</p>
+<h2 id="lesson">6. 结论：风险识别能力，不等于研发闭环能力</h2>
+<p>这次 Astra 识别到的几个关键点并不荒唐：规划接口会直接执行、新指尖碰撞模型不完整、标定状态未达到当前正式入口的要求，都是不能靠“我批准了”就凭空消失的问题。</p>
+<p>但它之后出现了另一种失败：<strong>没有把风险压缩成最小可修复问题，反而从原任务不断分叉出额外开发。</strong>从使用者视角看，现象就是“做了很多正确的检查，却迟迟没有推进那件真正想做的事”。</p>
+<p class="callout"><strong>我希望的机器人研发 Agent，不是永远说“可以执行”，也不是永远说“还不够安全”。</strong>它应该准确指出哪一步不能执行、为什么不能、证据是什么、最小修复是什么，以及哪些其他工作仍然可以推进。只有风险收敛到可验证的工程行动，AI 才真正参与了研发闭环。</p>
+<p>对于线束装配这种高接触、高约束的真机任务，<strong>高效执行与保留必要安全保护不是矛盾关系</strong>。真正的工程能力，是让每个验证有来源、有边界、有生命周期，而不是让模型无限生成新的门槛。</p>
+<p class="references">关联阅读：<a href="./tray-grasp.html">料盘抓取：离线示教、在线重算与大模型协作</a> · <a href="./grasp-timeline.html">一次完整抓取：从看到到夹住</a> · <a href="./train-5k.html">把 VLA 装进 G2：一次 0/30 的排障</a></p>
+<nav class="note-nav" aria-label="笔记导航"><a class="prev" href="./cem.html"><span>← 上一篇</span><strong>CEM 与 Diffusion：采样优化和分布生成</strong></a><a class="home" href="../series/"><span>系列索引</span><strong>学习地图 · 全部笔记</strong></a></nav>
+</article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+</body></html>
