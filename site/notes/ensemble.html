@@ -61,7 +61,20 @@ bias:   [5, 1, out_features]</code></pre>
 
 
  <h2 id="gemm">2. 一次前向里真正发生了什么</h2>
- <p>输入 <code>x: [B, in]</code> 被广播成五份，和权重做一次批量矩阵乘：</p>
+ <p>先回答一个容易被跳过的问题：<strong>复制发生在哪？</strong>不在层里，在模型 <code>forward</code> 的第一行，只此一次。</p>
+ <pre tabindex="0"><code>def forward(self, x):                      # x: [B, in]
+    x = x.unsqueeze(0).repeat(self.ensemble_size, 1, 1)   # -> [E, B, in]
+    x = F.relu(self.layer1(x))
+    x = F.relu(self.layer2(x))
+    ...
+    return self.layer5(x)</code></pre>
+ <p>第 2 到第 5 层不做任何复制，它们只是接收并保持这个多出来的第一维。所以往下看时，可以把它想成五条平行的线在深度方向上一起前进。</p>
+ <p>每一层内部只有一行：</p>
+ <pre tabindex="0"><code>def forward(self, x):                      # x: [E, B, in]
+    return torch.baddbmm(self.bias, x, self.weight)
+    # bias[E,1,out] + x[E,B,in] @ weight[E,in,out]  ->  [E,B,out]</code></pre>
+ <p><code>baddbmm</code> 的第一维是<strong>逐元素对应</strong>的：第 k 份输入只和第 k 个权重矩阵相乘，不交叉、不混合。</p>
+ <p>把输入扩成 <code>[E,B,in]</code> 之后，和权重做一次批量矩阵乘：</p>
  <pre tabindex="0"><code>[5, B, in]  @  [5, in, out]  ->  [5, B, out]</code></pre>
  <p>这是一次 <strong>batched GEMM</strong>（cuBLAS 里叫 strided batched gemm）。五个网络的计算被塞进同一个 kernel，而不是发五次 kernel、排五次队。</p>
  <p>这也回答了「为什么不用 <code>nn.Sequential</code> 或五个独立 Module」：独立 Module 会让 kernel launch 变成五次，也吃不到一次大矩阵乘的吞吐。<strong>把并行交给 BLAS，而不是交给 Python 循环</strong>——这是 PETS 工程实现里最实用的一招。</p>
