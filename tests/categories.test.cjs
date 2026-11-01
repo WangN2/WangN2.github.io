@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const read=f=>fs.readFileSync(path.join(__dirname,'../site',f),'utf8');
 const groups={basics:['kinematics','swerve-base','apriltag','hand-eye','collision-envelope','costmap','nvjpeg','optimizer-muon','cuda','calibration','cem'],models:['lingbot-vla2','vla-g2-deploy','genie4-vs-astra'],applications:['tray-grasp','grasp-timeline','train-5k']};
 for(const file of ['index.html','series/index.html']){
- test(file+' lists all ten notes once in approved eleven/three/three categories',()=>{
+ test(file+' lists all seventeen notes once in approved eleven/three/three categories',()=>{
   const html=read(file), all=[];
   for(const [id,expected] of Object.entries(groups)){
    const section=html.match(new RegExp('<section[^>]+data-category="'+id+'"[^>]*>([\\s\\S]*?)</section>'));
