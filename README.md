@@ -34,6 +34,7 @@ python3 tests/browser_tray_grasp.py --base-url http://127.0.0.1:8765
 python3 tests/browser_swerve.py --base-url http://127.0.0.1:8765
 python3 tests/browser_guide.py --base-url http://127.0.0.1:8765
 python3 tests/browser_handeye.py --base-url http://127.0.0.1:8765
+python3 tests/browser_calibration.py --base-url http://127.0.0.1:8765
 python3 tests/browser_costmap.py --base-url http://127.0.0.1:8765
 python3 tests/browser_timeline.py --base-url http://127.0.0.1:8765
 ```

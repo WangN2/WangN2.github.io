@@ -1,4 +1,4 @@
-/* 手眼标定的旋转约束：M = Σ ωᵢ ωᵢᵀ 的条件数决定可解性。 */
+/* 旋转向量配准的局部信息：不代替完整手眼可观性与精度验收。 */
 (function(){
  const root=document.querySelector('.handeye-lab');
  if(!root)return;
@@ -87,13 +87,13 @@
   }
 
   // 条件数
-  const M=[[0,0,0],[0,0,0],[0,0,0]];
-  for(const w of list) for(let i=0;i<3;i++) for(let j=0;j<3;j++) M[i][j]+=w[i]*w[j];
+  const M=CalibrationMath.rotationInformation(list);
   const [l1,l2,l3]=eig3(M);
   const cond=l3>1e-12?l1/l3:Infinity;
   const ratio=l1>0?l3/l1:0;
   read('lmin').textContent=Math.max(0,ratio).toFixed(4);
-  read('cond').textContent=isFinite(cond)?(cond>999?'∞':cond.toFixed(1)):'∞';
+  read('info').textContent=Math.max(0,l3).toFixed(4);
+  read('cond').textContent=isFinite(cond)?(cond>999?cond.toExponential(1):cond.toFixed(1)):'∞';
   const bad=ratio<0.01, warn=ratio<0.15;
   read('lmin').dataset.warn=String(bad);
   read('cond').dataset.warn=String(bad);
@@ -103,10 +103,10 @@
   out('angle').textContent=S.angle+'°';
   st.dataset.warn=String(bad);
   st.textContent = bad
-   ? '三个方向的约束几乎共线，旋转方程秩亏——标定结果会随着噪声随机跳，不能用于生产。'
+   ? '轴方向过于集中，局部旋转约束存在很弱的方向。完全共轴时，该方向不可观。'
    : (warn
      ? '主轴方向占优，最弱的方向只有最强方向的 '+ratio.toFixed(3)+'，结果对噪声敏感。'
-     : '三个方向都被约束住了，最弱方向与最强方向之比 '+ratio.toFixed(3)+'，旋转解稳定。');
+     : '在这个简化模型中，最弱方向与最强方向之比 '+ratio.toFixed(3)+'；仍需结合信息量、测量噪声及完整手眼残差评估。');
  }
 
  root.querySelectorAll('[data-in]').forEach(el=>{
@@ -124,8 +124,7 @@
  const S={r:0.4,w:180,dt:10};
 
  function err(dtms){
-  const dt=dtms/1000, w=S.w*Math.PI/180;
-  return 2*S.r*Math.abs(Math.sin(w*dt/2))*1000;   // mm
+  return CalibrationMath.circularErrorMm(S.r,S.w,dtms);
  }
 
  function draw(){
@@ -169,9 +168,9 @@
   out('dt').textContent=S.dt+' ms';
   read('err').textContent=e0.toFixed(1)+' mm';
   read('deg').textContent=(S.w*S.dt/1000).toFixed(1)+'°';
-  read('err').dataset.warn=String(e0>10);
+  // No universal accuracy threshold is implied by this geometric example.
   st.textContent='目标以 '+S.w+'°/s 绕半径 '+S.r.toFixed(2)+' m 转，'+Math.abs(S.dt)+' ms 的时间戳偏差对应 '
-   +e0.toFixed(1)+' mm 的定位误差；换算成关节角约 '+(S.w*S.dt/1000).toFixed(1)+'°。';
+   +e0.toFixed(1)+' mm 的定位误差；对应圆周运动的转角为 '+(S.w*S.dt/1000).toFixed(1)+'°。';
  }
 
  root.querySelectorAll('[data-in]').forEach(el=>{
