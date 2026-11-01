@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/calibration.html">
+ <meta name="theme-color" content="#f7f9fc">
+ <meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article">
+ <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
+ <meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="机器人标定：内参、外参、手眼与时间 · WangN2">
+ <meta property="og:description" content="标定的产出不是一个变换矩阵，而是矩阵加上它的不确定度。四类标定、一条流程，以及自动驾驶为什么不一样。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/calibration.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png">
+ <meta property="og:image:width" content="1200">
+ <meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="机器人标定：内参、外参、手眼与时间 · WangN2">
+ <meta name="twitter:description" content="标定的产出不是一个变换矩阵，而是矩阵加上它的不确定度。四类标定、一条流程，以及自动驾驶为什么不一样。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-11-01">
+ <meta property="article:modified_time" content="2026-11-01">
+ <meta property="article:section" content="标定">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"机器人标定：内参、外参、手眼与时间","description":"标定的产出不是一个变换矩阵，而是矩阵加上它的不确定度。四类标定、一条流程，以及自动驾驶为什么不一样。","url":"https://wangn2.github.io/notes/calibration.html","mainEntityOfPage":"https://wangn2.github.io/notes/calibration.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["相机标定","手眼标定","AprilTag","自动驾驶"],"datePublished":"2026-11-01","dateModified":"2026-11-01"}</script>
+ <!--/meta-->
+ <title>机器人标定：内参、外参、手眼与时间 · WangN2</title>
+ <meta name="description" content="标定的产出不是一个变换矩阵，而是矩阵加上它的不确定度。四类标定、一条流程，以及自动驾驶为什么不一样。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/calib/calib.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 16 / 标定 · 系统方法</p>
+ <h1>机器人标定</h1>
+ <p class="lede">标定的产出不是一个变换矩阵，而是矩阵加上它的不确定度。没有不确定度的标定，验收时只能凭感觉。</p>
+  <div class="article-meta"><span><time datetime="2026-11-01">2026-11-01</time></span><span>约 9 分钟</span><span>标定</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>标定事故大多不是算法问题，是把四件不同的事混成了一件。这篇先把它们拆开，再给一条能执行的流程，最后说自动驾驶为什么是另一套。</p>
+ <p class="callout"><strong>范围。</strong>以视觉与机器人的标定为主，不涉及 IMU 噪声建模、激光内参这类专门话题。文中的数目是经验区间，不同精度要求下差别很大。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#four">1. 先拆成四件事</a></li>
+   <li><a href="#intrinsic">2. 内参：不是拍几张棋盘格</a></li>
+   <li><a href="#extrinsic">3. 外参：先定义基准，再谈精度</a></li>
+   <li><a href="#tag">4. AprilTag：好在哪，差在哪</a></li>
+   <li><a href="#handeye">5. 手眼：AX = XB，以及它为什么会退化</a></li>
+   <li><a href="#time">6. 时间：最便宜、也最常被跳过的一项</a></li>
+   <li><a href="#flow">7. 一条能执行的流程</a></li>
+   <li><a href="#verify">8. 为什么重投影误差会骗人</a></li>
+   <li><a href="#ad">9. 自动驾驶为什么是另一套</a></li>
+   <li><a href="#close">10. 回到你这条链路</a></li>
+   </ol>
+  </nav>
+ <h2 id="four">1. 先拆成四件事</h2>
+ <table class="coordinates"><thead><tr><th>标什么</th><th>求什么</th><th>约束从哪来</th><th>典型失败</th></tr></thead><tbody>
+  <tr><td>内参</td><td>相机自身几何：焦距、主点、畸变</td><td>标定板的多视角观测</td><td>板子总在画面中央、姿态太单一</td></tr>
+  <tr><td>外参</td><td>相机相对某个参考系的位姿</td><td>已知 3D 点，或已知位姿的板子</td><td>基准没定义、尺度错了</td></tr>
+  <tr><td>手眼</td><td>相机与末端的固定关系</td><td>机器人位姿 + 视觉观测</td><td>运动退化、姿态太集中</td></tr>
+  <tr><td>时间</td><td>两路数据的时间偏移</td><td>硬件触发，或运动中的互相关</td><td>完全没做，误差比外参还大</td></tr>
+ </tbody></table>
+ <p>四件事的数学形式不同，验收方式也不同，但它们在链路里是相乘的。</p>
+ <figure><img src="../assets/calib/fig1_chain.png" width="1420" height="720" loading="lazy" alt="四个坐标系基座、末端、相机、目标的链条，三段变换依次相乘"><figcaption>图 1｜四个坐标系，三段变换。标定就是决定哪几段去测、哪几段去解。</figcaption></figure>
+ <p>这个式子值得盯一会儿：</p>
+ <div class="formula">T_base_tag = T_base_ee · T_ee_cam · T_cam_tag</div>
+ <p>三段里只有中间那段是硬件决定的常数。两边随每次运动变化，中间那段不变——<strong>手眼标定要做的，就是从「两端都在变」的观测里，把「不变」的那段解出来</strong>。</p>
+
+ <h2 id="intrinsic">2. 内参：不是拍几张棋盘格</h2>
+ <p>针孔模型只有四个未知数：fx、fy、cx、cy，加上畸变通常五到八个。</p>
+ <p>张正友的方法之所以成为标准，是因为它把每张平面标定板变成一个单应矩阵（八个自由度），多张图叠起来约束就足够了，可以先闭式求解再非线性优化。</p>
+ <p>实操上有三条决定成败：</p>
+ <p><strong>板子要占满视场。</strong>二十张全在画面中央拍，边角的畸变系数根本没被约束。合格的做法是把视场切成 3×3，每个区域至少几张，并且倾斜到正负四十五度左右。</p>
+ <p><strong>姿态要散。</strong>全是正对相机的图，二十张的信息量接近一张。</p>
+ <p><strong>重投影误差要分区看。</strong>全局 RMS 0.2 像素很漂亮，但如果误差全挤在右下角，说明畸变模型在那里拟合不住——要么加阶数，要么相机本身有问题。</p>
+ <p>还有一个常被忽略的耦合：<strong>焦距和「板子离相机多远」在单目里是同一件事的两种解释</strong>。所以标定板的尺寸必须准确，否则尺度会整体偏。这也是为什么工业标定单上要写板的加工精度。</p>
+
+ <h2 id="extrinsic">3. 外参：先定义基准，再谈精度</h2>
+ <p>外参是「相机相对谁」。这个「谁」必须在动手前写清楚：机器人基座、地面、车体后轴中心。定义不同，同一组数据出来的数字可以差很多。</p>
+ <p>求解本身不难——有若干 3D 点和它们的像素坐标，PnP 加非线性优化就够。难在两件事。</p>
+ <p><strong>尺度。</strong>单目看不出绝对尺度。要么有已知尺寸的板子，要么有别的传感器给出 3D 点。没有第三个信息源，尺度就是猜的。</p>
+ <p><strong>传递链。</strong>相机和基座之间如果隔着关节，那所谓外参其实依赖当时的关节角——这时它是手眼问题，不是外参问题。这个区分不做，后面所有分析都会错位。</p>
+
+ <h2 id="tag">4. AprilTag：好在哪，差在哪</h2>
+ <p>AprilTag 相对棋盘格的优势只有一条，但很关键：<strong>它自带 ID</strong>。</p>
+ <p>棋盘格必须知道「第 3 行第 5 列的角点」在板子上是哪个，所以板子不能动、角点要排序。AprilTag 直接告诉你编号，位姿可以单张解出来。</p>
+ <p>代价是误差特性不一样：</p>
+ <p><strong>位置误差主要来自尺寸。</strong>距离等于尺寸乘焦距再除以像素宽度，板子印大百分之一，距离就错百分之一。所以 tag 的物理尺寸要用卡尺量，不要信包装上的标称值。</p>
+ <p><strong>倾斜角最不敏感。</strong>正对着相机的小 tag，估算「歪了几度」非常弱，因为四个角点的透视变形太小。这是平面目标的固有退化：存在两个位姿解，重投影误差几乎一样。</p>
+ <p><strong>绕光轴的旋转反而很准</strong>，因为角点位置直接给出。</p>
+ <p>所以工程做法是<strong>用多个 tag 组成一块板</strong>（AprilTag board 或 ChArUco）：既保留 ID，又用大基线把倾斜角约束住。单个小 tag 适合回答「大致在哪」，不适合回答「精确姿态」。</p>
+
+ <h2 id="handeye">5. 手眼：AX = XB，以及它为什么会退化</h2>
+ <p>公式本身很好记，难的是理解它什么时候无解。</p>
+ <p><strong>A</strong> 是两次末端位姿之间的相对变换，机器人给；<strong>B</strong> 是两次相机观测之间的相对变换，视觉给；<strong>X</strong> 是待求的固定关系。</p>
+ <p>两条路径必须到同一个地方——这是它唯一的含义。</p>
+ <p>求解通常先旋转后平移：旋转部分与平移无关，可以独立解出来；有了旋转，平移就是线性的。</p>
+ <p>而旋转部分的方程，本质是在解一个线性系统，它的可解性取决于<strong>这些旋转轴在三维里铺得有多开</strong>。下面这个实验把这件事算出来了：拖动「轴散布」，看最弱方向的约束怎么消失。</p>
+
+ <section class="calib-lab handeye-lab" aria-labelledby="he-title" data-ready="false">
+  <h3 id="he-title">旋转轴铺得开不开</h3>
+  <p class="cb-hint">每组姿态贡献一个旋转向量（轴 × 角）。把它们叠成矩阵 M = Σωωᵀ，三个特征值就是三个方向的约束强度。最弱方向接近零时，旋转方程秩亏。</p>
+  <div class="cb-row">
+   <canvas data-canvas role="img" aria-label="三维坐标系中若干旋转向量，方向越集中说明约束越退化">旋转向量的分布。</canvas>
+   <div class="cb-side">
+    <div class="cb-ctrl">
+     <label>姿态数 <input type="range" data-in="n" min="4" max="30" step="1" value="12"><output data-out="n">12</output></label>
+     <label>轴散布 <input type="range" data-in="spread" min="0" max="180" step="1" value="40"><output data-out="spread">40°</output></label>
+     <label>旋转角 <input type="range" data-in="angle" min="5" max="60" step="1" value="30"><output data-out="angle">30°</output></label>
+    </div>
+    <dl class="cb-readout">
+     <div><dt>最弱 / 最强方向</dt><dd data-read="lmin">—</dd></div>
+     <div><dt>条件数</dt><dd data-read="cond">—</dd></div>
+    </dl>
+   </div>
+  </div>
+  <p class="cb-status" data-status role="status">—</p>
+ </section>
+
+ <p>三种典型退化：</p>
+ <p><strong>所有运动绕同一根轴。</strong>机器人只在一个平面内转，三个方向的约束退化成一个。</p>
+ <p><strong>只有平移没有旋转。</strong>旋转方程完全没约束，此时 X 的旋转部分不可观。</p>
+ <p><strong>旋转角太小。</strong>每组只转几度，噪声盖过信号，解出来的 X 会随数据抖动。</p>
+ <p>经验做法：十五到二十五组姿态，覆盖两根以上不平行的转轴，角度尽量散到三十度到九十度之间，并且让标定板在画面里出现在不同位置——姿态多样性和空间多样性都要。</p>
+
+ <h2 id="time">6. 时间：最便宜、也最常被跳过的一项</h2>
+ <p>前四项都在空间里，这一项在时间上。</p>
+ <p>相机的时间戳、机器人关节状态的时间戳，如果不是同一个时钟，两边的数据就永远对不上。而它对精度的影响，往往比外参大。</p>
+ <p>下面这个实验把误差算出来：一个点绕着半径 r 以角速度 ω 运动，时间戳差 Δt，定位误差是多少。</p>
+
+ <section class="calib-lab timeoff-lab" aria-labelledby="to-title" data-ready="false">
+  <h3 id="to-title">一个时间戳偏差值多少毫米</h3>
+  <p class="cb-hint">目标做圆周运动，误差等于 2r·sin(ωΔt/2)。曲线画的是误差随偏差的变化，橙点是当前取值的落点。</p>
+  <div class="cb-row">
+   <canvas data-canvas role="img" aria-label="误差随 Δt 变化的曲线，橙点标出当前偏差对应的误差">误差曲线。</canvas>
+   <div class="cb-side">
+    <div class="cb-ctrl">
+     <label>半径 <input type="range" data-in="r" min="0.1" max="1" step="0.05" value="0.4"><output data-out="r">0.40 m</output></label>
+     <label>角速度 <input type="range" data-in="w" min="30" max="720" step="10" value="180"><output data-out="w">180 °/s</output></label>
+     <label>时间偏差 <input type="range" data-in="dt" min="-50" max="50" step="1" value="10"><output data-out="dt">10 ms</output></label>
+    </div>
+    <dl class="cb-readout">
+     <div><dt>定位误差</dt><dd data-read="err">—</dd></div>
+     <div><dt>等效转角</dt><dd data-read="deg">—</dd></div>
+    </dl>
+   </div>
+  </div>
+  <p class="cb-status" data-status role="status">—</p>
+ </section>
+
+ <p>请注意这个量级：半径 0.4 米、每秒转半圈，仅仅 10 毫秒的偏差就对应十几毫米。这个数量级通常已经超过了外参标定的残差——<strong>也就是说，时间没对齐的时候，外参标得再准也没用。</strong></p>
+ <p>对齐的办法按可靠性从高到低：硬件触发（PPS 秒脉冲、相机触发线）优于网络精密时钟（PTP），优于软件时间戳加事后互相关。软件方案也能用，但必须实测偏移量并写进参数。</p>
+
+ <h2 id="flow">7. 一条能执行的流程</h2>
+ <p>每一步后面跟验收判据。没有判据的流程，最后一定会变成「看起来差不多」。</p>
+ <table class="coordinates"><thead><tr><th>阶段</th><th>做什么</th><th>通过判据</th></tr></thead><tbody>
+  <tr><td>0 定义</td><td>定基准、定要标的量、定容差</td><td>写下来，有人确认</td></tr>
+  <tr><td>1 硬件</td><td>相机锁死、板子刚性、光照均匀无反光</td><td>静止连拍十张，角点抖动小于 0.2 像素</td></tr>
+  <tr><td>2 内参</td><td>3×3 分区、多姿态，二十到四十张</td><td>重投影 RMS 小于 0.3 像素，且分区均衡</td></tr>
+  <tr><td>3 手眼</td><td>十五到二十五组，两轴以上</td><td>残差小于 2 毫米 / 0.5 度，且不随距离放大</td></tr>
+  <tr><td>4 外参</td><td>用未参与标定的点验证</td><td>独立点残差与标定点同量级</td></tr>
+  <tr><td>5 时间</td><td>硬件触发优先，软件对齐要实测偏移</td><td>运动中的残差接近静止时的残差</td></tr>
+  <tr><td>6 验证</td><td>做一个物理任务测真误差</td><td>见下一节</td></tr>
+  <tr><td>7 版本化</td><td>记录日期、温度、工装、参数文件</td><td>任何人能复现同一组数</td></tr>
+ </tbody></table>
+
+ <h2 id="verify">8. 为什么重投影误差会骗人</h2>
+ <p>这是我最想强调的一点。</p>
+ <p><strong>重投影误差低，不等于外参对。</strong></p>
+ <p>因为标定时「外参」和「每张图的板子位姿」是一起优化的。模型完全可以通过调整板子位姿，把外参的偏差吸收掉。你得到的是一个自洽的解，不是一个正确的解。</p>
+ <p>真正的验证要做物理量：</p>
+ <p>让机器人在标定空间里走一个已知边长的立方体，测末端实际落点和期望的差；或者固定一个点，从多个姿态去指它，看落点散布；或者留出完全没参与标定的第三个位置做验证。</p>
+ <p>标定的产出不是一个变换矩阵，是变换矩阵加上它的不确定度。</p>
+
+ <h2 id="ad">9. 自动驾驶为什么是另一套</h2>
+ <p>你问的这块和机器人手眼有本质区别，差别在结构上，不在精度上。</p>
+ <figure><img src="../assets/calib/fig2_ad.png" width="1420" height="820" loading="lazy" alt="相机、激光雷达、IMU、车体四个节点以 IMU 为原点连成星形，下面是产线、下线、在役三个阶段"><figcaption>图 2｜自动驾驶的传感器之间没有天然根节点，必须选一个原点，再全部挂上去。</figcaption></figure>
+ <p><strong>一、标定对象是「传感器之间」，不是「相对基座」。</strong>相机、激光雷达、毫米波、IMU、轮速，没有一个天然的根。工程上通常选 IMU 或后轴中心作为原点，其余都相对它。</p>
+ <p><strong>二、约束类型不同，不能直接建方程。</strong>相机给 2D 像素，激光给 3D 点，毫米波给距离和多普勒。它们之间只能靠「共同观测到同一个物体」建立联系——这就是标定板在产线标定里始终是主力的原因。</p>
+ <p><strong>三、多相机要互相约束。</strong>环视系统里相邻相机有重叠视场。做法是先用大标定场把所有相机标到车体，再用重叠区做联合优化，避免「各自都准、拼起来错位」。</p>
+ <p><strong>四、必须做在线标定。</strong>装配公差、震动、温度漂移会让外参在几万公里里慢慢变化。所以量产车除了产线标定，还有一层在线自适应：用行驶中的车道线、地面、语义分割结果持续微调。它不是替代产线标定，是补偿之后的漂移。</p>
+ <p><strong>五、时间同步是硬约束。</strong>相机曝光、激光扫描、IMU 采样必须对到同一时钟。工业上要么硬件触发，要么 PTP 精密时钟。软件时间戳在高速下误差几毫秒，二十米每秒就是几十厘米。</p>
+ <p>还有一点是自动驾驶特有的：<strong>退化场景</strong>。长直高速、隧道、雨雾、夜间，在线标定所需的约束不足。这时候正确的做法不是继续更新，而是冻结参数——否则约束越弱，参数漂得越远。</p>
+
+ <h2 id="close">10. 回到你这条链路</h2>
+ <p>按你现在的配置（双臂机器人加腕部与头部相机、桌面任务），大概对应成这样：</p>
+ <table class="coordinates"><thead><tr><th>环节</th><th>要标什么</th><th>容易踩的</th></tr></thead><tbody>
+  <tr><td>相机内参</td><td>各路相机的焦距、主点、畸变</td><td>仿真相机没有畸变，真机有，别用同一套参数</td></tr>
+  <tr><td>手眼</td><td>腕部相机相对末端、头部相机相对基座</td><td>这是两套，别只标一套</td></tr>
+  <tr><td>盘位姿</td><td>标签到基座</td><td>标签尺寸误差直接变成距离误差</td></tr>
+  <tr><td>时间</td><td>相机时间戳与关节状态时间戳</td><td>几十毫秒的偏移就是几度的关节差</td></tr>
+ </tbody></table>
+ <p>最后一条单独提醒：如果症状是「静止时很准、一动就偏」，先排除时间戳，再怀疑外参和模型。这个实验很便宜——同一场景静置拍十秒、再慢速移动拍十秒，比较两者的残差。差值大，就是时间。</p>
+
+ <p class="references">相关笔记：<a href="./hand-eye.html">手眼标定：把「相机看到的」搬进机器人坐标系</a>（AX=XB 的推导） · <a href="./apriltag.html">AprilTag 视觉定位详解</a>（标签怎么变成位姿） · <a href="./train-5k.html">把 VLA 装进 G2</a>（一个真实的排障记录）</p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./cuda.html"><span>← 上一篇</span><strong>CUDA 与算子</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/calib/calib.js"></script>
+</body>
+</html>
