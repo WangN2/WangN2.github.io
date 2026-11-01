@@ -29,3 +29,24 @@ test('series engineering route follows perception-to-grasp and model route remai
  const data=JSON.parse(s.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]);assert.equal(data.name,title);
  for(const field of ['og:title','twitter:title'])assert.ok(s.includes('content="'+title+' · WangN2 机器人技术笔记"'));
 });
+
+test('series hero line and category chips agree with the real card counts',()=>{
+ // 这两个数字写在正文和导航里，不随卡片自动更新——每次加笔记都要人改，
+ // 所以用测试盯住：一旦和实际卡片数对不上就报错。
+ const s=read('series/index.html');
+ const actual={};
+ for(const id of Object.keys(groups)){
+  const section=s.match(new RegExp('<section[^>]+data-category="'+id+'"[^>]*>([\\s\\S]*?)</section>'));
+  assert.ok(section,'missing '+id);
+  actual[id]=[...section[1].matchAll(/class="article-card" href="[^\"]*\/notes\/([^\"]+)\.html"/g)].length;
+ }
+ const lede=s.match(/(\d+) 篇基础、(\d+) 篇模型、(\d+) 篇应用/);
+ assert.ok(lede,'hero line should state the three counts');
+ assert.deepEqual([+lede[1],+lede[2],+lede[3]],[actual.basics,actual.models,actual.applications]);
+ const chips=s.match(/<nav class="category-nav"[\s\S]*?<\/nav>/)[0];
+ for(const [id,label] of [['basics','基础篇'],['models','模型篇'],['applications','应用篇']]){
+  const m=chips.match(new RegExp(label+' · (\\d+)'));
+  assert.ok(m,label+' chip missing');
+  assert.equal(+m[1],actual[id],label+' chip count');
+ }
+});
