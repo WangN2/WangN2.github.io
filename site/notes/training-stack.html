@@ -7,190 +7,201 @@
  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
  <meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN">
- <meta property="og:title" content="训练链路：从机房到一次参数更新 · WangN2">
- <meta property="og:description" content="基建决定能不能跑完，平台决定稳不稳，算子决定快不快，模型决定装不装得下，优化器决定更新得好不好。">
+ <meta property="og:title" content="训练系统：七层栈与四本账 · WangN2">
+ <meta property="og:description" content="训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。">
  <meta property="og:url" content="https://wangn2.github.io/notes/training-stack.html">
  <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
  <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
  <meta name="twitter:card" content="summary_large_image">
- <meta name="twitter:title" content="训练链路：从机房到一次参数更新 · WangN2">
- <meta name="twitter:description" content="基建决定能不能跑完，平台决定稳不稳，算子决定快不快，模型决定装不装得下，优化器决定更新得好不好。">
+ <meta name="twitter:title" content="训练系统：七层栈与四本账 · WangN2">
+ <meta name="twitter:description" content="训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-11-03"><meta property="article:modified_time" content="2026-11-03"><meta property="article:section" content="训练">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"训练链路：从机房到一次参数更新","description":"基建决定能不能跑完，平台决定稳不稳，算子决定快不快，模型决定装不装得下，优化器决定更新得好不好。","url":"https://wangn2.github.io/notes/training-stack.html","mainEntityOfPage":"https://wangn2.github.io/notes/training-stack.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["模型训练","显存","并行","算子","优化器"],"datePublished":"2026-11-03","dateModified":"2026-11-03"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"训练系统：七层栈与四本账","description":"训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。","url":"https://wangn2.github.io/notes/training-stack.html","mainEntityOfPage":"https://wangn2.github.io/notes/training-stack.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["模型训练","分布式训练","显存","算子","并行"],"datePublished":"2026-11-03","dateModified":"2026-11-03"}</script>
  <!--/meta-->
- <title>训练链路：从机房到一次参数更新 · WangN2</title>
- <meta name="description" content="基建决定能不能跑完，平台决定稳不稳，算子决定快不快，模型决定装不装得下，优化器决定更新得好不好。">
+ <title>训练系统：七层栈与四本账 · WangN2</title>
+ <meta name="description" content="训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/trainstack/ts.css">
 </head>
 <body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
 <main class="wrap"><article class="article">
- <p class="eyebrow">NOTE 20 / 训练 · 全链路</p>
- <h1>训练链路</h1>
- <p class="lede">从机房到一次参数更新。五层东西各自决定一件事，任何一层出问题，最后都表现为「训练很慢」。</p>
-  <div class="article-meta"><span><time datetime="2026-11-03">2026-11-03</time></span><span>约 8 分钟</span><span>训练</span><a class="series-link" href="../series/">全系列 ›</a></div>
+ <p class="eyebrow">NOTE 20 / 训练 · 系统</p>
+ <h1>训练系统</h1>
+ <p class="lede">七层栈、一条流水线、四本账。训练系统的瓶颈只有四种，所有「优化」都是先判断哪一本失衡。</p>
+  <div class="article-meta"><span><time datetime="2026-11-03">2026-11-03</time></span><span>约 10 分钟</span><span>训练</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
- <p>开始接触训练之后最容易犯的错，是把「慢」当成一个整体去治。实际上它至少有五个来源，而排障的第一步是判断卡在哪一层。</p>
- <p class="callout"><strong>范围。</strong>以单机到中等规模训练为主，用之前那套 LingBot-VLA 的配置做贯穿例子。不涉及 MoE 路由的分布式实现细节，也不给具体框架的调参配方。</p>
+ <p>用「基建 / 模型 / 算子 / 优化器 / 平台」这种五格划分来理解训练，能对上日常分工，但对不上系统。它把不同抽象层次的东西并排放了——优化器是算法层的一个组件，算子是编译层的一个产物，两者不在一个高度上。</p>
+ <p>更接近系统论文的分法是这样三样东西：<strong>一个纵向的七层栈</strong>（硬件往上到实验治理）、<strong>一条横向的流水线</strong>（数据到部署）、以及<strong>四个资源账本</strong>——任何一层的性能问题，最后都归到这四本账中的某一本上。</p>
+ <p class="callout"><strong>范围。</strong>以稠密模型和中等以上规模训练为主，用 LingBot-VLA 的配置做贯穿例子。不含 MoE 通信的专门优化，也不给具体框架的调参配方。</p>
 
   <nav class="toc" aria-labelledby="toc-title">
    <p class="toc-title" id="toc-title">本文目录</p>
    <ol>
-   <li><a href="#map">1. 五层，各管一件事</a></li>
-   <li><a href="#infra">2. 基建：训练首先是个可靠性问题</a></li>
-   <li><a href="#memory">3. 显存账：四份开销</a></li>
-   <li><a href="#parallel">4. 并行：切什么，切在哪</a></li>
-   <li><a href="#ops">5. 算子：钱到底花在哪</a></li>
-   <li><a href="#opt">6. 优化器：更新规则和它的额外开销</a></li>
-   <li><a href="#platform">7. 平台：一个 step 的编排</a></li>
-   <li><a href="#lingbot">8. 回到 LingBot：把这条链跑一遍</a></li>
-   <li><a href="#debug">9. 症状 → 层级</a></li>
+   <li><a href="#stack">1. 七层栈与四本账</a></li>
+   <li><a href="#hw">2. 硬件与互连：带宽是第一性的</a></li>
+   <li><a href="#kernel">3. 编译与算子：MFU 是怎么来的</a></li>
+   <li><a href="#runtime">4. 框架运行时：显存管理</a></li>
+   <li><a href="#parallel">5. 并行：切什么，通信多少</a></li>
+   <li><a href="#algo">6. 算法：精度、优化器、超参</a></li>
+   <li><a href="#data">7. 数据与评测：最容易被排除在「训练系统」之外的两端</a></li>
+   <li><a href="#lingbot">8. 一次 step 的四本账：LingBot 走一遍</a></li>
+   <li><a href="#debug">9. 排障：按账本定位，不按模块</a></li>
    <li><a href="#close">10. 收尾</a></li>
    </ol>
   </nav>
- <h2 id="map">1. 五层，各管一件事</h2>
- <table class="coordinates compare"><thead><tr><th>层</th><th>它决定什么</th><th>出问题的表现</th></tr></thead><tbody>
-  <tr><td>基建</td><td>能不能跑完</td><td>跑到一半挂、数据喂不上</td></tr>
-  <tr><td>平台</td><td>跑得稳不稳</td><td>重启丢进度、多机不同步</td></tr>
-  <tr><td>算子</td><td>跑多快</td><td>GPU 利用率上不去、显存炸</td></tr>
-  <tr><td>模型</td><td>装不装得下</td><td>OOM、只能开 batch=1</td></tr>
-  <tr><td>优化器</td><td>更新得好不好</td><td>loss 不降、发散、显存比预期大</td></tr>
+ <h2 id="stack">1. 七层栈与四本账</h2>
+ <p>每一层「向上提供一样东西，向下依赖一样东西」，这是拆解任何系统问题的基本方式：</p>
+ <table class="coordinates compare"><thead><tr><th>层</th><th>向上提供</th><th>向下依赖</th><th>这一层的核心问题</th></tr></thead><tbody>
+  <tr><td>L7 实验治理</td><td>可复现、可比较、可回归</td><td>全部</td><td>实验管理、版本、评测污染</td></tr>
+  <tr><td>L6 算法</td><td>模型、损失、更新规则</td><td>并行</td><td>收敛质量与数据效率</td></tr>
+  <tr><td>L5 并行</td><td>把任务切到多设备</td><td>框架、互连拓扑</td><td>切分策略与通信开销</td></tr>
+  <tr><td>L4 框架运行时</td><td>张量、自动微分、显存</td><td>算子</td><td>显存管理与执行调度</td></tr>
+  <tr><td>L3 编译与算子</td><td>高效的 kernel</td><td>ISA、寄存器、SM</td><td>访存与算力的配比</td></tr>
+  <tr><td>L2 硬件与互连</td><td>算力、容量、带宽</td><td>物理</td><td>带宽墙、功率墙</td></tr>
+  <tr><td>L1 数据</td><td>样本流</td><td>存储</td><td>吞吐、质量、配比</td></tr>
  </tbody></table>
- <p>这五层不是并列的，是<strong>依赖</strong>的：算子的效率取决于模型的结构，模型的显存取决于优化器的状态，而这一切都要在基建上跑得完、在平台上不掉链子。</p>
-
- <h2 id="infra">2. 基建：训练首先是个可靠性问题</h2>
- <p>先说一个容易被忽略的算术：假设单卡平均无故障时间是一万小时，一千张卡跑三天——</p>
- <div class="formula">1000 卡 × 72 小时 ÷ 10000 小时 ≈ 7.2 次故障</div>
- <p><strong>也就是说，一次完整的训练必然会被打断好几次。</strong>所以集群设计的第一优先级不是峰值算力，而是<strong>能恢复</strong>：checkpoint 周期要短于故障间隔，重启要能自动续训。</p>
- <p>三条硬件事实决定了后面的所有选择：</p>
- <p><strong>一、卡内互连。</strong>同一台机器里 GPU 之间的带宽（NVLink 通常几百 GB/s）远高于跨机网络（IB 通常几十到几百 Gb/s，换算成字节还要除以 8）。<strong>通信密集的并行方式只能放在机器内部</strong>——这是张量并行的部署边界。</p>
- <p><strong>二、显存墙。</strong>80 GB 是现在的主流上限。下一节会把账算给你看，为什么 6B 以上的模型必须切分。</p>
- <p><strong>三、存储带宽。</strong>如果数据集在远端，每张卡每秒要喂几百 MB 到几 GB 的样本。当 dataloader 成为瓶颈时，GPU 利用率会掉到个位数——而且监控上看起来「GPU 在等」。</p>
- <p>常见的存储分层：本地 NVMe 缓存 → 节点级共享 → 远端对象存储。训练时先把数据拉到本地，是最便宜的加速手段之一。</p>
-
- <h2 id="memory">3. 显存账：四份开销</h2>
- <p>训练一个模型，显存里至少躺着四样东西，缺一不可：</p>
- <table class="coordinates compare"><thead><tr><th>项</th><th>是什么</th><th>典型字节/参数</th></tr></thead><tbody>
-  <tr><td>权重</td><td>当前参数值</td><td>fp32: 4 · bf16: 2</td></tr>
-  <tr><td>梯度</td><td>反向传播算出的 ∂L/∂w</td><td>fp32: 4 · bf16: 2</td></tr>
-  <tr><td>主权重副本</td><td>混合精度下保留的 fp32 版本，更新用它</td><td>混合精度: 4 · 纯 fp32: 0</td></tr>
-  <tr><td>优化器状态</td><td>AdamW 的一阶、二阶矩</td><td>AdamW: 8 · SGD/Muon: 4</td></tr>
+ <p>然后是四本账。这是整篇的骨架：</p>
+ <table class="coordinates compare"><thead><tr><th>账本</th><th>单位</th><th>它对什么设上限</th><th>失衡时的表现</th></tr></thead><tbody>
+  <tr><td>算力</td><td>FLOPs</td><td>一步最少要多久</td><td>GPU 打满但就是慢</td></tr>
+  <tr><td>显存</td><td>bytes</td><td>能不能装下</td><td>OOM，或被迫开小 batch</td></tr>
+  <tr><td>带宽</td><td>bytes/s</td><td>算力能发挥多少</td><td>利用率上不去，在等数据</td></tr>
+  <tr><td>时间</td><td>小时、故障次数</td><td>能不能跑完</td><td>跑到一半挂、进度丢失</td></tr>
  </tbody></table>
- <p>加起来，<strong>AdamW + 混合精度正好是 16 字节/参数</strong>——这个数字值得记住，很多容量估算可以直接心算。</p>
- <p>下面这个计算器把账拆开。拖动参数量，或者换优化器，看四份开销怎么变。</p>
+ <p>后面每一层，我都会说明它主要动的是哪一本账。</p>
+
+ <h2 id="hw">2. 硬件与互连：带宽是第一性的</h2>
+ <p>一个必须先建立的量化直觉：<strong>每字节能换多少次浮点运算，才可能吃满算力。</strong></p>
+ <div class="formula">算术强度 = 算力 ÷ 带宽 ≈ 312 TFLOPS ÷ 2 TB/s ≈ 156 FLOPs/byte</div>
+ <p>也就是说，一个算子如果每读一个字节只做几十次运算，它就注定跑不到峰值——它卡在等内存。这条界线（roofline 的拐点）能解释后面几乎所有的优化动作。</p>
+ <p>三个硬件数字决定了系统的边界：</p>
+ <p><strong>算力。</strong>A100 的 bf16 稠密算力约 312 TFLOPS，H100 约 990。这是账本的分子。</p>
+ <p><strong>互连。</strong>机内 NVLink 每卡约 300 GB/s，跨机 IB 常见 400 Gb/s——注意单位，<strong>换算成字节要除以 8，也就是 50 GB/s，差六倍</strong>。这不是配置差异，是物理差异，所以通信密集的并行方式被锁在机内。</p>
+ <p><strong>存储。</strong>本地 NVMe 约 7 GB/s，远端对象存储通常低一到两个数量级。数据管线一旦跨网络，就会成为全链路的短板。</p>
+ <p>顺带解释一个常见困惑：为什么多卡加速比总达不到线性？因为每多一张卡，就要多传一份梯度，而链路带宽不会跟着涨。</p>
+
+ <h2 id="kernel">3. 编译与算子：MFU 是怎么来的</h2>
+ <p>算子层只回答一个问题：<strong>给定这个形状，能榨出多少峰值算力。</strong>衡量它的指标是 MFU（模型浮点利用率）。</p>
+ <p>按算术强度把算子分成三类，处理方式完全不同：</p>
+ <table class="coordinates compare"><thead><tr><th>类别</th><th>典型算子</th><th>算术强度</th><th>受限于</th><th>优化方向</th></tr></thead><tbody>
+  <tr><td>矩阵乘</td><td>GEMM、QKV 投影</td><td>随规模增长，n/常数</td><td>算力</td><td>分块、扩大 tile、提高占用率</td></tr>
+  <tr><td>注意力</td><td>softmax(QKᵀ)V</td><td>中等，随序列增长</td><td>显存带宽</td><td>不落地 S×S 矩阵（flash 类算法）</td></tr>
+  <tr><td>逐元素</td><td>LayerNorm、GELU、残差</td><td>约 1（读一次写一次）</td><td>带宽</td><td>融合成一个 kernel</td></tr>
+ </tbody></table>
+ <p>这张表解释了两件事。</p>
+ <p><strong>一、为什么「融合」比「优化矩阵乘」更容易见效。</strong>GEMM 已经被 BLAS 做到接近峰值，你很难再提升；而逐元素算子每个都要把整个激活张量读写一遍，融合三个就省了两遍读写——省下的是带宽，往往是最大的一块。</p>
+ <p><strong>二、为什么长序列时注意力会成为瓶颈。</strong>S×S 的分数矩阵既占显存又要落地，序列翻倍这一项翻四倍。flash attention 的收益不在少做了乘法，而在<strong>不把这个矩阵写回显存</strong>。</p>
+ <p>编译器（torch.compile、Triton、XLA）在这一层做的事，本质就是<strong>替你自动完成融合与调度</strong>。它的上限取决于算子库已有的实现，下限取决于图能不能被静态化。</p>
+
+ <h2 id="runtime">4. 框架运行时：显存管理</h2>
+ <p>这一层主要动的是<strong>显存账</strong>。四份开销之外，还有一项经常被忽略的：<strong>激活</strong>。</p>
+ <p>反向传播要用前向的中间结果，所以每层的激活都要存下来。它的量级随 batch × 序列长度 × 层数线性增长，长序列下会超过模型本身。</p>
+ <p>主流解法是<strong>激活重算</strong>（gradient checkpointing）：只存少数几层的激活，反向时重新算中间结果。代价是多一次前向——大约<strong>增加 33% 的算力</strong>，换来激活显存从 O(L) 降到 O(√L)。</p>
+ <div class="formula">重算的取舍：+33% FLOPs ⟷ 激活显存 O(L) → O(√L)</div>
+ <p>这是一笔典型的跨账交易：<strong>用算力账换显存账</strong>。判断值不值，看当前哪本账更紧。</p>
+ <p>另外三个运行时细节：</p>
+ <p><strong>混合精度。</strong>bf16 与 fp16 的关键差别是动态范围——fp16 需要 loss scaling 来防止梯度下溢，bf16 不需要。这也是现在默认选 bf16 的原因。fp8 进一步把权重和激活压到一字节，但要引入逐块缩放因子。</p>
+ <p><strong>主权重副本。</strong>更新必须在高精度做。没有它，小梯度会被低精度直接抹掉——这是「模型训着训着不动了」的常见原因之一。</p>
+ <p><strong>分配器。</strong>显存碎片会导致「明明够却 OOM」。caching allocator 通过复用缓解，但长短期张量混用仍会碎。</p>
+
+ <h2 id="parallel">5. 并行：切什么，通信多少</h2>
+ <p>这一层同时动<strong>显存账</strong>和<strong>带宽账</strong>。四种切法，维度不同。</p>
+ <table class="coordinates compare"><thead><tr><th>方式</th><th>切什么</th><th>每步通信量</th><th>部署边界</th></tr></thead><tbody>
+  <tr><td>数据并行 DP</td><td>批次</td><td>一次 all-reduce 梯度</td><td>跨机可行</td></tr>
+  <tr><td>ZeRO-1/2/3</td><td>优化器状态 / +梯度 / +参数</td><td>约 1.5× / 2× / 3× DP</td><td>跨机可行</td></tr>
+  <tr><td>张量并行 TP</td><td>单层内矩阵</td><td>每层两次 all-reduce</td><td><strong>仅机内</strong></td></tr>
+  <tr><td>流水并行 PP</td><td>按层分段</td><td>段间传激活</td><td>跨机可行</td></tr>
+ </tbody></table>
+ <p>三个必须知道的公式：</p>
+ <p><strong>all-reduce 的数据量。</strong>环形算法下，每张卡实际搬运 <code>2(N−1)/N</code> 倍的梯度大小。N 很大时趋于 2 倍——所以「多一倍卡」不会让通信量翻倍，但会让每张卡的带宽压力趋于饱和。</p>
+ <p><strong>流水线气泡。</strong>p 段流水、m 个微批时，利用率约 <code>m/(m+p−1)</code>。这就是为什么 PP 要配足够多的微批，否则一半时间在等。</p>
+ <p><strong>激活重算与并行的耦合。</strong>TP 切开的是层内矩阵，激活并不会因为 TP 而变小，所以「显存不够就加 TP」不一定有效——先看清是模型状态还是激活占的。</p>
+ <p>下面这个工具把三本账放在一起算。拖参数量、每步 token 数、卡数，看瓶颈怎么转移。</p>
 
  <section class="ts-lab" aria-labelledby="ts-title" data-ready="false">
-  <h3 id="ts-title">模型状态占多少显存</h3>
-  <p class="ts-hint">只算「模型状态」（权重、梯度、主副本、优化器状态），不含激活。激活随 batch 与序列长度线性增长，不在本图内。</p>
+  <h3 id="ts-title">这一步的瓶颈在哪本账</h3>
+  <p class="ts-hint">计算按 6·P·T 估算（前向 2 + 反向 4），A100 峰值 312 TFLOPS、按 MFU 40% 折算；显存按 AdamW 混合精度 16 字节/参数、ZeRO-3 均摊；通信按环形 all-reduce 的 2(N−1)/N 倍梯度量。激活与流水气泡不在模型内。</p>
   <div class="ts-row">
-   <canvas data-canvas role="img" aria-label="四类显存开销的条形图：权重、梯度、主副本、优化器状态"></canvas>
+   <canvas data-canvas role="img" aria-label="计算时间、通信时间与每卡显存三条对比条"></canvas>
    <div class="ts-side">
     <div class="ts-ctrl">
-     <label>参数量 <input type="range" data-in="P" min="0.1" max="70" step="0.1" value="6"><output data-out="P">6 B</output></label>
-     <label>精度 <select data-in="prec"><option value="bf16" selected>bf16 混合</option><option value="fp32">fp32</option></select></label>
-     <label>优化器 <select data-in="opt"><option value="adamw" selected>AdamW</option><option value="sgd">SGD + momentum</option><option value="muon">Muon</option></select></label>
+     <label>参数量 <input type="range" data-in="P" min="1" max="70" step="1" value="70"><output data-out="P">70 B</output></label>
+     <label>每步 token <input type="range" data-in="T" min="0.2" max="8" step="0.2" value="4"><output data-out="T">4 M</output></label>
+     <label>卡数 <input type="range" data-in="N" min="8" max="1024" step="8" value="128"><output data-out="N">128</output></label>
+     <label>互连 <select data-in="BW"><option value="nvlink">NVLink 300 GB/s</option><option value="ib" selected>IB 50 GB/s</option></select></label>
     </div>
     <dl class="ts-readout">
-     <div><dt>模型状态合计</dt><dd data-read="total">—</dd></div>
-     <div><dt>每参数字节</dt><dd data-read="per">—</dd></div>
-     <div><dt>80G 单卡</dt><dd data-read="fit">—</dd></div>
-     <div><dt>单卡最多装</dt><dd data-read="maxP">—</dd></div>
+     <div><dt>计算时间</dt><dd data-read="compute">—</dd></div>
+     <div><dt>通信时间</dt><dd data-read="comm">—</dd></div>
+     <div><dt>每卡模型状态</dt><dd data-read="state">—</dd></div>
+     <div><dt>通信 / 计算</dt><dd data-read="ratio">—</dd></div>
     </dl>
    </div>
   </div>
   <div class="ts-legend">
-   <span><i style="background:#176dae"></i>权重</span>
-   <span><i style="background:#5a9bcc"></i>梯度</span>
-   <span><i style="background:#9db6cb"></i>fp32 主副本</span>
-   <span><i style="background:#b0592f"></i>优化器状态</span>
+   <span><i style="background:#176dae"></i>计算</span>
+   <span><i style="background:#b0592f"></i>通信</span>
+   <span><i style="background:#2f7d6a"></i>显存</span>
   </div>
   <p class="ts-status" data-status role="status">—</p>
  </section>
 
- <p>这个计算器立刻给出两个直觉：</p>
- <p><strong>一、优化器状态是最大的一块。</strong>AdamW 每参数 8 字节，比权重本身还大。这也是为什么「换个省显存的优化器」是常见手段——Muon 只存动量，直接省掉 4 字节/参数。</p>
- <p><strong>二、70B 模型单卡绝无可能。</strong>16 字节乘 70B 是 1120 GB，十几张 80G 卡才放得下模型状态。这就是并行不是可选项、而是必选项的原因。</p>
+ <p>两个立刻能玩出来的结论：</p>
+ <p><strong>把互连从 IB 换成 NVLink，通信时间直接除以六。</strong>这就是为什么张量并行只能放在机内——不是软件限制，是这笔账算不过来。</p>
+ <p><strong>卡数翻倍，计算时间减半、通信时间几乎不变。</strong>所以扩展性会随规模变差：小规模时通信可以忽略，大规模时它会吃掉一半时间。</p>
 
- <h2 id="parallel">4. 并行：切什么，切在哪</h2>
- <p>显存放不下时，有四把刀，切的维度不同。</p>
- <table class="coordinates compare"><thead><tr><th>方式</th><th>切什么</th><th>通信量</th><th>放哪</th></tr></thead><tbody>
-  <tr><td>数据并行 DP</td><td>批次</td><td>每步一次梯度 all-reduce</td><td>跨机也行</td></tr>
-  <tr><td>ZeRO / FSDP</td><td>把 DP 的状态再切开</td><td>比 DP 多，换显存</td><td>跨机也行</td></tr>
-  <tr><td>张量并行 TP</td><td>单层内部的矩阵</td><td>每层两次 all-reduce</td><td><strong>只能机内</strong></td></tr>
-  <tr><td>流水并行 PP</td><td>按层切成若干段</td><td>段间传激活</td><td>跨机也行</td></tr>
+ <h2 id="algo">6. 算法：精度、优化器、超参</h2>
+ <p>算法层动的是<strong>算力账</strong>和<strong>收敛速度</strong>——后者不在四本账里，但它决定「要跑多少个 step」，等价于总时间。</p>
+ <table class="coordinates compare"><thead><tr><th>优化器</th><th>状态开销</th><th>特点</th><th>适用</th></tr></thead><tbody>
+  <tr><td>SGD + momentum</td><td>4 B/参数</td><td>最省，对超参敏感</td><td>CV 经典配方</td></tr>
+  <tr><td>AdamW</td><td>8 B/参数</td><td>稳、好调</td><td>默认选择</td></tr>
+  <tr><td>Muon</td><td>4 B/参数</td><td>正交化更新，收敛快</td><td>大规模预训练</td></tr>
  </tbody></table>
- <p>选择的顺序通常是：</p>
- <p><strong>先 ZeRO/FSDP</strong>，因为它改动最小、收益直接——把优化器状态和梯度按数据并行度切开，显存立刻降。</p>
- <p><strong>再考虑 TP</strong>，但要记住它的通信量随层数线性增长，因此被限制在机内。常见做法是把 TP 设为单机 GPU 数（比如 8）。</p>
- <p><strong>PP 用来跨越单机边界</strong>，把层分到不同机器上。代价是流水线气泡：前后段要等，利用率下降。</p>
- <p>三者叠起来就是所谓的 3D 并行。经验配比通常是「TP 打满单机、PP 尽量小、剩下的全给 DP」。</p>
+ <p>三条与系统耦合的实践：</p>
+ <p><strong>学习率随有效批量缩放。</strong>梯度累积步数、并行度一变，有效批量就变了，学习率要跟着调整（线性或平方根规则）。这是换并行策略时最常忘的一条。</p>
+ <p><strong>换优化器要重新标定。</strong>Muon 的学习率语义与 AdamW 不同，权重衰减也要重算，不能只改个名字。这在<a href="./optimizer-muon.html">优化器那篇</a>里展开过。</p>
+ <p><strong>数值稳定性。</strong>梯度裁剪、warmup、bf16 下的溢出检测，这三样缺一个，长训练就容易在某一步突然发散。</p>
 
- <h2 id="ops">5. 算子：钱到底花在哪</h2>
- <p>一次前向反向里，绝大多数浮点运算发生在矩阵乘上。所以「算子优化」听起来像一个很宽的话题，实际上九成时间在回答两个问题：<strong>GEMM 的效率，以及注意力那 O(S²) 的部分。</strong></p>
- <p><strong>GEMM。</strong>全连接层、QKV 投影、输出投影，全是矩阵乘。BLAS 库已经把它优化到接近硬件峰值，所以你能做的是「让它更大、更规整」——批量越大、维度越整齐，效率越高。</p>
- <p><strong>注意力。</strong>分数矩阵是 S×S，序列翻倍，这一项翻四倍。长序列下它会超过 GEMM 成为瓶颈。flash attention 的收益不在算术，而在<strong>不把 S×S 矩阵写回显存</strong>——省的是带宽和显存，这一点和 softmax 的在线写法是同一个思路。</p>
- <p><strong>融合。</strong>LayerNorm、GELU、残差相加这些逐元素算子单独看都很便宜，但它们各自都要读写一遍完整的激活张量。把它们合进一个 kernel，省下的带宽往往比优化矩阵乘更可观。</p>
- <p>判断「算子层有没有问题」的指标是 MFU（模型浮点利用率）：实测 FLOPs 除以硬件峰值。训练良好的大模型通常在 35%–50%；低于 20% 基本说明有地方在等。</p>
+ <h2 id="data">7. 数据与评测：最容易被排除在「训练系统」之外的两端</h2>
+ <p>这两层不产生 FLOPs，但决定另外两件事：<strong>上限</strong>和<strong>可信度</strong>。</p>
+ <p><strong>数据决定上限。</strong>模型再好，也只能逼近数据里存在的信息。工程上真正花时间的是清洗、去重、配比和课程——而这些的产出难以直接归因，所以最容易被低估。</p>
+ <p><strong>数据管线的吞吐经常是隐藏瓶颈。</strong>如果每个样本要解码一张图，那解码速度可能比模型前向还慢。<a href="./nvjpeg.html">nvJPEG 那篇</a>讲的就是这件事：把解码从 CPU 挪到 GPU，整条管线的吞吐能翻倍。判断方法很简单——换一个返回固定张量的假加载器，步时长明显下降，瓶颈就在数据侧。</p>
+ <p><strong>评测决定你相信什么。</strong>三个常见陷阱：训练集与评测集重叠（污染）、只看平均分不看分布、以及用同一个 benchmark 反复调参导致过拟合。评测集应该像测试集一样被保护起来。</p>
 
- <h2 id="opt">6. 优化器：更新规则和它的额外开销</h2>
- <p>上一节算过显存，这里说它对训练质量的影响。</p>
- <table class="coordinates compare"><thead><tr><th>优化器</th><th>状态</th><th>特点</th><th>什么时候用</th></tr></thead><tbody>
-  <tr><td>SGD + momentum</td><td>1 份</td><td>最省，对超参敏感</td><td>CV 经典配方</td></tr>
-  <tr><td>AdamW</td><td>2 份</td><td>稳、好调，默认选择</td><td>绝大多数任务</td></tr>
-  <tr><td>Muon</td><td>1 份</td><td>正交化更新，收敛快</td><td>大规模预训练</td></tr>
+ <h2 id="lingbot">8. 一次 step 的四本账：LingBot 走一遍</h2>
+ <p>用之前那套配置把四本账填一遍，看它们怎么互相牵制。</p>
+ <table class="coordinates compare"><thead><tr><th>账本</th><th>这套配置里的情况</th><th>结论</th></tr></thead><tbody>
+  <tr><td>算力</td><td>6B 总参数，主干冻结，只有动作专家参与反向</td><td>真正的 FLOPs 远低于「6B 全量训练」</td></tr>
+  <tr><td>显存</td><td>冻结部分只有权重（2 B/参数），没有梯度、主副本、优化器状态</td><td>「6B × 16 = 96 GB」这个心算在这里是错的</td></tr>
+  <tr><td>带宽</td><td>单卡、数据在本地，没有跨机通信</td><td>通信账为零，这是单卡训练最大的好处</td></tr>
+  <tr><td>时间</td><td>微批次 1、梯度累积 4、Muon</td><td>没有容错压力，但吞吐很低</td></tr>
  </tbody></table>
- <p>几个容易踩的点：</p>
- <p><strong>混合精度下的数值稳定。</strong>梯度要累加在 fp32 里，更新也在 fp32 里做，再把结果转回 bf16。这就是「主权重副本」存在的原因——没有它，小梯度会被 bf16 直接吃掉。</p>
- <p><strong>学习率与批量的耦合。</strong>有效批量变大时，学习率通常要跟着放大（线性或平方根规则），否则收敛变慢。这条在换并行策略、改梯度累积步数时特别容易忘。</p>
- <p><strong>换优化器不能只换名字。</strong>Muon 的学习率语义和 AdamW 不同，权重衰减也要重新标定——这在 <a href="./optimizer-muon.html">优化器那篇</a>里展开过。</p>
+ <p>两个值得记住的推论：</p>
+ <p><strong>冻结参数会同时降低算力账和显存账</strong>，但降低的比例不同——显存降得更多，因为冻结的部分连状态都不需要。所以「参数量大不大」和「能不能在单卡跑」是两个问题。</p>
+ <p><strong>微批次 1 + 有效批量 4，意味着 1000 次更新只看了 4000 个样本。</strong>按之前算过的覆盖率，大约五分之一个 epoch。这轮结果只能判断「管线通不通」，不能判断「模型能不能学会」。</p>
+ <p>至于每步的时间怎么分到四个账本上——必须实测。nsys 或 torch profiler 的一行 trace，比任何估算都准。</p>
 
- <h2 id="platform">7. 平台：一个 step 的编排</h2>
- <p>把上面几层串起来，一次训练步是这样一个循环：</p>
- <div class="formula">取批次 → 拷到显存 → 前向 → 反向 → 梯度同步 → 优化器更新 → 记录 → 存 checkpoint</div>
- <p>每一步都可能成为瓶颈，而且它们的表现完全不同：</p>
- <table class="coordinates compare"><thead><tr><th>环节</th><th>卡住时的表现</th><th>先看什么</th></tr></thead><tbody>
-  <tr><td>取批次</td><td>GPU 利用率周期性掉到个位数</td><td>dataloader 的 worker 数与存储带宽</td></tr>
-  <tr><td>H2D 拷贝</td><td>利用率不满但也不空</td><td>是否用了 pinned memory、是否异步</td></tr>
-  <tr><td>前向反向</td><td>利用率高但步时长</td><td>算子效率、MFU</td></tr>
-  <tr><td>梯度同步</td><td>多卡时步时长随卡数上升</td><td>通信带宽、是否与反向重叠</td></tr>
-  <tr><td>优化器更新</td><td>固定开销，占比随模型增大</td><td>是否用了 fused optimizer</td></tr>
- </tbody></table>
- <p>「梯度同步与反向重叠」值得单独提：现代框架会在反向传播算到某一层时就开始同步那一层的梯度，而不是等全部算完再统一 all-reduce。没有这个重叠，多卡训练的加速比会明显打折。</p>
-
- <h2 id="lingbot">8. 回到 LingBot：把这条链跑一遍</h2>
- <p>用之前那套配置检验一下，看五层是怎么对上的。</p>
- <table class="coordinates compare"><thead><tr><th>层</th><th>这套配置里的实际情况</th></tr></thead><tbody>
-  <tr><td>基建</td><td>单卡 A800 80 GB；数据在本地，不存在远端拉取；没有多机，所以没有故障恢复压力</td></tr>
-  <tr><td>平台</td><td>微批次 1、梯度累积 4，有效批量 4；每 100 步存一次检查点</td></tr>
-  <tr><td>算子</td><td>flow matching 十个积分步，每步一次前向；动作专家是 MoE，32 个专家选 4 个</td></tr>
-  <tr><td>模型</td><td>6B 总参数，但主干（Qwen3-VL-4B）冻结，只训动作专家</td></tr>
-  <tr><td>优化器</td><td>Muon，只存动量，比 AdamW 省 4 字节/参数</td></tr>
- </tbody></table>
- <p>这里有一个容易算错的地方：<strong>冻结主干会大幅降低显存里「状态」的部分</strong>。16 字节/参数那条规则只适用于「全部参数都训练」；冻结的部分只有权重（2 字节），不需要梯度、主副本和优化器状态。</p>
- <p>所以「6B × 16 B/参数 = 96 GB」这个心算，在这套配置下是错的——真正训练的只是其中一小块。这也解释了为什么单卡 80G 能跑起来。</p>
- <p>另一件事：<strong>微批次 1 + 有效批量 4，意味着 1000 次优化器更新只看了 4000 个样本</strong>。按之前算过的覆盖率，大约五分之一个 epoch。所以那轮结果不能用来判断「模型能不能学会」，只能判断「管线通不通」。</p>
- <p>至于每步 9.1 秒里各环节占多少——这必须实测，不能猜。一个便宜的判断方法：把 dataloader 换成一个返回固定张量的假加载器，如果步时长明显下降，瓶颈就在数据侧。</p>
-
- <h2 id="debug">9. 症状 → 层级</h2>
- <p>排障时先定位到层，再谈具体手段。</p>
- <table class="coordinates compare"><thead><tr><th>症状</th><th>大概率在哪层</th><th>下一步</th></tr></thead><tbody>
-  <tr><td>GPU 利用率周期性归零</td><td>基建 / 平台</td><td>看 dataloader 与存储带宽</td></tr>
-  <tr><td>利用率高但步时长长</td><td>算子</td><td>算 MFU，看是 GEMM 还是 attention</td></tr>
-  <tr><td>OOM，且只在加大 batch 时出现</td><td>模型 / 激活</td><td>梯度检查点、减小序列</td></tr>
-  <tr><td>OOM，一开始就出现</td><td>优化器状态</td><td>用 ZeRO 切状态</td></tr>
-  <tr><td>loss 不动或发散</td><td>优化器 / 数据</td><td>先查学习率与 warmup，再查标注</td></tr>
-  <tr><td>多卡比单卡还慢</td><td>并行策略</td><td>看通信是否重叠、TP 是否跨机</td></tr>
-  <tr><td>重启后 loss 跳变</td><td>平台</td><td>检查点是否包含优化器状态与数据进度</td></tr>
+ <h2 id="debug">9. 排障：按账本定位，不按模块</h2>
+ <p>先判断是哪本账失衡，再去找对应层的手段。这个顺序能避免「在算子层调三天，结果是 dataloader 慢」。</p>
+ <table class="coordinates compare"><thead><tr><th>现象</th><th>哪本账</th><th>去哪一层找</th><th>典型手段</th></tr></thead><tbody>
+  <tr><td>GPU 利用率周期性归零</td><td>带宽（等数据）</td><td>L1 数据</td><td>加 worker、本地缓存、预取</td></tr>
+  <tr><td>利用率高但就是慢</td><td>算力</td><td>L3 算子</td><td>算 MFU；看是 GEMM 还是逐元素</td></tr>
+  <tr><td>OOM，加大 batch 才出现</td><td>显存（激活）</td><td>L4 运行时</td><td>激活重算、减小序列、序列并行</td></tr>
+  <tr><td>OOM，一开始就出现</td><td>显存（状态）</td><td>L5 并行</td><td>ZeRO 切状态、换省状态的优化器</td></tr>
+  <tr><td>多卡比单卡还慢</td><td>带宽（通信）</td><td>L5 并行</td><td>看是否重叠、TP 是否跨机</td></tr>
+  <tr><td>扩展性随卡数变差</td><td>带宽（通信）</td><td>L5 并行</td><td>调通信量小的切分、分层 all-reduce</td></tr>
+  <tr><td>loss 不动或发散</td><td>时间（无效训练）</td><td>L6 算法 / L1 数据</td><td>查 lr、warmup、梯度裁剪，再查标注</td></tr>
+  <tr><td>重启后 loss 跳变</td><td>时间（丢进度）</td><td>L7 治理</td><td>检查点是否含优化器状态与数据位置</td></tr>
  </tbody></table>
 
  <h2 id="close">10. 收尾</h2>
- <p>五层链路里，越往下越是「物理约束」，越往上越是「工程选择」：</p>
- <p>基建给你多少带宽、多少显存，是硬的；算子的效率由硬件和库决定，也很难突破；而模型结构、优化器、并行策略是你可以反复权衡的。</p>
- <p>所以真正有效的优化顺序通常是<strong>从上往下</strong>：先看数据喂不喂得上，再看并行切得对不对，最后才是算子微调。反过来做，很容易在 5% 的提升上花掉一周，而真正的瓶颈还躺在 dataloader 里。</p>
+ <p>回到最开始那句话：<strong>训练系统的瓶颈只有四种。</strong></p>
+ <p>七层栈告诉你「问题可能出在哪」，四本账告诉你「它到底是什么问题」。前者是地图，后者是罗盘。</p>
+ <p>而真正有效的优化顺序几乎总是<strong>从账本开始，而不是从层开始</strong>：先量出哪本账满了，再决定去动哪一层。反过来做，很容易在 5% 的提升上花一周，而真正的瓶颈还躺在别的地方。</p>
+ <p>最后一句话送给刚开始接触训练的读者：<strong>先把四本账算清楚，比读十个优化技巧有用。</strong>算清楚了，你会知道自己该学什么。</p>
 
- <p class="references">相关笔记：<a href="./cuda.html">CUDA 与算子</a>（算子为什么快、分块与合并访存） · <a href="./optimizer-muon.html">优化器与 Muon</a>（学习率语义与状态开销） · <a href="./nvjpeg.html">nvJPEG 基础原理</a>（数据管线的第一段） · <a href="./train-5k.html">把 VLA 装进 G2</a>（这套配置的一次真实复盘）</p>
+ <p class="references">相关笔记：<a href="./cuda.html">CUDA 与算子</a>（算子为什么快、分块与合并访存） · <a href="./optimizer-muon.html">优化器与 Muon</a>（学习率语义与状态开销） · <a href="./nvjpeg.html">nvJPEG 基础原理</a>（数据管线的第一段） · <a href="./ensemble.html">集成与 MoE</a>（多个网络的两条路线） · <a href="./train-5k.html">把 VLA 装进 G2</a>（这套配置的一次真实复盘）</p>
 
  <nav class="note-nav" aria-label="笔记导航">
   <a class="prev" href="./ensemble.html"><span>← 上一篇</span><strong>集成与 MoE：两种「多个网络」</strong></a>
