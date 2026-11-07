@@ -23,9 +23,9 @@
  <meta name="twitter:description" content="把前七篇串成一次真实运行的八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-23">
- <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:modified_time" content="2026-11-07">
  <meta property="article:section" content="系统复盘">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"一次完整抓取：从看到到夹住","description":"把前七篇串成一次真实运行的八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。","url":"https://wangn2.github.io/notes/grasp-timeline.html","mainEntityOfPage":"https://wangn2.github.io/notes/grasp-timeline.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["系统集成","时序","失败归因"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"一次完整抓取：从看到到夹住","description":"把前七篇串成一次真实运行的八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。","url":"https://wangn2.github.io/notes/grasp-timeline.html","mainEntityOfPage":"https://wangn2.github.io/notes/grasp-timeline.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["系统集成","时序","失败归因"],"datePublished":"2026-10-23","dateModified":"2026-11-07"}</script>
  <!--/meta-->
  <title>一次完整抓取：从看到到夹住 · WangN2</title>
  <meta name="description" content="把前七篇串成一次真实运行的八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。">
@@ -55,7 +55,7 @@
    </ol>
   </nav>
  <h2 id="why">1. 为什么要做全程复盘</h2>
- <p>模块级测试通过、集成后失败，原因通常只有两类：<strong>单位或坐标系没对齐</strong>，或者<strong>时间上不是同一时刻的数据</strong>。这两类问题在单个模块内部永远测不出来，因为每个模块自己都是自洽的。</p>
+ <p>模块级测试通过、集成后失败，常见原因包括<strong>单位或坐标系没对齐</strong>、<strong>时间上不是同一时刻的数据</strong>，以及接口语义、配置、并发、资源和状态机不一致。仅靠模块内部测试很难覆盖这些跨模块契约。</p>
  <p>所以复盘要回答的不是「哪一步算错了」，而是「<strong>这一步用的数据，是不是它以为的那个东西</strong>」。</p>
 
  <h2 id="eight-steps">2. 八步时序</h2>
@@ -105,7 +105,7 @@
   <tr><td>执行失败</td><td>目标点对，但末端没走到</td><td>可达性、限位、伺服误差、路径代价</td></tr>
   <tr><td>判定失败</td><td>走到了，但没吃上槽</td><td>入槽深度、爪指状态、撑开区间</td></tr>
  </tbody></table>
- <p>这四类的比例本身就很有信息量：观测失败多，说明工位设计有问题；判定失败多，说明末端参数没调好；如果四类平均分布，多半是整条链路缺少标定。</p>
+ <p>这四类的比例可以作为排查线索：观测失败占比高时先检查工位与成像条件，判定失败占比高时先检查末端参数和判据。但比例本身不能证明根因；即使四类均匀分布，也不能据此推断缺少标定，仍要回到日志和可证伪实验。</p>
 
  <h2 id="logging">6. 一次运行该留下什么</h2>
  <p>能复盘的最小集合，比想象中少，但一条都不能缺：</p>

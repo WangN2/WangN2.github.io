@@ -23,9 +23,9 @@
  <meta name="twitter:description" content="30 个回合全部失败，但其中 23 个是被控制层的限位检查杀掉的。修好尺子之后，0/30 才变成一个可信的数字。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-30">
- <meta property="article:modified_time" content="2026-10-30">
+ <meta property="article:modified_time" content="2026-11-07">
  <meta property="article:section" content="工程复盘">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"把 VLA 装进 G2：一次 0/30 的排障","description":"30 个回合全部失败，但其中 23 个是被控制层的限位检查杀掉的。修好尺子之后，0/30 才变成一个可信的数字。","url":"https://wangn2.github.io/notes/train-5k.html","mainEntityOfPage":"https://wangn2.github.io/notes/train-5k.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["VLA","制动包络","微调","评测"],"datePublished":"2026-10-30","dateModified":"2026-10-30"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"把 VLA 装进 G2：一次 0/30 的排障","description":"30 个回合全部失败，但其中 23 个是被控制层的限位检查杀掉的。修好尺子之后，0/30 才变成一个可信的数字。","url":"https://wangn2.github.io/notes/train-5k.html","mainEntityOfPage":"https://wangn2.github.io/notes/train-5k.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["VLA","制动包络","微调","评测"],"datePublished":"2026-10-30","dateModified":"2026-11-07"}</script>
  <!--/meta-->
  <title>把 VLA 装进 G2：一次 0/30 的排障 · WangN2</title>
  <meta name="description" content="30 个回合全部失败，但其中 23 个是被控制层的限位检查杀掉的。修好尺子之后，0/30 才变成一个可信的数字。">
@@ -72,7 +72,7 @@
  <p>动作生成本身是 flow matching：一次前向拿到视觉语言部分的 KV，再做十步积分，输出 50×16 的绝对关节目标。</p>
 
  <h2 id="accident">3. 事故：0/30 里，23 个是被「尺子」杀的</h2>
- <p>最新一轮三十回合评测，零成功。但把失败原因拆开，<strong>二十三个回合是控制层主动中止的</strong>，不是策略失败。</p>
+ <p>最新一轮三十回合评测，零成功。但把失败原因拆开，<strong>二十三个回合由控制层主动中止</strong>，不能把它们全部直接归因为策略失败。控制器、插值层和模型动作都可能参与了形成越限风险，需要继续看原始预测与执行状态。</p>
  <p>中止的原因叫越限：下发指令超过了关节限位。超了多少？0.24 到 5.3 毫弧度，中位 1.7 毫弧度，大约 0.1 度。</p>
  <p>0.1 度听着像浮点误差。但看另一面：那个瞬间关节离边界只剩 4 毫弧度，而当时速度是 0.55 弧度每秒，按 3 弧度每二次方秒制动，需要 50.8 毫弧度的刹车距离。<strong>差了整整一个数量级——它根本刹不住。</strong></p>
  <p>还有一条更直接的证据：二十三次拒绝里，有十次模型的原始预测从头到尾都没越界。越界是插值层的动量带出去的，然后被硬检查一票否决。</p>
@@ -117,7 +117,8 @@
  <p>实时曲线，截至第 459 步：总损失从 0.66 降到 0.08，前一百五十步下降最陡；三个蒸馏辅助项同步收敛；梯度范数从 2.4 降到 1.2，没有尖峰；步时稳定在 9.1 秒，数据加载没有卡顿。</p>
  <figure><img src="../assets/train5k/fig_train_curves.webp" width="1800" height="1050" loading="lazy" alt="总损失、辅助蒸馏损失、梯度范数与步时四张曲线"><figcaption>图 6｜损失、辅助蒸馏损失、梯度范数、步时（截至第 459 步）。</figcaption></figure>
  <figure><img src="../assets/train5k/gif_train.webp" width="770" height="396" loading="lazy" alt="按训练步数回放的训练过程动画"><figcaption>图 7｜训练过程按步数回放。</figcaption></figure>
- <p>五千步走了多远？按当前 batch 与采样配置，两百条示范的一个完整 epoch 约 25,466 步、六十四小时。五千步相当于五分之一个 epoch，也就是两万个样本。</p>
+ <p>五千步走了多远？按训练采样器的口径，两百条示范的一个完整 epoch 约 25,466 步、六十四小时；batch 4 对应每轮约 101,864 次样本抽取。五千步是两万次样本抽取，约五分之一个训练侧 epoch，但不等于两万个不同样本。</p>
+ <p>这个 epoch 的分母来自实际训练采样器，不是上一篇计算器列出的全部 263,538 个理论滑窗。若改用「全部滑窗」作分母，五千步的抽取覆盖率约为 7.6%；一千步则约为 1.5%。两个数字回答的问题不同，不能混用。</p>
  <figure><img src="../assets/train5k/fig_train_progress.webp" width="1650" height="390" loading="lazy" alt="五千步与一个完整 epoch 的长度对比"><figcaption>图 8｜五千步 vs 一个 epoch。</figcaption></figure>
  <p>所以这只是一次「训练量够不够」的判定实验，不是最终训练。</p>
  <p>还有一条必须说清楚：<strong>损失降到 0.08 不代表策略变好。</strong>上一轮训到一千步时损失已经到 0.042，闭环仍然是 0/30——两百条数据已经被背下来了。真正的判据只有闭环成功率。</p>

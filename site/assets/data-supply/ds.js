@@ -1,4 +1,4 @@
-/* 三条采集路线的成本账：单位按公开报道取中值。 */
+/* 三条采集路线的名义价格演示：真机与无本体取报道中值，仿真与混合配比为假设。 */
 (function(){
  const root=document.querySelector('.ds-lab');
  if(!root)return;
@@ -51,7 +51,7 @@
   st.textContent='同样 '+S.H.toLocaleString('en-US')+' 小时数据：全真机约 '+money(real)+
    '，全仿真约 '+money(costs[2].cost)+'，混合配比（2% 真机 + 18% 无本体 + 80% 仿真）约 '+
    money(mix)+'，单位成本降到 '+costs[3].price.toFixed(1)+' 元/小时。'+
-   ' 这就是为什么没人用单一路线。';
+   ' 这是假设口径下的名义价格对比，不代表相同小时数有相同训练价值。';
  }
 
  root.querySelectorAll('[data-in]').forEach(el=>{

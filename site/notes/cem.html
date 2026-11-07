@@ -23,9 +23,9 @@
  <meta name="twitter:description" content="CEM 不关心动作长什么样，只关心哪条轨迹分数高。Diffusion 反过来。两者不是替代关系，是分工关系。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-11-01">
- <meta property="article:modified_time" content="2026-11-01">
+ <meta property="article:modified_time" content="2026-11-07">
  <meta property="article:section" content="规划与生成">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"CEM 与 Diffusion：采样优化和分布生成","description":"CEM 不关心动作长什么样，只关心哪条轨迹分数高。Diffusion 反过来。两者不是替代关系，是分工关系。","url":"https://wangn2.github.io/notes/cem.html","mainEntityOfPage":"https://wangn2.github.io/notes/cem.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["CEM","MPPI","Diffusion","模型预测控制"],"datePublished":"2026-11-01","dateModified":"2026-11-01"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"CEM 与 Diffusion：采样优化和分布生成","description":"CEM 不关心动作长什么样，只关心哪条轨迹分数高。Diffusion 反过来。两者不是替代关系，是分工关系。","url":"https://wangn2.github.io/notes/cem.html","mainEntityOfPage":"https://wangn2.github.io/notes/cem.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["CEM","MPPI","Diffusion","模型预测控制"],"datePublished":"2026-11-01","dateModified":"2026-11-07"}</script>
  <!--/meta-->
  <title>CEM 与 Diffusion：采样优化和分布生成 · WangN2</title>
  <meta name="description" content="CEM 不关心动作长什么样，只关心哪条轨迹分数高。Diffusion 反过来。两者不是替代关系，是分工关系。">
@@ -149,30 +149,30 @@
  <p>把 α 调到 1.0（完全信任精英），你会看到分布塌得更快；调到 0.2 又会太慢。样本数减少、精英比例调高，同样会让它更早塌缩——这也是为什么实际代码里这些参数要按任务调。</p>
 
  <h2 id="mppi">4. 亲缘：CEM 和 MPPI</h2>
- <p>说到采样规划，绕不开 MPPI（Model Predictive Path Integral）。它和 CEM 结构几乎一样，只在最后一步不同。</p>
- <table class="coordinates compare"><thead><tr><th>对比项</th><th>CEM</th><th>MPPI</th></tr></thead><tbody>
-  <tr><td>怎么用样本</td><td>只取前 k 个精英，其余丢弃</td><td>全部样本按 exp(R/λ) 加权</td></tr>
-  <tr><td>更新式</td><td>mean ← 精英的均值</td><td>mean ← Σ wᵢ·aᵢ</td></tr>
-  <tr><td>超参</td><td>精英比例</td><td>温度 λ</td></tr>
-  <tr><td>行为差异</td><td>更快、更锐</td><td>更平滑、保留次优信息</td></tr>
+ <p>说到采样规划，绕不开 MPPI（Model Predictive Path Integral）。两者都要采样、评估并更新控制分布，但不是只换最后一行：奖励如何变成权重、更新的是均值还是控制增量、是否更新协方差，都可能不同。</p>
+ <table class="coordinates compare"><thead><tr><th>对比项</th><th>本文的 CEM</th><th>典型 MPPI</th></tr></thead><tbody>
+  <tr><td>怎么用样本</td><td>只取前 k 个精英重估均值与方差</td><td>通常按指数权重使用全部样本</td></tr>
+  <tr><td>更新式</td><td>mean ← 精英均值，并平滑更新方差</td><td>常对名义控制序列叠加加权噪声增量</td></tr>
+  <tr><td>超参</td><td>精英比例、方差与平滑系数</td><td>温度 λ、噪声与步长等</td></tr>
+  <tr><td>典型倾向</td><td>精英选择更离散，分布会随精英重估</td><td>连续加权保留更多样本信息</td></tr>
  </tbody></table>
- <p>两种都能用，差别在手感和调参。CEM 那个「只留前 k 个」的剪枝更激进，收敛快但对精英比例敏感；MPPI 的指数加权更柔和，代价是 λ 好时很好、差时很差。</p>
+ <p>CEM 的「只留前 k 个」对精英比例和样本数敏感；MPPI 的指数加权则对温度和奖励尺度敏感。谁更快、更平滑或更稳定，要结合具体更新规则和任务实测，不能只看这张表。</p>
 
  <h2 id="nogra">5. 为什么不求导</h2>
- <p>这里要分清楚：「不用梯度」是<strong>因为不能用</strong>，不是因为它更好。</p>
- <p>动力学模型如果是神经网络，技术上可以求导，但沿十几步展开之后，梯度会变得很噪，而且对模型误差极其敏感——模型的微小偏差会被反向传播放大。CEM 的容错性来自它的评估方式：它只看每条轨迹的最终分数，不依赖局部的梯度方向。</p>
- <p>代价也很清楚：<strong>算力换稳定性</strong>。每走一步都要在模型里并行推演几百条未来轨迹，这是实打实的开销。所以基于 CEM 的规划器通常需要 GPU，且模型要足够快。</p>
+ <p>这里要分清楚：「不用梯度」不一定是技术上不能求，而是在模型误差、非平滑接触、长时展开或离散事件下，梯度未必可靠或划算。</p>
+ <p>动力学模型如果是神经网络，技术上可以求导，但沿多步展开后，梯度可能受模型偏差与数值病态影响。CEM 的容错性来自它直接使用整条轨迹的评分，不要求局部梯度方向准确；这不保证它找到全局最优。</p>
+ <p>代价也很清楚：<strong>用大量并行评估换取无梯度的搜索方式</strong>。每走一步都要推演许多未来轨迹，是否必须使用 GPU 取决于模型、样本数、规划时域和实时预算。</p>
 
  <h2 id="vs">6. 和 Diffusion / Flow Matching 的四个维度</h2>
  <p>这两者的关系，用「谁在解什么问题」来看最清楚。</p>
  <table class="coordinates compare"><thead><tr><th>对比项</th><th>CEM</th><th>Diffusion / Flow Matching</th></tr></thead><tbody>
-  <tr><td>解什么问题</td><td>给定目标，找极值（优化）</td><td>给定数据，拟合分布（生成）</td></tr>
-  <tr><td>知识从哪来</td><td>来自<strong>当前的奖励函数</strong>，现场算</td><td>来自<strong>训练数据</strong>，离线学</td></tr>
-  <tr><td>每一步做什么</td><td>采样 → 打分 → 重估分布</td><td>从噪声出发，逐步去噪</td></tr>
-  <tr><td>会不会陷在局部</td><td>会，它是局部搜索</td><td>不会「陷」，但会生成「不像」的动作</td></tr>
+  <tr><td>解什么问题</td><td>给定目标，找高奖励动作（优化）</td><td>给定数据，拟合动作分布（生成）</td></tr>
+  <tr><td>知识从哪来</td><td>来自<strong>当前的奖励函数与动力学模型</strong>，现场算</td><td>主要来自<strong>训练数据</strong>，离线学</td></tr>
+  <tr><td>每一步做什么</td><td>采样 → 打分 → 重估分布</td><td>从噪声出发，按学习到的生成过程迭代</td></tr>
+  <tr><td>常见失效</td><td>可能收敛到局部解或塌缩过早</td><td>可能生成不合理、不满足约束或偏离数据分布的动作</td></tr>
  </tbody></table>
- <p>所以它们在机器人系统里的位置不一样：CEM 是<strong>运行时</strong>的规划器，Diffusion / Flow Matching 是<strong>训练出来的先验</strong>。</p>
- <p>一句话概括：<strong>CEM 是「没有说明书的试错」，Diffusion 是「看过几万份说明书之后的直觉」。</strong>前者精确但慢、依赖模型；后者像人但需要数据、且不一定满足约束。</p>
+ <p>所以它们在这类机器人系统里的位置不一样：CEM 是<strong>运行时</strong>的采样规划器，Diffusion / Flow Matching 可以提供<strong>训练出来的先验</strong>；生成模型也能参与在线优化，两者不是互斥类别。</p>
+ <p>一句话概括：<strong>CEM 是「按当前评分反复试错」，Diffusion 是「利用训练数据形成生成先验」。</strong>前者依赖模型和奖励且计算量大，后者依赖数据，也不自动保证约束或最优性。</p>
 
  <h2 id="combo">7. 它们怎么结合</h2>
  <p>现在的主流做法不是二选一，而是把两者接起来。常见三种接法：</p>

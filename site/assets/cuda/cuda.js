@@ -102,7 +102,7 @@
  function finish(){
   out.textContent=X.map(x=>(Math.exp(x-m)/l).toFixed(3)).join('  ');
   status.textContent='得到 m = '+m.toFixed(1)+'、l = '+l.toFixed(4)+'，第二趟用 exp(x−m)/l 写出结果。'
-   +'结果与两趟算法逐位一致，但搬运次数从 5 次降到 3 次。';
+   +'数学上与两趟统计等价；理想化搬运量从 5 倍数据大小降到 3 倍。';
   btnStep.disabled=true;
   if(timer){clearInterval(timer);timer=null;btnPlay.textContent='播放';}
  }

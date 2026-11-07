@@ -30,7 +30,7 @@
   const d=distToObstacles(x,y);
   if(d<=0)return 254;
   if(d<=state.inscribed)return 253;
-  if(d<=state.inflation)return Math.max(1,Math.round(253*Math.exp(-state.decay*(d-state.inscribed))));
+  if(d<=state.inflation)return Math.max(1,Math.round(252*Math.exp(-state.decay*(d-state.inscribed))));
   return 0;
  }
  const costColor=c=>{
@@ -100,7 +100,7 @@
   input.addEventListener('input',()=>{
    const k=input.dataset.in;
    state[k]=Number(input.value);
-   // 膨胀半径不得小于内切半径，否则中间会留出「无代价但会撞」的缝
+   // 演示中让膨胀范围覆盖内切区，便于连续观察代价衰减
    const inf=root.querySelector('[data-in=inflation]');
    if(state.inflation<state.inscribed){
     state.inflation=state.inscribed;

@@ -17,8 +17,8 @@
  <meta name="twitter:title" content="训练系统：七层栈与四本账 · WangN2">
  <meta name="twitter:description" content="训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
- <meta property="article:published_time" content="2026-11-03"><meta property="article:modified_time" content="2026-11-03"><meta property="article:section" content="训练">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"训练系统：七层栈与四本账","description":"训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。","url":"https://wangn2.github.io/notes/training-stack.html","mainEntityOfPage":"https://wangn2.github.io/notes/training-stack.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["模型训练","分布式训练","显存","算子","并行"],"datePublished":"2026-11-03","dateModified":"2026-11-03"}</script>
+ <meta property="article:published_time" content="2026-11-03"><meta property="article:modified_time" content="2026-11-07"><meta property="article:section" content="训练">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"训练系统：七层栈与四本账","description":"训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。","url":"https://wangn2.github.io/notes/training-stack.html","mainEntityOfPage":"https://wangn2.github.io/notes/training-stack.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["模型训练","分布式训练","显存","算子","并行"],"datePublished":"2026-11-03","dateModified":"2026-11-07"}</script>
  <!--/meta-->
  <title>训练系统：七层栈与四本账 · WangN2</title>
  <meta name="description" content="训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。">
@@ -77,12 +77,12 @@
  <p>也就是说，一个算子如果每读一个字节只做几十次运算，它就注定跑不到峰值——它卡在等内存。这条界线（roofline 的拐点）能解释后面几乎所有的优化动作。</p>
  <p>三个硬件数字决定了系统的边界：</p>
  <p><strong>算力。</strong>A100 的 bf16 稠密算力约 312 TFLOPS，H100 约 990。这是账本的分子。</p>
- <p><strong>互连。</strong>机内 NVLink 每卡约 300 GB/s，跨机 IB 常见 400 Gb/s——注意单位，<strong>换算成字节要除以 8，也就是 50 GB/s，差六倍</strong>。这不是配置差异，是物理差异，所以通信密集的并行方式被锁在机内。</p>
- <p><strong>存储。</strong>本地 NVMe 约 7 GB/s，远端对象存储通常低一到两个数量级。数据管线一旦跨网络，就会成为全链路的短板。</p>
- <p>顺带解释一个常见困惑：为什么多卡加速比总达不到线性？因为每多一张卡，就要多传一份梯度，而链路带宽不会跟着涨。</p>
+ <p><strong>互连。</strong>以 A100 SXM 这一代为例，机内 NVLink 每卡约 300 GB/s；跨机 IB 常见 400 Gb/s——注意单位，<strong>换算成字节要除以 8，也就是 50 GB/s，这组示例差六倍</strong>。其他 GPU、NVLink 代际和网络会有不同数字，但通信密集并行通常仍优先放在高带宽机内互连。</p>
+ <p><strong>存储。</strong>本地 NVMe 约 7 GB/s，远端对象存储通常低一到两个数量级。数据管线一旦跨网络，就可能成为全链路的短板，是否如此要由实测吞吐判断。</p>
+ <p>顺带解释一个常见困惑：为什么多卡加速比总达不到线性？理想情况下计算时间会随卡数下降，但每步仍要交换梯度或参数，单卡链路带宽不会随卡数增加。计算缩短后，通信占比就可能上升。</p>
 
  <h2 id="kernel">3. 编译与算子：MFU 是怎么来的</h2>
- <p>算子层只回答一个问题：<strong>给定这个形状，能榨出多少峰值算力。</strong>衡量它的指标是 MFU（模型浮点利用率）。</p>
+ <p>单个算子常看实际吞吐与硬件峰值的比例；完整训练则常用 MFU（模型浮点利用率），把模型一步的理论 FLOPs 与实际耗时、设备峰值比较。两者有关，但 MFU 不是单个 kernel 的专属指标。</p>
  <p>按算术强度把算子分成三类，处理方式完全不同：</p>
  <table class="coordinates compare"><thead><tr><th>类别</th><th>典型算子</th><th>算术强度</th><th>受限于</th><th>优化方向</th></tr></thead><tbody>
   <tr><td>矩阵乘</td><td>GEMM、QKV 投影</td><td>随规模增长，n/常数</td><td>算力</td><td>分块、扩大 tile、提高占用率</td></tr>
@@ -107,16 +107,16 @@
 
  <h2 id="parallel">5. 并行：切什么，通信多少</h2>
  <p>这一层同时动<strong>显存账</strong>和<strong>带宽账</strong>。四种切法，维度不同。</p>
- <table class="coordinates compare"><thead><tr><th>方式</th><th>切什么</th><th>每步通信量</th><th>部署边界</th></tr></thead><tbody>
-  <tr><td>数据并行 DP</td><td>批次</td><td>一次 all-reduce 梯度</td><td>跨机可行</td></tr>
-  <tr><td>ZeRO-1/2/3</td><td>优化器状态 / +梯度 / +参数</td><td>约 1.5× / 2× / 3× DP</td><td>跨机可行</td></tr>
-  <tr><td>张量并行 TP</td><td>单层内矩阵</td><td>每层两次 all-reduce</td><td><strong>仅机内</strong></td></tr>
+ <table class="coordinates compare"><thead><tr><th>方式</th><th>切什么</th><th>典型通信</th><th>部署边界</th></tr></thead><tbody>
+  <tr><td>数据并行 DP</td><td>批次</td><td>梯度 all-reduce，或等价的 reduce-scatter + all-gather</td><td>跨机可行</td></tr>
+  <tr><td>ZeRO-1/2/3</td><td>优化器状态 / +梯度 / +参数</td><td>取决于分片对象、参数收集与具体实现，不能用一组固定倍率概括</td><td>跨机可行</td></tr>
+  <tr><td>张量并行 TP</td><td>单层内矩阵</td><td>典型 Transformer 层含多次集合通信，次数随结构而异</td><td>通常优先放在高带宽机内互连</td></tr>
   <tr><td>流水并行 PP</td><td>按层分段</td><td>段间传激活</td><td>跨机可行</td></tr>
  </tbody></table>
- <p>三个必须知道的公式：</p>
- <p><strong>all-reduce 的数据量。</strong>环形算法下，每张卡实际搬运 <code>2(N−1)/N</code> 倍的梯度大小。N 很大时趋于 2 倍——所以「多一倍卡」不会让通信量翻倍，但会让每张卡的带宽压力趋于饱和。</p>
- <p><strong>流水线气泡。</strong>p 段流水、m 个微批时，利用率约 <code>m/(m+p−1)</code>。这就是为什么 PP 要配足够多的微批，否则一半时间在等。</p>
- <p><strong>激活重算与并行的耦合。</strong>TP 切开的是层内矩阵，激活并不会因为 TP 而变小，所以「显存不够就加 TP」不一定有效——先看清是模型状态还是激活占的。</p>
+ <p>三个必须知道的公式与边界：</p>
+ <p><strong>all-reduce 的数据量。</strong>环形算法下，每张卡实际搬运 <code>2(N−1)/N</code> 倍的梯度大小。N 很大时趋于 2 倍——所以卡数增加不会让每卡通信量按卡数线性增长，但总通信量会增加，而且单卡带宽不会跟着模型规模上涨。</p>
+ <p><strong>流水线气泡。</strong>在常见的同步 GPipe 式估算中，p 段流水、m 个微批的利用率约 <code>m/(m+p−1)</code>。其他流水调度会改变气泡，但这个式子足以说明为什么 PP 需要足够多的微批。</p>
+ <p><strong>激活重算与并行的耦合。</strong>TP 会分片部分矩阵输出和中间激活，也会复制另一些激活；序列并行还能进一步切分。因此「显存不够就加 TP」有时有效，但要先分清模型状态、分片激活和复制激活各占多少。</p>
  <p>下面这个工具把三本账放在一起算。拖参数量、每步 token 数、卡数，看瓶颈怎么转移。</p>
 
  <section class="ts-lab" aria-labelledby="ts-title" data-ready="false">
@@ -175,11 +175,11 @@
   <tr><td>算力</td><td>6B 总参数，主干冻结，只有动作专家参与反向</td><td>真正的 FLOPs 远低于「6B 全量训练」</td></tr>
   <tr><td>显存</td><td>冻结部分只有权重（2 B/参数），没有梯度、主副本、优化器状态</td><td>「6B × 16 = 96 GB」这个心算在这里是错的</td></tr>
   <tr><td>带宽</td><td>单卡、数据在本地，没有跨机通信</td><td>通信账为零，这是单卡训练最大的好处</td></tr>
-  <tr><td>时间</td><td>微批次 1、梯度累积 4、Muon</td><td>没有容错压力，但吞吐很低</td></tr>
+  <tr><td>时间</td><td>微批次 1、梯度累积 4、Muon</td><td>步时与吞吐必须实测；单卡仍需要检查点、故障恢复与进度管理</td></tr>
  </tbody></table>
  <p>两个值得记住的推论：</p>
- <p><strong>冻结参数会同时降低算力账和显存账</strong>，但降低的比例不同——显存降得更多，因为冻结的部分连状态都不需要。所以「参数量大不大」和「能不能在单卡跑」是两个问题。</p>
- <p><strong>微批次 1 + 有效批量 4，意味着 1000 次更新只看了 4000 个样本。</strong>按之前算过的覆盖率，大约五分之一个 epoch。这轮结果只能判断「管线通不通」，不能判断「模型能不能学会」。</p>
+ <p><strong>冻结参数会同时降低反向算力和显存账</strong>，但降低的比例不同——冻结部分仍要参与前向，却不需要梯度、主副本和优化器状态。所以「参数量大不大」和「能不能在单卡跑」是两个问题。</p>
+ <p><strong>微批次 1 + 有效批量 4，意味着 1000 次更新进行了 4000 次样本抽取，不代表看过 4000 个不同样本。</strong>按全部 263,538 个理论滑窗计算，覆盖率约 1.5%；若按训练采样器自己的 epoch 口径，则应使用该采样器的有效样本池另算，两个分母不能混用。</p>
  <p>至于每步的时间怎么分到四个账本上——必须实测。nsys 或 torch profiler 的一行 trace，比任何估算都准。</p>
 
  <h2 id="debug">9. 排障：按账本定位，不按模块</h2>

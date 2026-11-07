@@ -23,9 +23,9 @@
  <meta name="twitter:description" content="占用栅格只说有没有障碍，代价地图说的是离障碍多远值多少代价。附可拖动的膨胀与代价值实验。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-23">
- <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:modified_time" content="2026-11-07">
  <meta property="article:section" content="导航规划">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"代价地图：把「不能去」变成「尽量别去」","description":"占用栅格只说有没有障碍，代价地图说的是离障碍多远值多少代价。附可拖动的膨胀与代价值实验。","url":"https://wangn2.github.io/notes/costmap.html","mainEntityOfPage":"https://wangn2.github.io/notes/costmap.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["代价地图","膨胀半径","导航规划"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"代价地图：把「不能去」变成「尽量别去」","description":"占用栅格只说有没有障碍，代价地图说的是离障碍多远值多少代价。附可拖动的膨胀与代价值实验。","url":"https://wangn2.github.io/notes/costmap.html","mainEntityOfPage":"https://wangn2.github.io/notes/costmap.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["代价地图","膨胀半径","导航规划"],"datePublished":"2026-10-23","dateModified":"2026-11-07"}</script>
  <!--/meta-->
  <title>代价地图：把「不能去」变成「尽量别去」 · WangN2</title>
  <meta name="description" content="占用栅格只说有没有障碍，代价地图说的是离障碍多远值多少代价。附可拖动的膨胀与代价值实验。">
@@ -46,7 +46,7 @@
    <p class="toc-title" id="toc-title">本文目录</p>
    <ol>
    <li><a href="#the-problem">1. 为什么机器人不能当点看</a></li>
-   <li><a href="#cell-states">2. 一个格子的四种身份</a></li>
+   <li><a href="#cell-states">2. 一个格子的五种身份</a></li>
    <li><a href="#inflation">3. 膨胀：把距离变成代价</a></li>
    <li><a href="#not-margin">4. 膨胀半径不是安全余量</a></li>
    <li><a href="#2d-3d">5. 二维地图上的三维机器人</a></li>
@@ -57,21 +57,22 @@
  <h2 id="the-problem">1. 为什么机器人不能当点看</h2>
  <p>二值占用栅格把世界分成两类：有障碍、没障碍。规划器如果直接在这张图上找最短路，结果会很诚实——<strong>贴着障碍走</strong>。因为贴着走确实最短。</p>
  <p>问题在于机器人不是一个点。它的外轮廓会扫过一个区域，而这个区域在任何一张栅格图上都只是一个点。于是「路径合法」和「机器人能通过」变成了两件事。</p>
- <p>代价地图的做法是把这件事变成一个连续量：<strong>每个格子除了「有没有障碍」，还带一个 0–254 的代价，表示「离障碍多近、有多不想待在这是」</strong>。规划器于是有了偏好：能绕就绕，绕不开才贴着走。</p>
+ <p>在 ROS 代价地图里，每个格子用一个字节保存 0–255 的值：普通区域可以表达通行代价，253、254、255 则分别表示内切、致命和未知等特殊状态。规划器与碰撞检查器据此形成避障偏好和硬约束，而不是把所有非零值都理解为「离障碍的距离」。</p>
 
- <h2 id="cell-states">2. 一个格子的四种身份</h2>
+ <h2 id="cell-states">2. 一个格子的五种身份</h2>
  <table class="coordinates"><thead><tr><th>状态</th><th>取值范围</th><th>含义</th></tr></thead><tbody>
-  <tr><td>自由 free</td><td>0</td><td>远离一切障碍，代价为零</td></tr>
-  <tr><td>膨胀 inflated</td><td>1 – 252</td><td>离障碍还有距离，代价随距离衰减；<strong>可以通过，但要付出代价</strong></td></tr>
-  <tr><td>内切 inscribed</td><td>253</td><td>离障碍近到机器人内切圆已经压上；<strong>中心不该出现在这里</strong></td></tr>
-  <tr><td>致命 lethal</td><td>254</td><td>障碍本身</td></tr>
+  <tr><td>自由 free</td><td>0</td><td>没有额外通行代价</td></tr>
+  <tr><td>膨胀 inflated</td><td>1 – 252</td><td>离障碍还有距离，代价随距离衰减；是否接受由规划器与检查器决定</td></tr>
+  <tr><td>内切 inscribed</td><td>253</td><td>在 Nav2 的圆形保守近似中，机器人内切圆已经压到障碍</td></tr>
+  <tr><td>致命 lethal</td><td>254</td><td>已占据的障碍格</td></tr>
+  <tr><td>未知 no information</td><td>255</td><td>没有观测信息；按自由、致命或未知处理取决于配置</td></tr>
  </tbody></table>
- <p>这四个数不是随便分的：253 和 254 是<strong>两个阈值</strong>，252 是「有代价但还有救」。规划器只用后两个数做硬判断，其余全靠代价算总账。</p>
+ <p>0、253、254、255 是 ROS 代价地图中的特殊值。具体规划器从哪个值开始拒绝、如何处理未知区域，并没有适用于所有实现的统一答案；要同时检查规划器、碰撞检查器和图层配置。</p>
 
  <h2 id="inflation">3. 膨胀：把距离变成代价</h2>
- <p>膨胀层对每个格子算它到最近障碍的距离 <code>d</code>，再套一条衰减曲线。实现里常见的形式是：</p>
- <div class="formula">cost = 253 · exp( −k · (d − r_in) )　　（r_in &lt; d ≤ r_infl）<br>d ≤ r_in → 253　　d ≤ 0 → 254　　其他 → 0</div>
- <p>其中 <code>r_in</code> 是内切半径、<code>r_infl</code> 是膨胀半径、<code>k</code> 控制衰减快慢。用指数而不是线性，是因为<strong>离得越近，代价该涨得越急</strong>——贴着墙的一格和离墙 5 cm 的一格，危险程度差得远，但和离墙 50 cm 与 55 cm 之间几乎没差别。</p>
+ <p>以 Nav2 的常见指数膨胀实现为例，先求格子到最近致命障碍的距离 <code>d</code>，再按内切半径与衰减系数赋值：</p>
+ <div class="formula">cost = 252 · exp( −k · (d − r_in) )　　（r_in &lt; d ≤ r_infl）<br>d = 0 → 254　　0 &lt; d ≤ r_in → 253　　其他 → 0</div>
+ <p>其中 <code>r_in</code> 是内切半径、<code>r_infl</code> 是膨胀半径、<code>k</code> 控制衰减快慢；252 来自 <code>INSCRIBED_INFLATED_OBSTACLE − 1</code>。指数曲线让靠近障碍时代价上升得更快，但它表达的是通行偏好，不是物理碰撞概率。</p>
  <p>下面的实验把这张图直接画出来。三个滑块分别控制内切半径、膨胀半径和衰减，拖动蓝色圆点看它落在哪一层。</p>
 
  <section class="cost-lab" aria-labelledby="cost-lab-title" data-ready="false">
@@ -98,14 +99,14 @@
  </section>
 
  <h2 id="not-margin">4. 膨胀半径不是安全余量</h2>
- <p>最常见的误解是「膨胀半径 = 机器人半径 + 安全余量」。这句话对圆形机器人成立，对真实机器人不成立。</p>
+ <p>「膨胀半径 = 机器人半径 + 安全余量」只能当作某些圆形机器人配置的粗略直觉，不能用于解释一般 footprint 的碰撞约束。</p>
  <table class="coordinates"><thead><tr><th>你以为</th><th>实际</th></tr></thead><tbody>
-  <tr><td>机器人是个圆，半径固定</td><td>多数是矩形或 L 形 footprint，<strong>不同朝向的内切圆半径不同</strong></td></tr>
-  <tr><td>膨胀半径就是一个安全边距</td><td>它定义的是「代价从 253 衰减到 0 的范围」，是<strong>偏好场的宽度</strong>，不等于物理间隙</td></tr>
-  <tr><td>半径调大一点更安全</td><td>调太大，窄通道直接被判死，机器人原地不动；调太小，贴着墙走</td></tr>
+  <tr><td>机器人换朝向，内切圆半径也变</td><td>固定 footprint 和参考点确定后，内切圆半径不因旋转而改变；真正随朝向改变的是 footprint 各角点的位置</td></tr>
+  <tr><td>膨胀半径就是一个安全边距</td><td>它定义的是膨胀代价的覆盖范围，是<strong>偏好场的宽度</strong>，不等于物理间隙</td></tr>
+  <tr><td>半径调大一点必然更安全</td><td>调太大会让窄通道的通行代价升高，甚至被规划器放弃；调太小则可能更贴近障碍，安全验收仍需看实际碰撞约束</td></tr>
  </tbody></table>
- <p>真正的硬约束是<strong>内切半径</strong>：中心进到这个范围，外轮廓必然已经压上。膨胀半径只影响「愿不愿意靠近」，不影响「能不能靠近」。</p>
- <p>还有一个隐含假设：膨胀是在<strong>当前朝向</strong>下算的。如果规划器允许原地转向，那同一位置不同朝向的内切圆并不一样，用单一半径只能取保守值——这不是错误，是建模代价。</p>
+ <p>内切圆可以提供一个保守的快速近似：中心进入内切区时，圆形模型已经碰到障碍。但非圆形机器人的硬约束最终应检查<strong>完整 footprint 或其他碰撞几何</strong>；内切圆没有覆盖全部外轮廓，不能独自证明路径安全。</p>
+ <p>常见的二维膨胀层使用预先计算的距离场和固定内切半径，不按每个候选朝向重新计算。若规划器允许原地转向，朝向相关的碰撞检查应分别评估对应姿态下的 footprint，而不是给距离场乘一个方向。</p>
 
  <h2 id="2d-3d">5. 二维地图上的三维机器人</h2>
  <p><a href="./collision-envelope.html">碰撞包络那篇</a>里的 22 个球是<strong>三维</strong>的：手臂举高、头身前倾，球心的 z 都不一样。代价地图是<strong>二维</strong>的：所有东西投影到地面。</p>
@@ -123,12 +124,13 @@
 
  <h2 id="debug">7. 调试时先看什么</h2>
  <ol>
-  <li><strong>footprint 对不对。</strong>把机器人开到墙边，看内切圆是不是刚好贴住。对不上，先修 URDF 或参数，别去调膨胀。</li>
-  <li><strong>内切半径与膨胀半径的关系。</strong>膨胀必须不小于内切，否则中间会出现「无代价但会撞」的缝隙——图上表现为障碍周围一圈白。</li>
+  <li><strong>footprint 对不对。</strong>用已知几何检查 footprint 顶点、参考点和实际朝向；内切圆与外接圆是否匹配也要看，但它们不能代替完整轮廓验收。</li>
+  <li><strong>内切半径与膨胀半径的关系。</strong>膨胀范围通常应覆盖内切区之外的一段距离；即使膨胀半径更小，障碍和内切特殊值也不会自动变成「无代价但会撞」的自由区，仍需分别检查图层和碰撞检查配置。</li>
   <li><strong>滚动窗口边界。</strong>局部代价地图只覆盖机器人周围一小块；规划出界时，路径会在边界上「凭空拐弯」。</li>
   <li><strong>时间戳与坐标系。</strong>代价地图挂在哪个 frame、多久更新一次，比调参数重要得多。</li>
  </ol>
 
+ <p class="references">外部参考：<a href="https://docs.nav2.org/jazzy/configuration_and_development/configuration_guide/core_servers/costmap_2d/costmap_plugins/inflation/">Nav2 Inflation Layer</a> · <a href="https://api.nav2.org/nav2-jazzy/html/inflation__layer_8cpp_source.html">Nav2 膨胀层源码</a></p>
  <p class="references">相关笔记：<a href="./collision-envelope.html">G2 的碰撞球</a>（三维几何那一层） · <a href="./swerve-base.html">全向底盘</a>（怎么按路径走） · <a href="./hand-eye.html">手眼标定</a>（定位从哪来）</p>
 
  <nav class="note-nav" aria-label="笔记导航">

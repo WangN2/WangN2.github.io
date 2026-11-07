@@ -23,9 +23,9 @@
  <meta name="twitter:description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型该站在哪一格——附 Code as Policies、OPRO、π0.5 等工作的对照。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-23">
- <meta property="article:modified_time" content="2026-10-23">
+ <meta property="article:modified_time" content="2026-11-07">
  <meta property="article:section" content="视觉伺服">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"料盘抓取：离线示教、在线重算与大模型协作","description":"示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型该站在哪一格——附 Code as Policies、OPRO、π0.5 等工作的对照。","url":"https://wangn2.github.io/notes/tray-grasp.html","mainEntityOfPage":"https://wangn2.github.io/notes/tray-grasp.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["离线示教","坐标系变换","视觉伺服","夹取"],"datePublished":"2026-10-23","dateModified":"2026-10-23"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"料盘抓取：离线示教、在线重算与大模型协作","description":"示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型该站在哪一格——附 Code as Policies、OPRO、π0.5 等工作的对照。","url":"https://wangn2.github.io/notes/tray-grasp.html","mainEntityOfPage":"https://wangn2.github.io/notes/tray-grasp.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["离线示教","坐标系变换","视觉伺服","夹取"],"datePublished":"2026-10-23","dateModified":"2026-11-07"}</script>
  <!--/meta-->
  <title>料盘抓取：离线示教、在线重算与大模型协作 · WangN2</title>
  <meta name="description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型该站在哪一格——附 Code as Policies、OPRO、π0.5 等工作的对照。">
@@ -122,7 +122,7 @@
  </section>
 
  <h2 id="five-dof">5. 只跟随 5 个自由度</h2>
- <p>观测给出的料盘位姿有 6 个自由度，但<strong>不该全部跟随</strong>。绕孔轴自身的那个滚转就是多余的：孔是通孔，爪指是平着插进去的，绕轴转多少都不影响能不能进孔。</p>
+ <p>观测给出的料盘位姿有 6 个自由度，但<strong>不该全部跟随</strong>。对这套经过验证的工装与示教姿态，绕孔轴的滚转不作为在线跟随量：保留成功示教中的相对姿态，比把标签的滚转噪声直接传给工具更可控。它不是对任意工具都成立的几何定理；非轴对称工具、横向爪尖偏置和周围净空都会限制可用滚转范围。</p>
  <p>如果直接照抄观测姿态，检测出的滚转噪声会原样传进工具姿态。这不是理论风险：有一次跟随了检测滚转，工具绕着孔轴拧了 90°，把盘直接撞掉。所以实际做法是只取<strong>最小旋转</strong>：</p>
  <div class="formula">R_min  = 把 a_ref 转到 a_live 的最小旋转（轴 = a_ref × a_live，角 = acos(a_ref · a_live)）<br>R_used = R_min · R_ref　　# 示教滚转被保留<br>t_used = 本次观测的盘心平移　# 盘心完全跟随</div>
  <p>也就是：<strong>跟随 3 个平移 + 2 个轴方向自由度，锁住绕轴滚转这 1 个自由度。</strong></p>
@@ -177,7 +177,7 @@
  <ul>
   <li><strong>为什么不能每次在线算目标、干脆不要示教文件？</strong>在线只能算出「盘在哪」，算不出「工具相对孔该在哪」。爪尖偏置、入槽深度、站间距、可用滚转都在示教文件里；没有它，这些就得每次现场教。</li>
   <li><strong>既然只有 <code>groove</code> 是证据，为什么另外三站不也现场教？</strong>它们沿同一条孔轴偏移，教了也只是重复验证同一个轴线方向。真正决定成败的是 groove 深度，所以现场只调它。</li>
-  <li><strong>锁住滚转会不会让工具和盘不匹配？</strong>不会。工具与盘的相对姿态就是那次成功插入时的相对姿态；只要孔轴方向一致，绕轴差多少都不影响爪指进入通孔。</li>
+  <li><strong>锁住滚转会不会让工具和盘不匹配？</strong>对这套示教，不会：它保留的是那次成功插入时的相对姿态。孔轴对齐只是必要条件，实际可用滚转还受非轴对称爪指、横向偏置、工装和周边净空限制，因此不能推广成「任意滚转都能进孔」。</li>
   <li><strong>倾角大了为什么还能插？</strong>10° 以内，工具跟随孔轴方向即可，横向偏差由爪尖位置控制吸收。超过这个量级，先出问题的是可达性和净空，所以设了这个门限。</li>
  </ul>
 
@@ -214,7 +214,7 @@
  <p>还有两条纪律：</p>
  <ul>
   <li><strong>一次只改一个参数。</strong>同时改两个，你无法归因，省下的时间会在下一次排障时加倍还回来。</li>
-  <li><strong>别把「收敛」当成「验证」。</strong>参数搜索一定会收敛到某个局部最优。而机器人的失败有个讨厌的性质：这一次没撞，不代表下一次不撞。</li>
+  <li><strong>别把「收敛」当成「验证」。</strong>有限预算的参数搜索可能停滞在局部解，甚至根本没有收敛；即使目标值稳定，也只说明当前评估下不再明显改善。而机器人的失败有个讨厌的性质：这一次没撞，不代表下一次不撞。</li>
  </ul>
 
  <h2 id="natural-language-teach">13. 自然语言 → 示教动作：能走多远</h2>

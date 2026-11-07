@@ -11,7 +11,7 @@
  <meta property="og:site_name" content="WangN2 · 机器人技术笔记">
  <meta property="og:locale" content="zh_CN">
  <meta property="og:title" content="优化器与 Muon · WangN2">
- <meta property="og:description" content="从奇异值的病态说起：为什么少数几个方向会吃掉全部更新量，Muon 又用什么办法把它拉平。">
+ <meta property="og:description" content="分清更新矩阵的奇异值与损失曲面的曲率，再理解 Muon 如何用 Newton–Schulz 迭代做近似正交化。">
  <meta property="og:url" content="https://wangn2.github.io/notes/optimizer-muon.html">
  <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="og:image:type" content="image/png">
@@ -20,15 +20,15 @@
  <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
  <meta name="twitter:card" content="summary_large_image">
  <meta name="twitter:title" content="优化器与 Muon · WangN2">
- <meta name="twitter:description" content="从奇异值的病态说起：为什么少数几个方向会吃掉全部更新量，Muon 又用什么办法把它拉平。">
+ <meta name="twitter:description" content="分清更新矩阵的奇异值与损失曲面的曲率，再理解 Muon 如何用 Newton–Schulz 迭代做近似正交化。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-29">
- <meta property="article:modified_time" content="2026-10-29">
+ <meta property="article:modified_time" content="2026-11-07">
  <meta property="article:section" content="训练方法">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"优化器与 Muon","description":"从奇异值的病态说起：为什么少数几个方向会吃掉全部更新量，Muon 又用什么办法把它拉平。","url":"https://wangn2.github.io/notes/optimizer-muon.html","mainEntityOfPage":"https://wangn2.github.io/notes/optimizer-muon.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["优化器","Muon","奇异值"],"datePublished":"2026-10-29","dateModified":"2026-10-29"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"优化器与 Muon","description":"分清更新矩阵的奇异值与损失曲面的曲率，再理解 Muon 如何用 Newton–Schulz 迭代做近似正交化。","url":"https://wangn2.github.io/notes/optimizer-muon.html","mainEntityOfPage":"https://wangn2.github.io/notes/optimizer-muon.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["优化器","Muon","奇异值"],"datePublished":"2026-10-29","dateModified":"2026-11-07"}</script>
  <!--/meta-->
  <title>优化器与 Muon · WangN2</title>
- <meta name="description" content="从奇异值的病态说起：为什么少数几个方向会吃掉全部更新量，Muon 又用什么办法把它拉平。">
+ <meta name="description" content="分清更新矩阵的奇异值与损失曲面的曲率，再理解 Muon 如何用 Newton–Schulz 迭代做近似正交化。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/optimizer/opt.css">
 </head>
@@ -36,7 +36,7 @@
 <main class="wrap"><article class="article">
  <p class="eyebrow">NOTE 12 / 训练方法 · 优化器</p>
  <h1>优化器与 Muon</h1>
- <p class="lede">优化器之间的差别，说到底只有一件事：用什么样的尺子，去量「这个方向有多陡」。</p>
+ <p class="lede">优化器之间的差别，可以从更新量如何缩放来理解。Muon 特别之处，是调整二维更新矩阵的谱，而不是直接测量损失曲率。</p>
   <div class="article-meta"><span><time datetime="2026-10-29">2026-10-29</time></span><span>约 7 分钟</span><span>训练方法</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>起因是看到一个训练配置里写的是 Muon 而不是 AdamW。于是把这条线梳理了一遍：奇异值到底在说什么、Newton–Schulz 是什么、学习率为什么不能照搬、余弦衰减又在干什么。</p>
@@ -45,7 +45,7 @@
    <p class="toc-title" id="toc-title">本文目录</p>
    <ol>
    <li><a href="#map">1. 先看都有哪些优化器</a></li>
-   <li><a href="#sigma">2. 奇异值：少数几个方向特别陡，是什么意思</a></li>
+   <li><a href="#sigma">2. 奇异值与曲率：先分清两个矩阵</a></li>
    <li><a href="#ns">3. Newton–Schulz 迭代是什么</a></li>
    <li><a href="#lr">4. Muon 的学习率语义</a></li>
    <li><a href="#cosine">5. 余弦衰减是什么，为什么用它</a></li>
@@ -65,21 +65,19 @@
  <p>AdamW 仍然是默认答案。想换的动力一般只有三个：省显存、省算力，或者在大规模上拿到更好的缩放。</p>
  <p>Muon 属于第四类。它不问「每个参数该走多大」，它问「这张权重矩阵的更新，在谱的意义上该是什么形状」。</p>
 
- <h2 id="sigma">2. 奇异值：少数几个方向特别陡，是什么意思</h2>
- <p>先把一句话拆开看：<strong>神经网络的梯度矩阵通常很病态，少数几个方向的奇异值极大，其余极小。</strong></p>
- <p>一张权重矩阵 W 的梯度 G 也是个矩阵。矩阵可以理解成一个「线性变换」：给它一个输入方向，它输出一个方向，并把这个方向的长度乘上一个倍数。这个倍数就是奇异值。</p>
- <p>所以 σ 大，意味着：<strong>沿着那个输入方向稍微动一动权重，这一层的输出就会剧烈变化，损失跟着剧烈变化。</strong>反过来，σ 很小意味着那个方向上怎么动，损失几乎没反应。</p>
- <p>一个具体的例子。假设某层只有两个方向，σ = 100 和 σ = 1。你用梯度下降：</p>
+ <h2 id="sigma">2. 奇异值与曲率：先分清两个矩阵</h2>
+ <p>一张权重矩阵 W 的梯度 G = ∂L/∂W 也是矩阵。对 G 做奇异值分解 G = UΣVᵀ，得到的是一组带权重的秩一方向 uᵢvᵢᵀ：σ 大表示梯度矩阵的更多能量集中在这些方向上。<strong>它不等同于损失曲面在这些方向上的曲率。</strong></p>
+ <p>描述局部曲率的是 Hessian H = ∂²L/∂θ²。只有在这类二阶模型里，才能把最大特征值与稳定步长直接联系起来。梯度矩阵的奇异值和 Hessian 的特征值回答的是不同问题，不能由前者推出「学习率最多到 1/σ」。</p>
+ <p>下面单独用一个二次损失理解曲率条件数：L = ½(λ₁x₁² + λ₂x₂²)。梯度下降在特征方向上的更新是 xᵢ ← (1 − ηλᵢ)xᵢ，稳定要求 0 &lt; η &lt; 2/λmax。假设 λ₁ = 100、λ₂ = 1：</p>
  <ul>
-  <li>步长被最陡方向限制死。走大了，那个方向直接发散，所以学习率最多到 1/100 量级。</li>
-  <li>在最陡方向上，一步就能走到底。</li>
-  <li>在平的方向上，每步只挪 1% 的距离，要走一百步。</li>
+  <li>步长受最陡方向限制；取 η = 1/100 时，该方向一步归零。</li>
+  <li>同一学习率下，平缓方向每步只衰减 1%，需要约一百步才能接近原点。</li>
  </ul>
- <p>这就是「病态」的实际后果：<strong>不是慢，是快慢差了一百倍，而你只能按最慢的那个来定步长。</strong></p>
+ <p>这就是病态曲率的实际后果：<strong>不同方向的合适步长差得很大，而共享学习率必须兼顾最陡方向。</strong>这个例子解释预条件的动机，但不是 Muon 更新矩阵奇异值的直接证明。</p>
 
  <section class="svd-lab" aria-labelledby="svd-lab-title" data-ready="false">
   <h3 id="svd-lab-title">条件数怎么拖慢收敛</h3>
-  <p class="svd-hint">两条分量的初值都是 0.9。步长取「陡方向能承受的最大值」，于是陡方向一步归零，平方向按固定比例慢慢衰减。拖动滑块改变曲率比。</p>
+  <p class="svd-hint">两条分量的初值都是 0.9。步长取「陡方向能承受的最大值」，于是陡方向一步归零，平方向按固定比例慢慢衰减。拖动滑块改变 Hessian 的曲率比。</p>
   <canvas data-canvas role="img" aria-label="椭圆等高线上的两条优化轨迹：橙线梯度下降在最陡方向一步到位、在平缓方向反复磨；蓝线一步到原点">两条轨迹的对比图。</canvas>
   <div class="svd-legend">
    <span><i style="background:#176dae"></i>陡方向（一步归零）</span>
@@ -91,38 +89,33 @@
    <output data-out="kappa">κ = 12</output>
   </div>
   <dl class="svd-readout">
-   <div><dt>条件数 σ₁/σ₂</dt><dd data-read="cond">—</dd></div>
+   <div><dt>条件数 λmax/λmin</dt><dd data-read="cond">—</dd></div>
    <div><dt>平方向降到 1% 需要</dt><dd data-read="steps">—</dd></div>
-   <div><dt>谱拉平后需要</dt><dd data-read="muon">—</dd></div>
+   <div><dt>理想曲率校正后需要</dt><dd data-read="muon">—</dd></div>
   </dl>
   <p class="svd-status" data-status role="status">—</p>
  </section>
 
- <p>有一段话值得单独说，因为它解释了为什么这件事值得修。</p>
- <p><strong>陡的方向，往往是已经学会的东西；平的方向，才是还没学会的。</strong>梯度的大小衡量的是「这里的损失对参数有多敏感」，不是「这里还差多少要学」。已经拟合好的方向，梯度照样很大；真正欠拟合的方向，梯度反而很小。</p>
- <p>结果就是：梯度下降把绝大部分更新预算，花在了给已经做对的事情继续加码上。</p>
- <p>那 Adam 为什么不够？因为 Adam 的预条件是<strong>逐坐标</strong>的——它给每个参数单独一个缩放系数。如果病态恰好沿着坐标轴，它确实能修好。但如果那几个陡方向是相对于坐标轴<strong>斜着</strong>的，逐坐标缩放就看不见它们。这是对角预条件的固有局限。</p>
- <p>Muon 的做法是：不要逐坐标，直接把这整张矩阵的谱拉平。</p>
+ <p>Adam 的预条件是<strong>逐坐标</strong>的：它给每个参数单独一个缩放系数。如果曲率主轴恰好沿着坐标轴，这种对角缩放量身合适；如果主轴相对坐标轴旋转，对角预条件就不能完整校正它。</p>
+ <p>Muon 关注的是另一个对象：<strong>把二维参数的动量更新矩阵做近似正交化，让不同奇异方向的更新尺度更接近。</strong>这是更新几何的改变，不意味着它已经求出了 Hessian，也不保证泛化一定更好。</p>
 
  <h2 id="ns">3. Newton–Schulz 迭代是什么</h2>
- <p>目标很明确：给定梯度矩阵 G，求它的极分解里那个正交因子 U Vᵀ。其中 G = U Σ Vᵀ。</p>
- <p>注意这一步做了什么：<strong>把 Σ 丢掉了</strong>。保留下来的 UVᵀ，所有奇异值都等于 1——每个方向等权。</p>
- <p>问题是，正儿八经做 SVD 太贵。GPU 上的 SVD 既慢，又不好批处理，还吃不到张量核的算力。于是改用迭代逼近。</p>
- <p>经典的 Newton–Schulz 迭代长这样：</p>
+ <p>以常见的 Muon 实现为例，先形成动量矩阵 M，再近似求它极分解里的正交因子 U Vᵀ，其中 M = U Σ Vᵀ。不同实现会改变动量、归一化与缩放细节，不能把所有变体都简化成「直接正交化当前梯度」。</p>
+ <p>精确的极分解会丢掉 Σ：满秩时 UVᵀ 的奇异值全部为 1。NS 迭代只是逼近这个目标，因此实际输出不会严格满足这一性质。</p>
+ <p>直接做 SVD 往往太贵，也不好批处理。Muon 因此改用主要由矩阵乘法组成的迭代。经典 Newton–Schulz 形式是：</p>
  <div class="formula">X ← ½ · X · (3I − XᵀX)</div>
- <p>它是「牛顿法求矩阵逆平方根」的矩阵版本。收敛是二次的——误差在一步之内平方——但有个前提：初始的奇异值要接近 1。差得远就不收敛。</p>
- <p>所以 Muon 用的不是这个原版，而是一条五次多项式，系数是调出来的：</p>
+ <p>它与矩阵逆平方根的迭代相关，在合适的初始化和收敛区间内具有二次收敛性；实际实现需要先归一化，不能假设任意初始谱都能收敛。</p>
+ <p>常见 Muon 实现使用的是一条经过调节的五次多项式：</p>
  <div class="formula">X ← aX + b(XXᵀ)X + c(XXᵀ)²X<br>a = 3.4445　b = −4.7750　c = 2.0315</div>
- <p>迭代 5 次。整个过程只有矩阵乘法——没有分解，没有求逆，全是 GEMM，能在张量核上跑。</p>
- <p>可以把这条多项式理解成一条「把数值往 1 推」的曲线：落在一定范围内的奇异值，每迭代一次就更靠近 1。迭代 5 次，足够把常见的谱压平。</p>
- <p>有一个细节容易被忽略：<strong>结果不必精确等于 1。</strong>多项式的不动点不是 1，五步之后所有奇异值会落到同一个常数上。这就够了——重要的是它们<strong>彼此相等</strong>，整体那个常数会被学习率的尺度因子吸收掉。</p>
- <p>至于 5 步够不够，2026 年有一篇工作专门测了这件事（<a href="https://arxiv.org/abs/2606.04058">Spectral Scaling Laws of Muon</a>）。结论是分层的：中浅层的谱随模型规模变化温和（约 M^−0.25），5 步在更大规模上依然够用；但部分靠后的层变化很剧烈（最高到 M^−0.96），到前沿规模会掉进「NS 推不动」的区域，需要增加迭代或重调系数。</p>
+ <p>迭代 5 次，没有显式分解或求逆，主要是 GEMM。它的系数刻意不追求缓慢、精确地收敛到 1，而是让奇异值较快进入一个较窄的范围。</p>
+ <p><strong>所以结果既不是精确的 UVᵀ，也不是所有奇异值都等于同一个常数。</strong>参考实现描述的范围约为 0.68–1.13；重要的是近似正交化和相对尺度的调整，整体尺度还要由后续学习率与形状因子处理。</p>
+ <p>至于 5 步够不够，2026 年有一篇工作专门测了这件事（<a href="https://arxiv.org/abs/2606.04058">Spectral Scaling Laws of Muon</a>）。研究跟踪的是<strong>动量矩阵</strong>的谱：中浅层随模型规模变化温和（约 M^−0.25），5 步在更大规模上仍可能够用；部分靠后的层变化更剧烈（最高到 M^−0.96），到前沿规模可能进入 NS 难以校正的区域，需要增加迭代或重调系数。</p>
 
  <h2 id="lr">4. Muon 的学习率语义</h2>
  <p>这是从 AdamW 迁过来最容易踩的一脚：<strong>两个 lr 不是同一个量纲，不能直接换算。</strong></p>
  <p>AdamW 的更新是 m / (√v + ε)。由于除以了梯度的均方根，更新被归一化了——每个参数每步的位移大致就是 η，与梯度大小无关。所以 AdamW 的 lr 是一个<strong>逐参数的步长</strong>。</p>
- <p>Muon 的更新是 UVᵀ，它的<strong>谱范数等于 1</strong>。这说的是整个矩阵的尺度，不是单个元素的尺度。</p>
- <p>两者之间差着一个形状因子。一个 m×n 的矩阵，如果所有奇异值都是 1，那么它的元素均方根是：</p>
+ <p>Muon 的理想正交化目标是 UVᵀ；满秩时它的<strong>谱范数等于 1</strong>。这说的是整个矩阵的尺度，不是单个元素的尺度，实际 NS 输出只是近似满足。</p>
+ <p>两者之间差着一个形状因子。一个 m×n 的满秩矩阵，如果所有奇异值都是 1，那么它的元素均方根是：</p>
  <div class="formula">RMS = √(rank / (m·n)) = 1 / √(max(m, n))</div>
  <p>也就是说，同样一步，4096×4096 的矩阵每个元素只动 1/64，而 256×256 的动 1/16。差了四倍，只因为形状不同。</p>
  <p>所以实现里必须乘一个尺度因子，常见的是：</p>
@@ -143,10 +136,10 @@
 
  <h2 id="limits">6. 什么情况下别用</h2>
  <p>几条边界，都是实践中会撞上的。</p>
- <p>第一，<strong>只适用于二维权重</strong>。embedding、输出层、偏置、归一化层一律交给 AdamW。embedding 稀疏且非平稳，正交化没有意义；卷积层则要先摊平成二维。</p>
- <p>第二，<strong>超参不能迁移</strong>。lr 和 wd 的语义都变了，照搬一定出问题。</p>
- <p>第三，<strong>NS 是近似</strong>。小奇异值推不动就是推不动，规模越大、层越深，越要检查这件事。</p>
- <p>第四，<strong>小数据微调不值得</strong>。收益来自大规模长训练，几百步的微调里，优化器的差别会被「训练量本身不够」盖过去。</p>
+ <p>第一，<strong>常见实现主要处理二维矩阵参数</strong>。embedding、输出层、偏置和归一化层通常交给 AdamW；卷积权重若要使用，需要先明确摊平成二维的方式。这是当前算法与实现的适用边界，不是说这些参数在数学上绝无其他正交化方案。</p>
+ <p>第二，<strong>超参不能直接照搬</strong>。lr 和 wd 的语义变了，沿用 AdamW 数值而不重新标定，容易得到不同的更新与衰减力度。</p>
+ <p>第三，<strong>NS 是近似</strong>。很小的奇异值可能难以被有限次迭代有效校正，规模和层类型变化时都应检查实际谱与更新质量。</p>
+ <p>第四，<strong>短程微调未必值得换</strong>。Muon 的公开优势主要来自较大规模、较长训练；几百步微调是否有收益，要在同数据、同评测协议下实测，不能预先保证。</p>
 
  <h2 id="close">7. 收尾</h2>
  <p>回到开头那句话：优化器的差别在于用哪把尺子。</p>

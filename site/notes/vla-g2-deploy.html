@@ -23,9 +23,9 @@
  <meta name="twitter:description" content="让它进环内当策略，是在用它最弱的三条去拼别人的专项。真正值钱的位置，在环外那四个工位上。">
  <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
  <meta property="article:published_time" content="2026-10-28">
- <meta property="article:modified_time" content="2026-10-29">
+ <meta property="article:modified_time" content="2026-11-07">
  <meta property="article:section" content="具身模型">
- <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"把大模型放在闭环外面","description":"让它进环内当策略，是在用它最弱的三条去拼别人的专项。真正值钱的位置，在环外那四个工位上。","url":"https://wangn2.github.io/notes/vla-g2-deploy.html","mainEntityOfPage":"https://wangn2.github.io/notes/vla-g2-deploy.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["VLA","模仿学习","专家示范","迁移"],"datePublished":"2026-10-28","dateModified":"2026-10-29"}</script>
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"把大模型放在闭环外面","description":"让它进环内当策略，是在用它最弱的三条去拼别人的专项。真正值钱的位置，在环外那四个工位上。","url":"https://wangn2.github.io/notes/vla-g2-deploy.html","mainEntityOfPage":"https://wangn2.github.io/notes/vla-g2-deploy.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["VLA","模仿学习","专家示范","迁移"],"datePublished":"2026-10-28","dateModified":"2026-11-07"}</script>
  <!--/meta-->
  <title>把大模型放在闭环外面 · WangN2</title>
  <meta name="description" content="让它进环内当策略，是在用它最弱的三条去拼别人的专项。真正值钱的位置，在环外那四个工位上。">
@@ -102,7 +102,7 @@
  <h2 id="concepts">3. 三个必须掰开的概念</h2>
  <p>后面要反复用到三个说法，先固定一下，不然每句话都会有歧义。</p>
  <p>第一个是「专家」。这个词在我们的流水线里出现了两次，指的是两件毫无关系的事。程序专家是用真值坐标和逆解生成示范轨迹的那段代码，它产出训练数据。动作专家是 VLA 网络内部生成动作的模块，它是被训练的那个。中文名一样，除此之外没有共同点。</p>
- <p>第二个是「微调前」。它指的是官方原始权重——没在这台机器人上做过梯度更新；但它已经做了完整适配，字段映射、归一化、相机视角全都改过。所以它叫「本协议下的基线」，不叫零样本。严格零样本是什么都不改，那会是另一个数。</p>
+ <p>第二个是「微调前」。它指官方原始权重没有在这台机器人的目标任务上做梯度更新；部署时仍然做了字段映射、归一化和相机适配。本文因此把它称为「本协议下的基线」。至于是否称为目标机器人上的 zero-shot，要看评测协议如何定义适配边界；zero-shot 的通常含义是不做目标任务梯度训练，并不要求部署接口什么都不配置。</p>
  <p>第三个是「198/200」。这是程序专家的示范合格率，说的是采出来的回合里有多少条通过了数据完整性检查。它和模型成功率是两回事，可以差到 198 比 0。</p>
  <p>这三个区分后面会反复用到。尤其是第一个：我们想替换的是程序专家，不是动作专家——后者才是被训练的那个。</p>
 
@@ -131,9 +131,9 @@
   <p class="vla-status" data-status role="status">—</p>
  </section>
 
- <p>默认值就是我们这轮的真实参数：二十六万多个训练窗口，实际采了四千次，覆盖率 1.5%。</p>
- <p>1.5% 是什么意思？模型连这批数据完整看一遍都没做到。</p>
- <p>在这个量级上，0/20 说明不了「模型学不会」。它只说明还没开始学。</p>
+ <p>默认值就是我们这轮的真实参数：二十六万多个理论训练窗口，实际采了四千次，全滑窗覆盖率 1.5%。这里把每个合法起点都算作一个窗口；它不是训练采样器的 epoch 定义，也没有计入实际采样器可能的过滤、重复或替换。</p>
+ <p>1.5% 表示：按所有理论滑窗计算，模型连等价于完整看一遍的抽样量都没达到；这不排除部分窗口已经被重复看过。</p>
+ <p>在这个量级上，0/20 既说明当前配置还没有学会，也不足以区分「继续训练也学不会」和「训练覆盖不足」。判断原因还需要学习曲线与单步诊断，不能只凭这一个点下结论。</p>
  <p>要把「卡在哪」测出来，至少要三条对照。第一条是任务上界：让程序专家用同一批种子、同一套判据跑一遍，看任务本身在那些扰动下能不能完成。没有它，就分不清「模型不会」和「任务不可解」。</p>
  <p>第二条是学习曲线。两百步、五百步、一千步、两千步各评一次。单点成绩只能回答管线通没通，回答不了学没学会。</p>
  <p>第三条是单步诊断：拿专家轨迹的观测逐帧喂给模型，比它预测的动作和专家动作差多少。这一步最便宜，也最能分清「映射错了」和「时序不对」。</p>
