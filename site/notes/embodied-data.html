@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/embodied-data.html">
+ <meta name="theme-color" content="#f7f9fc"><meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="具身数据：来源、供应商与市场 · WangN2">
+ <meta property="og:description" content="一边喊缺数据，一边报价跌到 20 元一小时。五条采集路线、三层供应链，以及定价权正在往哪走。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/embodied-data.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="具身数据：来源、供应商与市场 · WangN2">
+ <meta name="twitter:description" content="一边喊缺数据，一边报价跌到 20 元一小时。五条采集路线、三层供应链，以及定价权正在往哪走。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-11-07"><meta property="article:modified_time" content="2026-11-07"><meta property="article:section" content="产业">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"具身数据：来源、供应商与市场","description":"一边喊缺数据，一边报价跌到 20 元一小时。五条采集路线、三层供应链，以及定价权正在往哪走。","url":"https://wangn2.github.io/notes/embodied-data.html","mainEntityOfPage":"https://wangn2.github.io/notes/embodied-data.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["具身智能","数据采集","供应链","市场"],"datePublished":"2026-11-07","dateModified":"2026-11-07"}</script>
+ <!--/meta-->
+ <title>具身数据：来源、供应商与市场 · WangN2</title>
+ <meta name="description" content="一边喊缺数据，一边报价跌到 20 元一小时。五条采集路线、三层供应链，以及定价权正在往哪走。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/data-supply/ds.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 21 / 产业 · 数据供应</p>
+ <h1>具身数据</h1>
+ <p class="lede">一边喊缺数据，一边报价跌到 20 元一小时。这不是矛盾，是产业在换定价方式。</p>
+  <div class="article-meta"><span><time datetime="2026-11-07">2026-11-07</time></span><span>约 7 分钟</span><span>产业</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>这篇是一次调研的整理：数据从哪来、谁在供、价格怎么走、供应链的利润在哪一层。数字截至 2026 年 11 月，来源标在文末。</p>
+ <p class="callout"><strong>边界。</strong>以公开报道、国家标准文本与企业申报材料为准。融资与估值数字未经审计；部分企业口径的表述（例如「某模型 80% 训练数据来自某数据集」）我没有找到第三方独立确认，会单独标出。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#gap">1. 缺口：一个数量级的距离</a></li>
+   <li><a href="#modes">2. 五条采集路线</a></li>
+   <li><a href="#cost">3. 成本账：为什么没人用单一路线</a></li>
+   <li><a href="#supply">4. 供应链：三层，利润在两头</a></li>
+   <li><a href="#who">5. 供应商：谁在供，供什么</a></li>
+   <li><a href="#market">6. 市场：融资偏斜，价格通缩</a></li>
+   <li><a href="#shift">7. 定价权在转移</a></li>
+   <li><a href="#judge">8. 三个判断</a></li>
+   <li><a href="#use">9. 如果你要买数据</a></li>
+   <li><a href="#caveat">10. 我标出的不确定</a></li>
+   </ol>
+  </nav>
+ <h2 id="gap">1. 缺口：一个数量级的距离</h2>
+ <table class="coordinates compare"><thead><tr><th>口径</th><th>数字</th></tr></thead><tbody>
+  <tr><td>达到「ChatGPT 时刻」所需</td><td><strong>千万小时级</strong>真实数据</td></tr>
+  <tr><td>当前全球可用高质量真实数据</td><td><strong>数十万至百万小时级</strong></td></tr>
+  <tr><td>2025 全球人形出货 / 其中数据中心采购</td><td>1.83 万台 / 3181 台（17.4%）</td></tr>
+  <tr><td>2026 数据中心需求预测</td><td>7635 台（同比 +140%）</td></tr>
+ </tbody></table>
+ <p>语言模型有一个免费的语料库，具身智能没有。物理交互数据必须在物理世界里产生，成本随规模线性增长——这是整条产业链存在的根本原因。</p>
+
+ <h2 id="modes">2. 五条采集路线</h2>
+ <p>中文报道常归为「真机 / 无本体 / 仿真」三类。按采集主体分，实际是五条，各自占位不同：</p>
+ <figure><img src="../assets/data-supply/fig1_modalities.png" width="1440" height="760" loading="lazy" alt="五种采集方式并列：遥操作、自主舰队、人体动捕、可穿戴、仿真，各标出每小时成本"><figcaption>图 1｜五条路线不是替代关系，是分工关系。</figcaption></figure>
+ <p><strong>真机遥操作</strong>贵得有道理：一套设备二十多万，机器人本体六七十万，而一个遥操员一天只能产出两三小时有效数据。重资产叠加低产出，价格自然锚在高位。</p>
+ <p><strong>无本体采集</strong>能便宜，是因为把设备从数十万压到几千到一万：头戴的采集头环、手持的 UMI 夹爪。一个人一天能采三四小时，几万人同时采，一天就是几万小时。</p>
+ <p><strong>仿真</strong>的边际成本趋近于零，但它贵在前期——物理引擎要做得对，否则采出来的数据在真机上不成立。</p>
+
+ <h2 id="cost">3. 成本账：为什么没人用单一路线</h2>
+ <p>把三条路线的单位成本代进去，差距是数量级的。</p>
+
+ <section class="ds-lab" aria-labelledby="ds-title" data-ready="false">
+  <h3 id="ds-title">同样的小时数，四条路线的花费</h3>
+  <p class="ds-hint">单价取公开报道的中值：真机 700 元/小时、无本体 90 元/小时、仿真 8 元/小时（边际）。混合配比按 2% 真机 + 18% 无本体 + 80% 仿真计算。</p>
+  <div class="ds-row">
+   <canvas data-canvas role="img" aria-label="四条采集路线的总成本对比条形图"></canvas>
+   <div class="ds-side">
+    <div class="ds-ctrl">
+     <label>目标小时数 <input type="range" data-in="H" min="1000" max="500000" step="1000" value="10000"><output data-out="H">1 万 h</output></label>
+    </div>
+    <dl class="ds-readout">
+     <div><dt>全真机</dt><dd data-read="real">—</dd></div>
+     <div><dt>混合方案</dt><dd data-read="mix">—</dd></div>
+     <div><dt>混合单位成本</dt><dd data-read="unit">—</dd></div>
+     <div><dt>相对全真机省</dt><dd data-read="save">—</dd></div>
+    </dl>
+   </div>
+  </div>
+  <div class="ds-legend">
+   <span><i style="background:#176dae"></i>真机</span>
+   <span><i style="background:#b0592f"></i>无本体</span>
+   <span><i style="background:#8899a8"></i>仿真</span>
+   <span><i style="background:#2f7d6a"></i>混合</span>
+  </div>
+  <p class="ds-status" data-status role="status">—</p>
+ </section>
+
+ <p>把小时数拉到一百万，全真机是七亿量级——没有哪家创业公司会这么花。而混合配比把单位成本压到三十几元，这就是行业共识「仿真预训练 + 无本体补量 + 真机锚定」的经济学基础。</p>
+
+ <h2 id="supply">4. 供应链：三层，利润在两头</h2>
+ <figure><img src="../assets/data-supply/fig2_supplychain.png" width="1440" height="900" loading="lazy" alt="供应链三栏：上游硬件、中游生产、下游需求，中间列出各家厂商"><figcaption>图 2｜上游卖设备，中游卖小时，下游拥有任务。</figcaption></figure>
+ <p><strong>上游卖设备。</strong>动捕（OptiTrack、Vicon、诺亦腾）、数据手套（Manus、StretchSense、帕西尼）、3D 视觉（奥比中光）、UMI 夹爪、遥操作与 VR 方案、仿真引擎（Isaac、Newton、MuJoCo、GENESIS）。</p>
+ <p><strong>中游卖小时。</strong>数采中心、独立数据服务商、合成数据与评测、众包平台、开源数据集。</p>
+ <p><strong>下游拥有任务。</strong>本体厂商、模型实验室、工业场景的部署方。</p>
+ <p>利润正在往两头走：上游的硬件和仿真引擎有技术壁垒，下游的评测与闭环有场景壁垒，而中间「卖小时」这一层在 2026 年被证明是可以被卷掉的。</p>
+
+ <h2 id="who">5. 供应商：谁在供，供什么</h2>
+ <p>这是最容易被笼统带过的一节，我按四类拆开。</p>
+
+ <h3>一、数据服务商（卖采集与处理）</h3>
+ <table class="coordinates compare"><thead><tr><th>公司</th><th>定位</th><th>公开信息</th></tr></thead><tbody>
+  <tr><td>光轮智能 LightWheel</td><td>仿真 + 人类第一视角 + 评测</td><td>2026 年 3 月成全球首个具身数据独角兽（10 亿美元），6 月估值 150 亿元；Q1 订单 5.5 亿元</td></tr>
+  <tr><td>觅蜂科技</td><td>三层金字塔：互联网 / 无本体 / 真机</td><td>智元孵化，分拆 10 天获红杉中国领投数亿元</td></tr>
+  <tr><td>德塔智能</td><td>数据基础设施</td><td>半年 6 轮融资，天使++ 近 5 亿元；智元、乐聚、星海图参投</td></tr>
+  <tr><td>简智机器人</td><td>数据采集</td><td>1 亿美元 A+ 轮，上汽、百度加码</td></tr>
+  <tr><td>海宇数维</td><td>数据服务</td><td>3000 万美元种子轮</td></tr>
+  <tr><td>诺亦腾机器人</td><td>动捕 + 无本体采集</td><td>2025 年从诺亦腾分拆；ITW 30 万小时/年、MOV 10 万、OM 5 万</td></tr>
+  <tr><td>群核科技</td><td>空间智能与仿真</td><td>SpatialVerse 平台；5 亿+ 结构化 3D 场景</td></tr>
+  <tr><td>无问智科</td><td>SimReady 资产</td><td>资产构建 3 天压到 5 分钟，接触误差 &lt;1%</td></tr>
+  <tr><td>元昊动力</td><td>仿真数据生成</td><td>清华 AIR 背景，域随机化一条变数百条</td></tr>
+ </tbody></table>
+ <p>国际上有 Scale AI（与 UR 联合推出模仿学习系统）、Maxinsights（3000 万美元种子轮，付费让 5000+ 人拍摄真实作业）、Figure Index（108 国、周活 7 万人众包）。</p>
+
+ <h3>二、硬件供应商（卖采集设备）</h3>
+ <table class="coordinates compare"><thead><tr><th>环节</th><th>玩家</th><th>要点</th></tr></thead><tbody>
+  <tr><td>光学动捕</td><td>OptiTrack、Vicon、诺亦腾</td><td>影视游戏起家，2025 年起具身需求暴增</td></tr>
+  <tr><td>数据手套</td><td>Manus、StretchSense、帕西尼 PXCap Pro</td><td>手指维度的接触与姿态</td></tr>
+  <tr><td>3D 视觉</td><td>奥比中光、RealSense</td><td>奥比中光自述「去年下半年第一次被客户追着要货」，客户报 5000 实提 1.5 万</td></tr>
+  <tr><td>便携采集</td><td>UMI 夹爪、EGO 头环</td><td>把设备成本从数十万压到几千到一万级</td></tr>
+ </tbody></table>
+
+ <h3>三、本体厂商自采</h3>
+ <p>特斯拉把弗里蒙特产线的 Gen3 Optimus 全部留在内部，进 Optimus Academy 做搬运、装配、质检，一边干活一边采图像、关节力矩、接触力和失败动力学。优势是绕开仿真到现实的鸿沟，代价是产能直接锁死数据规模。</p>
+ <p>智元、宇树、北京人形创新中心则走「自建工厂 + 对外交付」：北京人形创新中心真机数据年产能 18 万小时，已交付近 3 万小时。</p>
+
+ <h3>四、开源数据集</h3>
+ <table class="coordinates compare"><thead><tr><th>数据集</th><th>规模</th><th>特点</th></tr></thead><tbody>
+  <tr><td>Open X-Embodiment</td><td>100 万+ episodes，22 种机器人</td><td>33 个实验室联邦汇总，动作空间不统一</td></tr>
+  <tr><td>DROID</td><td>7.6 万条轨迹 ≈ 350 小时，1.7 TB</td><td>单一 Franka，564 场景，格式完全一致</td></tr>
+  <tr><td>AgiBot World</td><td>100 万+ 原子轨迹，850 TB</td><td>2000 ㎡ 实景，217 任务；申报材料称英伟达 GR00T N1 与 Cosmos Reason 的 80% 训练数据来自此</td></tr>
+ </tbody></table>
+ <p>训练配方已经收敛：<strong>OXE 预训练 → DROID 微调 → 自有任务示教</strong>。</p>
+
+ <h2 id="market">6. 市场：融资偏斜，价格通缩</h2>
+ <p>2026 上半年国内具身智能投融资 1091.74 亿元，其中大脑 595.44 亿（54.5%）、核心硬件 113.92 亿（10.4%）、<strong>数据生态仅 23 亿（2.1%）</strong>。</p>
+ <p>但数据赛道的增速和单体密度远超均值：2025.7–2026.7，25 家中国具身数据公司合计融资超 170 亿元，纯数据服务商约 44.7 亿。</p>
+ <p>同时价格在通缩：真机名义 500–1000 元/小时仍被少数高精度项目撑着，而占供给增量大头的无本体数据，实际成交已经落到 30–150 元，部分出现 <strong>20 元/小时</strong>。</p>
+ <p>数采中心在退潮：全国建成 70+ 座、覆盖 18 个省级行政区，国资参与率一年从 88.4% 掉到 53.8%；北京首钢园的训练中心运营不足 18 个月即停运。</p>
+
+ <h2 id="shift">7. 定价权在转移</h2>
+ <p>五个信号指向同一件事：</p>
+ <p><strong>一、从卖小时到定标准。</strong>数据商城开始按任务 SKU 而非小时计价，评测基准从「数据条数」换成「产线任务成功率」。</p>
+ <p><strong>二、国家标准落地。</strong><code>YD/T 6771-2026</code>《人工智能 关键基础技术 具身智能数据集质量要求及评价方法》2026-07-15 发布，<strong>2026-11-01 实施</strong>，由中国信通院牵头、四十余家单位起草，覆盖生产操作规范、组织机制保障与质量评价指标。配套还有合成数据能力要求 <code>YD/T 6767-2026</code>。</p>
+ <p><strong>三、从卖一次到复售。</strong>部分数据集向十余家客户复售，复售倍数超过十倍——数据第一次有了「资产」的样子。</p>
+ <p><strong>四、客户即股东。</strong>本体厂商战略投资数据公司：智元投德塔、鹿明松延自变量投恺望、觅蜂由智元孵化。</p>
+ <p><strong>五、国际路线分叉。</strong>特斯拉走真机自采飞轮，Figure 走全球众包视频（Index 覆盖 108 国）。两者都是混合训练，只是主次不同。</p>
+
+ <h2 id="judge">8. 三个判断</h2>
+ <p><strong>判断一：产能不是护城河，场景消化能力才是。</strong>原始数据在贬值，高难数据仍然稀缺。一条产线能消费多少数据，比你能采多少更重要。</p>
+ <p><strong>判断二：中间层最危险。</strong>只做采集、没有工具、没有处理能力的公司，本质是数据贸易商。利润会向上游（硬件、引擎）和下游（评测、闭环）转移。</p>
+ <p><strong>判断三：标准是下一个战场。</strong>YD/T 6771 刚实施，未来招标与验收很可能直接引用。谁参与制定，谁就拿到接口。</p>
+
+ <h2 id="use">9. 如果你要买数据</h2>
+ <p>四条实践建议：</p>
+ <p><strong>先定用途再买。</strong>预训练买开源语料，微调买真机，评测用自己的产线任务——这是三个不同的采购决策。</p>
+ <p><strong>别按小时买。</strong>20 元一小时的数据，清洗成本可能超过采集成本。按「任务成功率提升」计价才划算。</p>
+ <p><strong>自采永远需要。</strong>你的本体、夹爪、工位布局，公开数据集里没有。小规模高质量自采性价比最高。</p>
+ <p><strong>对齐标准。</strong>按 YD/T 6771 的框架整理自己的数据，等于提前对齐未来的验收口径。</p>
+
+ <h2 id="caveat">10. 我标出的不确定</h2>
+ <p>调研过程中有几处对不上或无法核实，列在这里：</p>
+ <p><strong>无本体数据价格差一个数量级。</strong>易观的报告写 200–400 元/小时（真机三分之一），创业邦采到的成交价是 30–150 元。我倾向认为前者是报价体系、后者是成交价，但没有第三方核实。</p>
+ <p><strong>「80% 训练数据来自 AgiBot World」</strong>出自国家数据局的申报材料，属企业自述，未见英伟达侧独立确认。</p>
+ <p><strong>融资与估值</strong>来自媒体报道，未经审计。</p>
+ <p><strong>数采中心停运</strong>是个例，可能不具代表性。</p>
+
+ <p class="references">主要来源：<a href="https://www.ceweekly.cn/economic/industry/2026/1019/501604.html">经济网 / 中国证券报：具身智能数据产业爆发</a> · <a href="https://www.cyzone.cn/article/853203.html">创业邦：报价跌至 20 元/小时</a> · <a href="https://www.analysys.cn/article/detail/20021520">易观分析：定价权转移</a> · <a href="https://www.nda.gov.cn/sjj/ywpd/szkjyjcss/1016/20251016161924670392131_pc.html">国家数据局：AgiBot World 案例</a> · <a href="https://www.spc.org.cn/online/eda1ce4ae10446307279a9f3f2ac366c.html">YD/T 6771-2026 标准页</a> · <a href="https://robot.ofweek.com/2026-09/ART-898890-8110-30703106.html">OFweek：特斯拉 Optimus vs Figure Index</a></p>
+ <p class="references">相关笔记：<a href="./train-5k.html">把 VLA 装进 G2</a>（一次真实训练复盘） · <a href="./training-stack.html">训练系统</a>（数据在七层栈里的位置） · <a href="./vla-g2-deploy.html">把大模型放在闭环外面</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./training-stack.html"><span>← 上一篇</span><strong>训练系统：七层栈与四本账</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/data-supply/ds.js"></script>
+</body></html>
