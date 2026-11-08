@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="700" viewBox="0 0 1400 700" role="img" aria-labelledby="title desc">
+<title id="title">Event memory and spatiotemporal graph</title>
+<desc id="desc">Task-centric event memory stores full records. An environment-centric graph stores reusable places, entities, evidence and lightweight failure annotations. Both supply a compact retrieval set to the next model call.</desc>
+<style>text{font-family:Arial,sans-serif;fill:#19334d}.title{font-size:36px;font-weight:700}.head{font-size:27px;font-weight:700}.label{font-size:21px}.small{font-size:18px;fill:#5d7083}.panel{fill:#f7f9fc;stroke:#9db6cb;stroke-width:2}.item{fill:#fff;stroke:#176dae;stroke-width:2}.arrow{fill:none;stroke:#64798d;stroke-width:3;marker-end:url(#a)}.warn{fill:#f8eee8;stroke:#b0592f;stroke-width:2}</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64798d"/></marker></defs>
+<rect width="1400" height="700" fill="#fff"/>
+<text x="60" y="60" class="title">Two memories: the logbook and the map</text>
+<text x="60" y="96" class="small">Full event history stays out of the graph; the graph keeps only reusable spatial evidence and references.</text>
+
+<rect x="60" y="135" width="480" height="400" rx="22" class="panel"/>
+<text x="300" y="185" text-anchor="middle" class="head">Event Memory · task-centric</text>
+<rect x="105" y="220" width="390" height="70" rx="12" class="item"/><text x="300" y="263" text-anchor="middle" class="label">Working · current bounded context</text>
+<rect x="105" y="315" width="390" height="70" rx="12" class="item"/><text x="300" y="358" text-anchor="middle" class="label">Progress · pending / active / done / blocked</text>
+<rect x="105" y="410" width="390" height="95" rx="12" class="warn"/><text x="300" y="450" text-anchor="middle" class="label">Reflection · complete failure record</text><text x="300" y="482" text-anchor="middle" class="small">event ID · pose · time · tool feedback</text>
+
+<rect x="860" y="135" width="480" height="400" rx="22" class="panel"/>
+<text x="1100" y="185" text-anchor="middle" class="head">ST Graph · environment-centric</text>
+<circle cx="975" cy="300" r="58" class="item"/><text x="975" y="308" text-anchor="middle" class="label">Place 0</text>
+<circle cx="1195" cy="400" r="58" class="item"/><text x="1195" y="408" text-anchor="middle" class="label">Place 1</text>
+<rect x="1100" y="225" width="160" height="65" rx="12" class="item"/><text x="1180" y="266" text-anchor="middle" class="label">Entity</text>
+<path d="M1028 330L1142 375" class="arrow"/><text x="1035" y="385" class="small">NavigableTo</text>
+<path d="M1030 300L1100 265" class="arrow"/><text x="1010" y="245" class="small">ObservedFrom + time</text>
+<rect x="910" y="440" width="160" height="55" rx="10" class="warn"/><text x="990" y="475" text-anchor="middle" class="small">failure weight</text>
+<path d="M975 358L975 440" class="arrow"/>
+
+<path d="M540 335L860 335" class="arrow"/><text x="700" y="315" text-anchor="middle" class="small">lightweight annotation + event reference</text>
+<path d="M300 535C300 610 590 610 700 610" class="arrow"/>
+<path d="M1100 535C1100 610 810 610 700 610" class="arrow"/>
+<rect x="520" y="575" width="360" height="80" rx="16" class="item"/><text x="700" y="610" text-anchor="middle" class="head">Compact retrieval set</text><text x="700" y="640" text-anchor="middle" class="small">relevant evidence for the next MLLM call</text>
+</svg>

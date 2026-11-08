@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="950" viewBox="0 0 1400 950" role="img" aria-labelledby="title desc">
+<title id="title">具身导航的六个转变与落地顺序</title>
+<desc id="desc">六张卡片展示从模型能力到系统能力、纯路线到混合架构、示教到运行证据、长上下文到检索记忆、成功率到总成本、模型锁定到可替换集成的转变。底部路线表示先落地有人监督的结构化场景，再增强自适应恢复，最后凭独立验证扩大自主性。</desc>
+<style>
+ text{font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif;fill:#19334d}.title{font-size:38px;font-weight:700}.subtitle{font-size:21px;fill:#5d7083}.head{font-size:24px;font-weight:700}.label{font-size:20px}.small{font-size:17px;fill:#5d7083}.to{font-size:22px;font-weight:700;fill:#176dae}.card{fill:#f7f9fc;stroke:#9db6cb;stroke-width:2}.num{fill:#176dae}.numtext{font-size:21px;font-weight:700;fill:#fff}.phase{fill:#fff;stroke:#176dae;stroke-width:2}.phase2{fill:#eaf1f7}.arrow{fill:none;stroke:#64798d;stroke-width:3;marker-end:url(#a)}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64798d"/></marker></defs>
+<rect width="1400" height="950" fill="#fff"/>
+<text x="60" y="65" class="title">从有能力的模型，到可交付的导航系统</text>
+<text x="60" y="103" class="subtitle">从 HarnessVLN 的架构与实验结果看到的六个转变</text>
+
+<rect x="60" y="140" width="400" height="190" rx="20" class="card"/><circle cx="105" cy="182" r="23" class="num"/><text x="105" y="190" text-anchor="middle" class="numtext">1</text><text x="145" y="190" class="head">模型 → 系统</text><text x="95" y="242" class="label">不只看权重</text><text x="95" y="285" class="to">记忆 + 工具 + 反馈</text>
+<rect x="500" y="140" width="400" height="190" rx="20" class="card"/><circle cx="545" cy="182" r="23" class="num"/><text x="545" y="190" text-anchor="middle" class="numtext">2</text><text x="585" y="190" class="head">纯路线 → 混合</text><text x="535" y="242" class="label">上层负责语义推理</text><text x="535" y="285" class="to">下层负责实时控制</text>
+<rect x="940" y="140" width="400" height="190" rx="20" class="card"/><circle cx="985" cy="182" r="23" class="num"/><text x="985" y="190" text-anchor="middle" class="numtext">3</text><text x="1025" y="190" class="head">示教 → 证据</text><text x="975" y="242" class="label">不只看轨迹数量</text><text x="975" y="285" class="to">失败 + 恢复 + 证明</text>
+
+<rect x="60" y="370" width="400" height="190" rx="20" class="card"/><circle cx="105" cy="412" r="23" class="num"/><text x="105" y="420" text-anchor="middle" class="numtext">4</text><text x="145" y="420" class="head">上下文 → 记忆</text><text x="95" y="472" class="label">不只是更多 token</text><text x="95" y="515" class="to">检索 + 证据溯源</text>
+<rect x="500" y="370" width="400" height="190" rx="20" class="card"/><circle cx="545" cy="412" r="23" class="num"/><text x="545" y="420" text-anchor="middle" class="numtext">5</text><text x="585" y="420" class="head">演示 → 总成本</text><text x="535" y="472" class="label">成功率高还不够</text><text x="535" y="515" class="to">路径 + 时延 + 恢复</text>
+<rect x="940" y="370" width="400" height="190" rx="20" class="card"/><circle cx="985" cy="412" r="23" class="num"/><text x="985" y="420" text-anchor="middle" class="numtext">6</text><text x="1025" y="420" class="head">锁定 → 可替换</text><text x="975" y="472" class="label">模型可以更换</text><text x="975" y="515" class="to">集成仍需验证</text>
+
+<text x="60" y="635" class="head">落地顺序：证据增加，才扩大自主性</text>
+<rect x="60" y="680" width="380" height="175" rx="20" class="phase phase2"/><text x="95" y="725" class="head">当前 · 有人监督</text><text x="95" y="770" class="label">低速 · 结构化场景</text><text x="95" y="810" class="small">搜索 · 巡检 · 导览</text>
+<path d="M450 765L510 765" class="arrow"/>
+<rect x="520" y="680" width="380" height="175" rx="20" class="phase"/><text x="555" y="725" class="head">下一步 · 自适应运行时</text><text x="555" y="770" class="label">从失败中学习</text><text x="555" y="810" class="small">改进检索与恢复</text>
+<path d="M910 765L970 765" class="arrow"/>
+<rect x="980" y="680" width="360" height="175" rx="20" class="phase"/><text x="1015" y="725" class="head">以后 · 更大范围自主</text><text x="1015" y="770" class="label">先通过独立验证</text><text x="1015" y="810" class="small">先补齐安全证据，再扩大规模</text>
+<text x="60" y="915" class="small">概念路线图，不是市场预测，也不代表价值转移已被证明。</text>
+</svg>

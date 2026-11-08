@@ -1,8 +1,8 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const read=f=>fs.readFileSync(path.join(__dirname,'../site',f),'utf8');
-const groups={basics:['kinematics','swerve-base','apriltag','hand-eye','collision-envelope','costmap','nvjpeg','optimizer-muon','cuda','calibration','cem','data-formats'],models:['lingbot-vla2','vla-g2-deploy','genie4-vs-astra','ensemble','training-stack'],applications:['tray-grasp','grasp-timeline','train-5k','astra-robot-admission','embodied-data']};
+const groups={basics:['kinematics','swerve-base','apriltag','hand-eye','collision-envelope','costmap','nvjpeg','optimizer-muon','cuda','calibration','cem','data-formats'],models:['lingbot-vla2','vla-g2-deploy','genie4-vs-astra','ensemble','training-stack','harnessvln'],applications:['tray-grasp','grasp-timeline','train-5k','astra-robot-admission','embodied-data']};
 for(const file of ['index.html','series/index.html']){
- test(file+' lists all twenty-two notes once in approved twelve/five/five categories',()=>{
+ test(file+' lists all twenty-three notes once in approved twelve/six/five categories',()=>{
   const html=read(file), all=[];
   for(const [id,expected] of Object.entries(groups)){
    const section=html.match(new RegExp('<section[^>]+data-category="'+id+'"[^>]*>([\\s\\S]*?)</section>'));
@@ -11,7 +11,7 @@ for(const file of ['index.html','series/index.html']){
    assert.deepEqual(listed,expected);all.push(...listed);
    assert.ok(section[1].includes(expected.length+' 篇'),'visible count');
   }
-  assert.equal(new Set(all).size,22);
+  assert.equal(new Set(all).size,23);
   assert.doesNotMatch(html, /八篇基础|基础八篇|中间不要跳|前八篇串起/);
  });
  test(file+' exposes separate optional engineering and model routes',()=>{

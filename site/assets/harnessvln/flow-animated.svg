@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900" role="img" aria-labelledby="title desc">
+<title id="title">HarnessVLN data flow</title>
+<desc id="desc">Animated diagram of observations and memory entering a harness, a frozen MLLM proposing an action, validation, tool execution, and structured feedback returning to memory.</desc>
+<style>
+ text{font-family:Arial,sans-serif;fill:#19334d}.title{font-size:38px;font-weight:700}.subtitle{font-size:21px;fill:#5d7083}.box{fill:#fff;stroke:#9db6cb;stroke-width:2}.box-title{font-size:25px;font-weight:700}.label{font-size:20px}.small{font-size:17px;fill:#5d7083}.harness{fill:#f7f9fc;stroke:#176dae;stroke-width:3}.memory{fill:#eaf1f7;stroke:#176dae;stroke-width:2}.action{fill:#f8eee8;stroke:#b0592f;stroke-width:2}.arrow{fill:none;stroke:#64798d;stroke-width:3;marker-end:url(#arrow)}.evidence{stroke:#176dae}.proposal{stroke:#b0592f}.feedback{stroke:#2f7d6a;stroke-dasharray:9 7}.timeline{font-size:17px;fill:#5d7083}.packet{opacity:0;fill:#176dae}.packet.propose{fill:#b0592f}.packet.return{fill:#2f7d6a}
+ @keyframes p1{0%,2%{opacity:0;offset-distance:0%}4%,14%{opacity:1}16%{opacity:0;offset-distance:100%}17%,100%{opacity:0;offset-distance:100%}}
+ @keyframes p2{0%,15%{opacity:0;offset-distance:0%}17%,29%{opacity:1}31%{opacity:0;offset-distance:100%}32%,100%{opacity:0;offset-distance:100%}}
+ @keyframes p3{0%,31%{opacity:0;offset-distance:0%}33%,46%{opacity:1}48%{opacity:0;offset-distance:100%}49%,100%{opacity:0;offset-distance:100%}}
+ @keyframes p4{0%,47%{opacity:0;offset-distance:0%}49%,62%{opacity:1}64%{opacity:0;offset-distance:100%}65%,100%{opacity:0;offset-distance:100%}}
+ @keyframes p5{0%,63%{opacity:0;offset-distance:0%}65%,78%{opacity:1}80%{opacity:0;offset-distance:100%}81%,100%{opacity:0;offset-distance:100%}}
+ @keyframes p6{0%,79%{opacity:0;offset-distance:0%}81%,96%{opacity:1}98%,100%{opacity:0;offset-distance:100%}}
+ @keyframes progress{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+ .p1{animation:p1 12s linear infinite;offset-path:path('M 290 430 C 390 430 450 505 550 505')}.p2{animation:p2 12s linear infinite;offset-path:path('M 885 390 C 845 435 790 470 800 505')}.p3{animation:p3 12s linear infinite;offset-path:path('M 800 505 C 960 505 970 335 1110 335')}.p4{animation:p4 12s linear infinite;offset-path:path('M 1230 410 C 1230 700 950 660 800 660')}.p5{animation:p5 12s linear infinite;offset-path:path('M 800 660 C 960 660 980 615 1110 615')}.p6{animation:p6 12s linear infinite;offset-path:path('M 1230 690 C 1230 805 170 805 170 530')}.progress{animation:progress 12s linear infinite;transform-origin:60px 0}
+ @media(prefers-reduced-motion:reduce){.packet,.progress{display:none}}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#64798d"/></marker></defs>
+<rect width="1400" height="900" fill="#fff"/>
+<text x="60" y="65" class="title">HarnessVLN: evidence in, proposals out, feedback back</text>
+<text x="60" y="102" class="subtitle">The MLLM proposes. The Harness validates, dispatches and records. The Executor acts.</text>
+
+<rect x="50" y="330" width="240" height="200" rx="20" class="box"/>
+<text x="170" y="380" text-anchor="middle" class="box-title">Environment</text>
+<text x="170" y="425" text-anchor="middle" class="label">Task instruction</text>
+<text x="170" y="462" text-anchor="middle" class="label">RGB-D + Pose</text>
+<text x="170" y="497" text-anchor="middle" class="small">Simulation or real robot</text>
+
+<rect x="350" y="150" width="700" height="600" rx="24" class="harness"/>
+<text x="700" y="200" text-anchor="middle" class="box-title" fill="#176dae">AGENT HARNESS</text>
+<text x="700" y="230" text-anchor="middle" class="small">Runtime state: task · observation · pose · progress · memory · graph</text>
+
+<rect x="400" y="255" width="250" height="140" rx="16" class="memory"/>
+<text x="525" y="300" text-anchor="middle" class="box-title">Event Memory</text>
+<text x="525" y="337" text-anchor="middle" class="label">Working · Progress</text>
+<text x="525" y="370" text-anchor="middle" class="label">Reflection / failures</text>
+<rect x="760" y="255" width="250" height="140" rx="16" class="memory"/>
+<text x="885" y="300" text-anchor="middle" class="box-title">ST Graph</text>
+<text x="885" y="337" text-anchor="middle" class="label">Places · Entities</text>
+<text x="885" y="370" text-anchor="middle" class="label">Evidence + timestamps</text>
+
+<rect x="550" y="455" width="250" height="105" rx="16" class="box"/>
+<text x="675" y="497" text-anchor="middle" class="box-title">Assemble Context</text>
+<text x="675" y="535" text-anchor="middle" class="label">Current state + retrieval</text>
+<rect x="550" y="615" width="250" height="95" rx="16" class="action"/>
+<text x="675" y="655" text-anchor="middle" class="box-title">Validate + Dispatch</text>
+<text x="675" y="687" text-anchor="middle" class="small">Evidence · geometry · subgoal</text>
+
+<rect x="1110" y="260" width="240" height="150" rx="20" class="box"/>
+<text x="1230" y="310" text-anchor="middle" class="box-title">Frozen MLLM</text>
+<text x="1230" y="352" text-anchor="middle" class="label">Semantic proposal</text>
+<text x="1230" y="386" text-anchor="middle" class="small">No direct environment access</text>
+<rect x="1110" y="540" width="240" height="150" rx="20" class="box"/>
+<text x="1230" y="585" text-anchor="middle" class="box-title">Tools + Executor</text>
+<text x="1230" y="625" text-anchor="middle" class="label">Ground · Navigate</text>
+<text x="1230" y="660" text-anchor="middle" class="label">Recover · Request stop</text>
+
+<path d="M290 430C390 430 450 505 550 505" class="arrow evidence"/>
+<path d="M525 395L610 455" class="arrow evidence"/>
+<path d="M885 395C845 435 790 470 800 505" class="arrow evidence"/>
+<path d="M800 505C960 505 970 335 1110 335" class="arrow evidence"/>
+<path d="M1230 410C1230 700 950 660 800 660" class="arrow proposal"/>
+<path d="M800 660C960 660 980 615 1110 615" class="arrow proposal"/>
+<path d="M1230 690C1230 805 170 805 170 530" class="arrow feedback"/>
+<path d="M550 650C420 650 400 500 470 395" class="arrow feedback"/>
+
+<text x="360" y="418" class="small">1 · Observe</text>
+<text x="846" y="440" class="small">2 · Retrieve</text>
+<text x="955" y="470" class="small">3 · Context</text>
+<text x="1090" y="680" class="small">4 · Propose</text>
+<text x="952" y="640" class="small">5 · Validated call</text>
+<text x="600" y="795" class="small">6 · Action + structured feedback</text>
+<text x="398" y="548" class="small">Reject → record</text>
+
+<circle r="8" class="packet p1"/><circle r="8" class="packet p2"/><circle r="8" class="packet p3"/><circle r="8" class="packet propose p4"/><circle r="8" class="packet propose p5"/><circle r="8" class="packet return p6"/>
+
+<rect x="60" y="838" width="1280" height="4" rx="2" fill="#dbe5ee"/>
+<rect x="60" y="838" width="1280" height="4" rx="2" fill="#176dae" class="progress"/>
+<text x="60" y="880" class="timeline">Observe → Record → Retrieve → Assemble → Propose → Validate → Execute → Update</text>
+<text x="1340" y="880" text-anchor="end" class="timeline">Conceptual loop · not timing measurements</text>
+</svg>
