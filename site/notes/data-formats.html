@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/data-formats.html">
+ <meta name="theme-color" content="#f7f9fc"><meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="机器人数据格式全景：URDF、USD、rosbag 与训练数据集 · WangN2">
+ <meta property="og:description" content="用一张四层地图分清本体、场景、运行日志与训练数据，再看 URDF、USD、rosbag2、LeRobot 怎样连成数据闭环。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/data-formats.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="机器人数据格式全景：URDF、USD、rosbag 与训练数据集 · WangN2">
+ <meta name="twitter:description" content="用一张四层地图分清本体、场景、运行日志与训练数据，再看 URDF、USD、rosbag2、LeRobot 怎样连成数据闭环。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-11-08"><meta property="article:modified_time" content="2026-11-08"><meta property="article:section" content="数据基础">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"机器人数据格式全景：URDF、USD、rosbag 与训练数据集","description":"用一张四层地图分清本体、场景、运行日志与训练数据，再看 URDF、USD、rosbag2、LeRobot 怎样连成数据闭环。","url":"https://wangn2.github.io/notes/data-formats.html","mainEntityOfPage":"https://wangn2.github.io/notes/data-formats.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["URDF","USD","rosbag2","LeRobot","机器人数据集"],"datePublished":"2026-11-08","dateModified":"2026-11-08"}</script>
+ <!--/meta-->
+ <title>机器人数据格式全景：URDF、USD、rosbag 与训练数据集 · WangN2</title>
+ <meta name="description" content="用一张四层地图分清本体、场景、运行日志与训练数据，再看 URDF、USD、rosbag2、LeRobot 怎样连成数据闭环。">
+ <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 22 / 数据基础 · 格式与生命周期</p>
+ <h1>机器人数据格式全景</h1>
+ <p class="lede">URDF 描述身体，USD 组织场景，rosbag 保存运行过程，训练数据集整理可学习的经验。它们不是竞品，而是同一条数据链上的不同容器。</p>
+ <div class="article-meta"><span><time datetime="2026-11-08">2026-11-08</time></span><span>约 9 分钟</span><span>数据基础</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>新手最容易把不同抽象层次的数据当成一回事：一个 <code>.usd</code> 文件里有机器人，不等于它就是 URDF 的替代品；一个 rosbag 里有图像和动作，也不等于它已经能直接训练 VLA。先分清每份数据回答什么问题，格式选择就会简单很多。</p>
+ <p class="callout"><strong>范围。</strong>这是一张工程地图，不是完整 API 手册。示例用于解释结构；LeRobot 等项目的目录和 API 会随版本变化，实际使用时应固定版本并对照对应文档。</p>
+
+ <nav class="toc" aria-labelledby="toc-title"><p class="toc-title" id="toc-title">本文目录</p><ol>
+  <li><a href="#map">1. 一张地图：四类数据，四个问题</a></li>
+  <li><a href="#urdf">2. URDF：机器人的结构说明书</a></li>
+  <li><a href="#usd">3. USD：把机器人放进整个场景</a></li>
+  <li><a href="#rosbag">4. ROS 2 与 rosbag：保存运行过程</a></li>
+  <li><a href="#datasets">5. 训练数据集：把经历整理成样本</a></li>
+  <li><a href="#lifecycle">6. 串起来：一台机器人的数据闭环</a></li>
+  <li><a href="#acceptance">7. 格式转换之后，验收什么</a></li>
+  <li><a href="#quick">8. 速查：我要做什么，该用什么</a></li>
+ </ol></nav>
+
+ <h2 id="map">1. 一张地图：四类数据，四个问题</h2>
+ <table class="coordinates compare"><thead><tr><th>层次</th><th>回答的问题</th><th>常见格式或协议</th><th>典型生态</th></tr></thead><tbody>
+  <tr><td><strong>本体结构</strong></td><td>机器人由哪些连杆和关节组成？</td><td>URDF / Xacro、MJCF、SDF</td><td>ROS、MuJoCo、Gazebo</td></tr>
+  <tr><td><strong>场景与资产</strong></td><td>机器人、工装、灯光和物理环境怎样组织？</td><td>USD / USDZ、网格、点云、地图</td><td>Omniverse、Isaac Sim、导航与重建工具</td></tr>
+  <tr><td><strong>运行记录</strong></td><td>每个时刻看到了什么、状态是什么、执行了什么？</td><td>ROS 2 消息、rosbag2、MCAP</td><td>ROS 2、日志回放与排障</td></tr>
+  <tr><td><strong>训练数据集</strong></td><td>怎样把示范整理成可采样、可对齐的序列？</td><td>LeRobot、RLDS、HDF5 等</td><td>模仿学习、VLA、离线强化学习</td></tr>
+ </tbody></table>
+ <p>这是一种帮助理解的分层，不意味着所有数据都只能落在四类里。地图、标定参数和模型权重也有各自的生命周期；真正重要的是不要把<strong>结构、场景、日志和训练样本</strong>混成同一个抽象层。</p>
+
+ <h2 id="urdf">2. URDF：机器人的结构说明书</h2>
+ <p>URDF（Unified Robot Description Format）用 XML 描述机器人的 link 与 joint。它回答的是：有哪些刚体、刚体怎样连接、关节绕哪根轴运动，以及外观、碰撞和惯量如何表示。</p>
+ <pre tabindex="0"><code>&lt;robot name="mini_arm"&gt;
+  &lt;link name="base_link"&gt;
+    &lt;visual&gt;
+      &lt;origin xyz="0 0 0.025"/&gt;
+      &lt;geometry&gt;&lt;box size="0.1 0.1 0.05"/&gt;&lt;/geometry&gt;
+      &lt;material name="gray"&gt;&lt;color rgba="0.5 0.5 0.5 1"/&gt;&lt;/material&gt;
+    &lt;/visual&gt;
+    &lt;collision&gt;
+      &lt;geometry&gt;&lt;box size="0.1 0.1 0.05"/&gt;&lt;/geometry&gt;
+    &lt;/collision&gt;
+    &lt;inertial&gt;
+      &lt;mass value="1.0"/&gt;
+      &lt;inertia ixx="0.001" ixy="0" ixz="0"
+               iyy="0.001" iyz="0" izz="0.001"/&gt;
+    &lt;/inertial&gt;
+  &lt;/link&gt;
+
+  &lt;link name="upper_arm"&gt;
+    &lt;visual&gt;
+      &lt;geometry&gt;&lt;cylinder radius="0.025" length="0.3"/&gt;&lt;/geometry&gt;
+    &lt;/visual&gt;
+  &lt;/link&gt;
+
+  &lt;joint name="shoulder_joint" type="revolute"&gt;
+    &lt;parent link="base_link"/&gt;
+    &lt;child link="upper_arm"/&gt;
+    &lt;origin xyz="0 0 0.05" rpy="0 0 0"/&gt;
+    &lt;axis xyz="0 1 0"/&gt;
+    &lt;limit lower="-2.96" upper="2.96" effort="20" velocity="3.0"/&gt;
+  &lt;/joint&gt;
+&lt;/robot&gt;</code></pre>
+ <p>同一个 link 可以有三套面向不同用途的描述：</p>
+ <table class="coordinates"><thead><tr><th>标签</th><th>服务对象</th><th>内容</th></tr></thead><tbody>
+  <tr><td><code>&lt;visual&gt;</code></td><td>显示与渲染</td><td>几何、网格、颜色和基础材质</td></tr>
+  <tr><td><code>&lt;collision&gt;</code></td><td>碰撞检查</td><td>通常比外观更简化的几何；它与 visual 不需要相同</td></tr>
+  <tr><td><code>&lt;inertial&gt;</code></td><td>动力学</td><td>质量、惯性原点与惯性张量；错误参数会污染动力学仿真</td></tr>
+ </tbody></table>
+ <p>关节常见类型包括 <code>revolute</code>（有限位旋转）、<code>continuous</code>（连续旋转）、<code>prismatic</code>（平移）、<code>fixed</code>（固定）、<code>floating</code>（自由浮动）和 <code>planar</code>（平面运动）。选型不是背名词，而是明确自由度、轴向、原点与限位。</p>
+ <p>实际项目常用 <strong>Xacro</strong> 参数化生成 URDF，避免重复 XML。可用 <code>check_urdf robot.urdf</code> 检查结构，用 RViz 或 PyBullet 等工具加载验证。</p>
+ <p><strong>边界。</strong>标准 URDF 主要表达单根运动学树，不能直接表达闭链机构；它有基础视觉和物理字段，但不擅长多资产场景、复杂材质、灯光与时间采样。需要这些能力时，才会进入 MJCF、SDF 或 USD 等更适合的表示。</p>
+
+ <h2 id="usd">3. USD：把机器人放进整个场景</h2>
+ <p>USD（Universal Scene Description）最初面向影视与视觉特效生产，如今也是 Omniverse / Isaac Sim 的核心场景技术。它不只是文件后缀，而是一套用于构建、组合和读取三维场景的平台：机器人、料盘、相机、灯光、物理属性和动画都可以进入同一个 Stage。</p>
+ <pre tabindex="0"><code>#usda 1.0
+(
+    defaultPrim = "World"
+    upAxis = "Z"
+    metersPerUnit = 1
+)
+
+def Xform "World"
+{
+    def Xform "G2_Robot" (
+        prepend references = @./assets/g2_robot.usd@
+    )
+    {
+        double3 xformOp:translate = (0.5, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Cylinder "Tray"
+    {
+        double radius = 0.3
+        double height = 0.02
+        float physics:mass = 2.0
+        bool physics:collisionEnabled = true
+    }
+
+    def DistantLight "Sun" { float inputs:intensity = 1000 }
+}</code></pre>
+ <p>四个概念足以读懂大多数 USD 工程：</p>
+ <table class="coordinates"><thead><tr><th>概念</th><th>含义</th><th>工程直觉</th></tr></thead><tbody>
+  <tr><td><strong>Stage</strong></td><td>已组合、可查询的场景</td><td>打开工程后看到的整体，而不只是某个源文件</td></tr>
+  <tr><td><strong>Prim</strong></td><td>场景中的节点</td><td>机器人、关节、相机和灯光都是 Prim</td></tr>
+  <tr><td><strong>Attribute</strong></td><td>Prim 的属性</td><td>位置、质量等；许多属性支持按时间采样</td></tr>
+  <tr><td><strong>Layer 与组合</strong></td><td>把多层描述合成为最终场景</td><td>布局、材质和光照可以分层编辑，不必复制整份资产</td></tr>
+ </tbody></table>
+ <p><code>references</code> 引用外部资产，<code>payload</code> 标记可延迟加载的引用内容，<code>variants</code> 在同一资产中切换配置，<code>sublayers</code> 叠加场景层。Payload 并不会自动让某张 4K 纹理独立按需加载；实际加载行为仍取决于资产组织和运行时。</p>
+ <table class="coordinates"><thead><tr><th>扩展名</th><th>本质</th><th>常见用途</th></tr></thead><tbody>
+  <tr><td><code>.usda</code></td><td>ASCII 文本</td><td>阅读、审查和小场景</td></tr>
+  <tr><td><code>.usdc</code></td><td>Crate 二进制</td><td>较大资产与高效读取</td></tr>
+  <tr><td><code>.usd</code></td><td>通用后缀，内容可为文本或二进制</td><td>通用场景文件</td></tr>
+  <tr><td><code>.usdz</code></td><td>符合 USDZ 约束的打包归档</td><td>把场景及依赖作为一个包分发</td></tr>
+ </tbody></table>
+ <p><strong>URDF 导入 USD 不是换后缀。</strong>导入器会根据 URDF 生成一棵带 USD Physics 等属性的 Prim 树，但关节轴、坐标原点、限位、惯量、碰撞几何、单位和资源路径仍需复核。ROS 中使用的 URDF 与 Isaac 中使用的 USD 可以来自同一来源模型，却不能未经验收就假设动力学和几何完全一致。</p>
+ <p>USD 也不替代所有地图格式。Nav2 常见二维地图仍是 PGM 图像加 YAML 元数据；点云常用 PCD/PLY；3DGS 的 PLY 通常保存位置、缩放、旋转、不透明度和球谐系数等属性，而不是简单给每点写一组普通网格坐标。</p>
+
+ <h2 id="rosbag">4. ROS 2 与 rosbag：保存运行过程</h2>
+ <p>静态模型跑起来以后，关节状态、坐标变换和传感器数据会持续流动。ROS 2 Topic 是在线消息通道，rosbag2 则把选中的消息及元数据记录下来，供回放、排障和离线处理。</p>
+ <table class="coordinates"><thead><tr><th>常见 Topic</th><th>消息类型</th><th>内容</th></tr></thead><tbody>
+  <tr><td><code>/joint_states</code></td><td><code>sensor_msgs/msg/JointState</code></td><td>关节位置、速度、力矩等字段</td></tr>
+  <tr><td><code>/tf</code>、<code>/tf_static</code></td><td><code>tf2_msgs/msg/TFMessage</code></td><td>动态与静态坐标变换</td></tr>
+  <tr><td><code>/camera/image_raw</code></td><td><code>sensor_msgs/msg/Image</code></td><td>相机图像及消息时间戳</td></tr>
+  <tr><td><code>/camera/points</code></td><td><code>sensor_msgs/msg/PointCloud2</code></td><td>点云及字段布局</td></tr>
+  <tr><td><code>/odom</code></td><td><code>nav_msgs/msg/Odometry</code></td><td>里程计位姿、速度与协方差</td></tr>
+ </tbody></table>
+ <p><code>robot_state_publisher</code> 的常见职责就是使用 URDF 的静态结构和关节状态发布 TF。于是 URDF 描述身体，joint states 描述当前姿态，TF 把坐标关系提供给其他模块。</p>
+ <p>以 MCAP 存储为例，一个 bag 目录可能长这样：</p>
+ <pre tabindex="0"><code>my_grasp_bag/
+├── metadata.yaml
+└── my_grasp_bag_0.mcap</code></pre>
+ <p>下面是 metadata 的结构示意，省略了其他字段与 Topic；时长使用整数纳秒，不是带单位的十进制字符串：</p>
+ <pre tabindex="0"><code>rosbag2_bagfile_information:
+  duration:
+    nanoseconds: 126500000000
+  message_count: 38412
+  topics_with_message_count:
+    - topic_metadata:
+        name: /joint_states
+        type: sensor_msgs/msg/JointState
+      message_count: 12650</code></pre>
+ <pre tabindex="0"><code>ros2 bag record -a
+ros2 bag record /joint_states /tf /wrist_cam/image_raw
+ros2 bag play my_grasp_bag --rate 0.5
+ros2 bag info my_grasp_bag</code></pre>
+ <p><strong>MCAP 是日志容器，不替你做训练对齐。</strong>它保存带时间戳的预序列化消息和模式信息。记录时间、主机接收时间与传感器曝光时间可能不同；要从日志生成训练数据，必须先理解这些时间戳的语义。</p>
+
+ <h2 id="datasets">5. 训练数据集：把经历整理成样本</h2>
+ <p>rosbag 更接近完整运行记录，训练数据集则需要明确的 episode、观测、动作、任务与统计信息。转换的关键不是把 <code>.mcap</code> 改名为 <code>.parquet</code>，而是建立每一步之间的语义对应。</p>
+ <table class="coordinates compare"><thead><tr><th>格式</th><th>典型结构</th><th>适合与限制</th></tr></thead><tbody>
+  <tr><td><strong>LeRobot</strong></td><td>Parquet 数值数据 + 视频 + 元数据</td><td>面向机器人学习与 Hugging Face 生态；字段和目录需匹配所用版本</td></tr>
+  <tr><td><strong>RLDS</strong></td><td>Episode 包含 Step 序列</td><td>适合序列决策与跨数据集复用；OXE 等数据集可使用这一表示</td></tr>
+  <tr><td><strong>HDF5</strong></td><td>单文件中的层级数据集</td><td>robomimic 等项目常用；HDF5 本身不规定统一的机器人字段约定</td></tr>
+ </tbody></table>
+ <p>LeRobot v2 系列的一种典型目录如下：</p>
+ <pre tabindex="0"><code>g2_tray_dataset/
+├── meta/
+│   ├── info.json
+│   ├── stats.json
+│   ├── episodes.jsonl
+│   └── tasks.jsonl
+├── data/chunk-000/
+│   └── episode_000000.parquet
+└── videos/chunk-000/
+    └── observation.images.wrist/
+        └── episode_000000.mp4</code></pre>
+ <p><code>info.json</code> 描述字段，<code>stats.json</code> 保存归一化等统计，episodes 与 tasks 记录轨迹和任务元数据。视频压缩通常减少图像存储，但节省比例取决于分辨率、编码和内容，不能预设固定百分比。</p>
+ <pre tabindex="0"><code>{
+  "observation.images.wrist": {
+    "dtype": "video",
+    "shape": [480, 640, 3]
+  },
+  "observation.state": {
+    "dtype": "float32",
+    "shape": [14]
+  },
+  "action": {
+    "dtype": "float32",
+    "shape": [14]
+  }
+}</code></pre>
+ <p>读取 Hub 数据集的示例：</p>
+ <pre tabindex="0"><code>from lerobot.datasets.lerobot_dataset import LeRobotDataset
+
+ds = LeRobotDataset("your_org/g2_tray")
+sample = ds[0]</code></pre>
+ <p>真正需要检查的是：<code>observation.state</code> 的关节顺序是否与机器人一致，图像和状态是否属于同一采集时刻，<code>action[t]</code> 是相对动作还是绝对目标，以及它与哪一帧后续观测对应。</p>
+
+ <h2 id="lifecycle">6. 串起来：一台机器人的数据闭环</h2>
+ <div class="formula">URDF / Xacro：本体结构<br>　↓ 导入、转换并验收<br>USD / MJCF 等：仿真场景与控制对象<br>　↓ 仿真运行，或真机运行<br>ROS 2 消息 → rosbag2 / MCAP：运行记录<br>　↓ 时间对齐、字段抽取、质量控制与版本化<br>LeRobot / RLDS / HDF5：训练数据集<br>　↓ 训练与闭环评测<br>策略部署 → 产生新的运行记录</div>
+ <p>这条链不是唯一流程。仿真器可以绕过 rosbag 直接写训练集，已有数据也可以先转成 RLDS 再进入训练。图的重点是：每次跨越容器时，都要保留坐标、时间、字段和版本的含义。</p>
+ <p>例如 AprilTag 位姿可以留在 rosbag 里供复盘，但只有把相机外参、关节状态、图像时刻和动作目标对应起来，它才可能成为可信的训练样本。</p>
+
+ <h2 id="acceptance">7. 格式转换之后，验收什么</h2>
+ <table class="coordinates"><thead><tr><th>检查项</th><th>要回答的问题</th><th>常见错误</th></tr></thead><tbody>
+  <tr><td><strong>结构</strong></td><td>link、joint、episode 和字段是否完整？</td><td>静默丢关节、闭链被错误展开、回合边界错位</td></tr>
+  <tr><td><strong>几何</strong></td><td>单位、坐标轴、父子关系和资源路径是否一致？</td><td>毫米当米、网格原点漂移、碰撞模型没有随外观更新</td></tr>
+  <tr><td><strong>时间</strong></td><td>时间戳来自曝光、采集还是主机接收？</td><td>用到达时间替代曝光时间，把不同步的图像和状态配成一对</td></tr>
+  <tr><td><strong>动作语义</strong></td><td>动作是绝对目标、增量还是速度？作用于哪个状态？</td><td>把下一时刻目标当当前观测，或把相对量当绝对角</td></tr>
+  <tr><td><strong>统计与版本</strong></td><td>归一化统计从哪批数据计算，配置是否可追溯？</td><td>训练与推理使用不同统计，验证集信息泄漏进训练统计</td></tr>
+  <tr><td><strong>回放证据</strong></td><td>转换前后能否逐帧、逐关节对照？</td><td>只看文件能打开，不看实际轨迹与图像是否一致</td></tr>
+ </tbody></table>
+ <p>最小验收流程可以是：固定一小袋输入 → 自动转换 → 校验字段、形状与时间 → 随机抽样回放 → 对照原始轨迹 → 保存转换器版本和校验值。文件格式只保证容器可读，不保证内容正确。</p>
+
+ <h2 id="quick">8. 速查：我要做什么，该用什么</h2>
+ <table class="coordinates"><thead><tr><th>需求</th><th>常见选择</th><th>别忘了</th></tr></thead><tbody>
+  <tr><td>在 ROS 中描述机器人结构与坐标链</td><td>URDF + Xacro</td><td>关节轴、原点、限位、碰撞与惯量</td></tr>
+  <tr><td>在 MuJoCo 中建模与训练</td><td>MJCF，或由其他模型转换</td><td>转换后的动力学和接触行为</td></tr>
+  <tr><td>组织 Isaac Sim / Omniverse 场景</td><td>USD / USDZ</td><td>组合层、资产依赖和物理 schema</td></tr>
+  <tr><td>记录并回放 ROS 2 运行数据</td><td>rosbag2 + MCAP</td><td>Topic 类型、时间戳与采集配置</td></tr>
+  <tr><td>训练 VLA 或模仿学习策略</td><td>LeRobot、RLDS 或项目既定 HDF5 schema</td><td>观测动作对齐、版本与归一化统计</td></tr>
+  <tr><td>构建 Nav2 二维地图</td><td>PGM + YAML</td><td>分辨率、原点、占据阈值和坐标系</td></tr>
+ </tbody></table>
+ <p><strong>一句话总结：</strong>URDF 说「身体怎样连接」，USD 说「场景怎样组成」，rosbag 说「运行中发生了什么」，训练数据集说「哪些经历可以拿来学习」。格式转换的终点不是文件生成，而是语义经过验证。</p>
+
+ <p class="references">外部参考：<a href="https://openusd.org/release/index.html">USD 官方文档</a> · <a href="https://mcap.dev/">MCAP 官方说明</a> · <a href="https://github.com/huggingface/lerobot">LeRobot 官方仓库</a> · <a href="https://github.com/google-research/rlds">RLDS 官方仓库</a> · <a href="https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/URDF-Main.html">ROS 2 URDF 教程</a></p>
+ <p class="references">相关笔记：<a href="./kinematics.html">正运动学与雅可比</a>（结构怎样变成运动） · <a href="./calibration.html">机器人标定</a>（坐标与时间怎样对齐） · <a href="./training-stack.html">训练系统</a>（数据怎样进入训练链路） · <a href="./embodied-data.html">具身数据</a>（数据来源与供应）</p>
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./embodied-data.html"><span>← 上一篇</span><strong>具身数据：来源、供应商与市场</strong></a>
+  <a class="home" href="../series/"><span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+</article></main>
+<footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+</body></html>
