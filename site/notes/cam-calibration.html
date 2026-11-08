@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/cam-calibration.html">
+ <meta name="theme-color" content="#f7f9fc"><meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="相机标定：四个参数各管什么 · WangN2">
+ <meta property="og:description" content="标定不是让重投影误差变小，是让参数对得上物理世界。一个可拖的投影沙盘，看清每个参数怎么把检测结果推偏。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/cam-calibration.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="相机标定：四个参数各管什么 · WangN2">
+ <meta name="twitter:description" content="标定不是让重投影误差变小，是让参数对得上物理世界。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-11-08"><meta property="article:modified_time" content="2026-11-08"><meta property="article:section" content="标定">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"相机标定：四个参数各管什么","description":"标定不是让重投影误差变小，是让参数对得上物理世界。","url":"https://wangn2.github.io/notes/cam-calibration.html","mainEntityOfPage":"https://wangn2.github.io/notes/cam-calibration.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["相机标定","畸变","张正友","重投影误差"],"datePublished":"2026-11-08","dateModified":"2026-11-08"}</script>
+ <!--/meta-->
+ <title>相机标定：四个参数各管什么 · WangN2</title>
+ <meta name="description" content="标定不是让重投影误差变小，是让参数对得上物理世界。一个可拖的投影沙盘，看清每个参数怎么把检测结果推偏。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/camcal/cc.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 24 / 标定 · 相机</p>
+ <h1>相机标定</h1>
+ <p class="lede">标定不是让重投影误差变小，是让参数对得上物理世界。这两件事经常不一致。</p>
+  <div class="article-meta"><span><time datetime="2026-11-08">2026-11-08</time></span><span>约 6 分钟</span><span>标定</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>第一次做标定最容易陷入的困惑是：跑完了，RMS 0.2 像素，看起来很完美，但一上机器人，板子的高度就是差几厘米。这篇把参数的作用讲透，再说清楚为什么会这样。</p>
+ <p class="callout"><strong>范围。</strong>针孔相机 + 径向切向畸变这一套主流模型。不涉及鱼眼、卷帘快门补偿和双目立体标定的细节。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#what">1. 标定在解一个什么问题</a></li>
+   <li><a href="#intr">2. 四个内参，各管一件事</a></li>
+   <li><a href="#dist">3. 畸变：为什么边缘比中心错得多</a></li>
+   <li><a href="#extr">4. 外参：把相机坐标搬到机器人坐标</a></li>
+   <li><a href="#zhang">5. 张正友：为什么一块平面板就够</a></li>
+   <li><a href="#tools">6. 成熟算法与工具</a></li>
+   <li><a href="#why">7. 为什么 RMS 合格了还会偏</a></li>
+   <li><a href="#verify">8. 验收：不要只看 RMS</a></li>
+   <li><a href="#close">9. 收尾</a></li>
+   </ol>
+  </nav>
+ <h2 id="what">1. 标定在解一个什么问题</h2>
+ <p>相机做的事只有一件：把三维点压到二维像素上。</p>
+ <div class="formula">u = fx · (X/Z) + cx　　v = fy · (Y/Z) + cy</div>
+ <p>这就是针孔模型。<code>X/Y/Z</code> 是点在相机坐标系里的位置，<code>u/v</code> 是它落在哪一列哪一行像素上。</p>
+ <p>标定就是反着来：<strong>我知道一堆三维点的真实位置（标定板上的角点），也知道它们在图像里的像素位置（检测出来的），求中间那组参数。</strong></p>
+ <p>所以标定的本质是最优化——找一组参数，让「按公式算出来的像素位置」和「实际检测到的像素位置」尽可能地接近。这个差值叫<strong>重投影误差</strong>。</p>
+
+ <h2 id="intr">2. 四个内参，各管一件事</h2>
+ <p>内参只有四个数，但每一个错了，画面会以完全不同的方式歪。</p>
+ <table class="coordinates compare"><thead><tr><th>参数</th><th>物理含义</th><th>标错的表现</th></tr></thead><tbody>
+  <tr><td><code>fx</code></td><td>水平方向焦距（像素）</td><td>整体缩放：画面里的东西一起变大或变小</td></tr>
+  <tr><td><code>fy</code></td><td>垂直方向焦距（像素）</td><td>只在纵向缩放；与 fx 不等说明像元不是正方形</td></tr>
+  <tr><td><code>cx</code></td><td>主点横坐标</td><td>整幅画面横向平移</td></tr>
+  <tr><td><code>cy</code></td><td>主点纵坐标</td><td>整幅画面纵向平移</td></tr>
+ </tbody></table>
+ <p>下面的沙盘把它变成能上手的东西：蓝点是<strong>真实检测到的</strong>角点位置，橙点是<strong>按你当前参数预测</strong>的位置，橙线是两者的差距。拖动滑块，看差距怎么长出来。</p>
+
+ <section class="cc-lab" aria-labelledby="cc-title" data-ready="false">
+  <h3 id="cc-title">投影沙盘：参数错了，检测会偏多少</h3>
+  <p class="cc-hint">一块倾斜的 6×4 标定板放在 0.7 m 处。蓝点由真值参数算出，橙点由你的参数算出。右下角给出像素误差，以及它在板面上等于多少毫米。</p>
+  <div class="cc-row">
+   <canvas data-canvas role="img" aria-label="标定板角点在图像上的投影：蓝点为真值，橙点为当前参数预测，橙线为两者差距"></canvas>
+   <div class="cc-side">
+    <div class="cc-actions"><button type="button" data-reset>重置为真值</button><button type="button" data-shift>模拟一次失败的标定</button></div>
+    <div class="cc-ctrl">
+     <label>fx <input type="range" data-in="fx" min="400" max="900" step="1" value="600"><output data-out="fx">600</output></label>
+     <label>fy <input type="range" data-in="fy" min="400" max="900" step="1" value="600"><output data-out="fy">600</output></label>
+     <label>cx <input type="range" data-in="cx" min="500" max="780" step="1" value="640"><output data-out="cx">640</output></label>
+     <label>cy <input type="range" data-in="cy" min="280" max="440" step="1" value="360"><output data-out="cy">360</output></label>
+     <label>k1 <input type="range" data-in="k1" min="-0.6" max="0.6" step="0.01" value="-0.28"><output data-out="k1">-0.28</output></label>
+     <label>k2 <input type="range" data-in="k2" min="-0.3" max="0.3" step="0.01" value="0.09"><output data-out="k2">0.09</output></label>
+    </div>
+    <dl class="cc-readout">
+     <div><dt>最大误差</dt><dd data-read="max">—</dd></div>
+     <div><dt>平均误差</dt><dd data-read="mean">—</dd></div>
+     <div><dt>折合板面</dt><dd data-read="mm">—</dd></div>
+    </dl>
+   </div>
+  </div>
+  <div class="cc-legend">
+   <span><i style="background:#176dae"></i>真实检测位置</span>
+   <span><i style="background:#b0592f"></i>你的参数预测</span>
+  </div>
+  <p class="cc-status" data-status role="status">—</p>
+ </section>
+
+ <p>三个能立刻玩出来的结论：</p>
+ <p><strong>一、cx/cy 是整体平移，fx/fy 是整体缩放。</strong>这两类误差靠看平均值就能发现——所有点朝同一个方向偏，就是主点；所有点从中心散开或聚拢，就是焦距。</p>
+ <p><strong>二、焦距和距离是同一件事的两种解释。</strong>板子看起来大了，可能是相机焦距大，也可能是板子离得近。单目里这两者不可分——这就是<strong>尺度模糊</strong>。所以标定板的尺寸必须准确。</p>
+ <p><strong>三、一像素很贵。</strong>在 0.7 m 处，1 px 大约是 1.2 mm。十来个像素的误差，落到抓取上就是一两厘米的偏差。</p>
+
+ <h2 id="dist">3. 畸变：为什么边缘比中心错得多</h2>
+ <p>真实镜头不是理想针孔，直线会被拍弯。主流模型是这样修正的：</p>
+ <div class="formula">x' = x·(1 + k1·r² + k2·r⁴)　　r² = x² + y²</div>
+ <p><code>k1</code> 管主要的弯曲方向：负值是桶形（边缘往外鼓），正值是枕形（边缘往里收）。<code>k2</code> 修高阶残差。</p>
+ <p>注意这个式子里的 <code>r</code>——<strong>畸变随半径四次方增长</strong>，所以画面中心几乎是线性的，越往外错得越快。这解释了那条经验：<strong>板子只放画面中央，畸变系数根本没被约束住</strong>，标出来的 k1 是猜的。</p>
+ <p>把沙盘里的 k1 从 -0.28 拖到 0，你会看到橙色的网格变直，而蓝点还是弯的——真实相机就是弯的，把 k1 设成 0 就是用错误模型去解释它。</p>
+
+ <h2 id="extr">4. 外参：把相机坐标搬到机器人坐标</h2>
+ <p>内参描述相机自己，外参描述它装在哪。一个刚体变换，六个自由度：三个旋转、三个平移。</p>
+ <div class="formula">P_robot = R · P_camera + t</div>
+ <p>外参标错的典型表现不是画面歪，而是<strong>整个世界一起偏</strong>：板子整体高了几厘米、料盘整体远了十厘米。因为它是一个作用在所有观测上的同一个变换。</p>
+ <p>这也是它比内参更难查的原因——内参错了，不同位置的误差不一样，你能看出来是畸变；外参错了，所有点一致地偏，看起来反而"很稳定"。</p>
+
+ <h2 id="zhang">5. 张正友：为什么一块平面板就够</h2>
+ <p>一张平面标定板在同一姿态下只能提供一个单应矩阵（八自由度），但相机有五个内参加畸变。单张不够，多张不同姿态就够。</p>
+ <p>张正友方法的价值在于：<strong>它证明了不需要三维标定物</strong>。一张打印的棋盘格，从十几个角度拍，就能同时解出内参和每张图的位姿。</p>
+ <p>两步走：先用闭式解（线性代数）拿到初值，再用非线性最小二乘（Levenberg-Marquardt）精化。前者保证不跑偏，后者保证精度。</p>
+
+ <h2 id="tools">6. 成熟算法与工具</h2>
+ <table class="coordinates compare"><thead><tr><th>工具</th><th>适合</th><th>要点</th></tr></thead><tbody>
+  <tr><td><strong>OpenCV</strong> <code>calibrateCamera</code></td><td>最通用</td><td>棋盘格 / 圆点板 / ChArUco；返回值里带 RMS</td></tr>
+  <tr><td>OpenCV <code>solvePnP</code></td><td>外参与位姿</td><td>已知 3D-2D 对应求位姿；<code>SOLVEPNP_IPPE</code> 适合平面</td></tr>
+  <tr><td><strong>MATLAB</strong> Camera Calibrator</td><td>教学与验证</td><td>交互看残差分布，适合判断"哪里错了"</td></tr>
+  <tr><td><strong>Kalibr</strong></td><td>多相机 + IMU</td><td>连续时间标定，能同时解时间偏移</td></tr>
+  <tr><td>ROS <code>camera_calibration</code></td><td>在线快速标定</td><td>适合现场，精度一般</td></tr>
+  <tr><td><strong>ChArUco / AprilTag</strong>（OpenCV contrib）</td><td>遮挡、部分可见</td><td>带 ID，单张可解位姿</td></tr>
+  <tr><td>COLMAP</td><td>无标定板自标定</td><td>从普通照片重建，适合大场景</td></tr>
+  <tr><td>HALCON <code>calibrate_cameras</code></td><td>工业产线</td><td>商业库，配套标定板精度高</td></tr>
+ </tbody></table>
+ <p>新手建议：先用 OpenCV 走一遍完整流程，再用 MATLAB 的残差可视化核对一遍。两个结果差得多，说明数据有问题，不是算法有问题。</p>
+
+ <h2 id="why">7. 为什么 RMS 合格了还会偏</h2>
+ <p>这是上一轮最折磨人的地方，也是这篇最想说清的一点。</p>
+ <p><strong>原因一：外参和板子位姿是一起优化的。</strong>内参固定后，每张图的板子位姿和外参是同一组未知量。模型完全可以通过调整板子位姿，把外参的偏差吸收掉。你得到的是一个<strong>自洽的解</strong>，不是一个<strong>正确的解</strong>。RMS 小，只证明模型内部一致。</p>
+ <p><strong>原因二：单个姿态只能定两个旋转自由度。</strong>把板子放在同一个位置、同一个角度，无论怎么标，绕板面法线的那一维（偏航）都没有信息。必须换倾斜方位、换距离，才能把它约束住。</p>
+ <p><strong>原因三：用卷尺量绝对高度，会和俯仰耦合。</strong>高度差几毫米，既可以是整体抬高，也可以是一个小角度旋转造成的。两种解释对同一个测量是等价的，所以你永远调不平——这不是手法问题，是观测量不足以区分。</p>
+ <p>正确的做法是：<strong>用水平仪测角度，不用卷尺测高度</strong>。角度是独立的观测量，高度不是。</p>
+
+ <h2 id="verify">8. 验收：不要只看 RMS</h2>
+ <p>三个层次的验收，从弱到强：</p>
+ <p><strong>一、重投影误差。</strong>必要不充分。工程上常看角点数（≥28）和 RMS（≤0.8 px），但这只是入门门槛。</p>
+ <p><strong>二、留出验证。</strong>用没参与标定的点或位姿做检验。标定集和验证集的残差同量级，才算没有过拟合。</p>
+ <p><strong>三、物理任务。</strong>让机器人去指一个已知点、抓一个已知尺寸的块、把一个物体放到另一个物体上。这是唯一能证明参数对得上物理世界的检验。</p>
+ <p>一句话：<strong>标定的产出不是一个变换矩阵，是矩阵加上它的不确定度。</strong>没有不确定度的标定，验收时只能凭感觉。</p>
+
+ <h2 id="close">9. 收尾</h2>
+ <p>回到开头那句：标定不是让重投影误差变小，是让参数对得上物理世界。</p>
+ <p>这两个目标在数据充分时是一致的，在数据不足时会分道扬镳——而现场标定几乎总是数据不足。所以与其追求更小的 RMS，不如先问：<strong>我的数据覆盖了哪些自由度？哪些方向根本没人约束？</strong></p>
+ <p>想清楚了再去拍板子，比拍完两百张再返工要省得多。</p>
+
+ <p class="references">相关笔记：<a href="./calibration.html">机器人标定：内参、外参、手眼与时间</a>（四类标定的系统视角） · <a href="./apriltag.html">AprilTag 视觉定位详解</a>（标签怎么变成位姿） · <a href="./hand-eye.html">手眼标定：AX=XB</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./harnessvln.html"><span>← 上一篇</span><strong>HarnessVLN 机制与行业趋势</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/camcal/cc.js"></script>
+</body></html>
