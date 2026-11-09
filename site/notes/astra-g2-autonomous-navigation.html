@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!--meta--><link rel="canonical" href="https://wangn2.github.io/notes/astra-g2-autonomous-navigation.html"><meta name="theme-color" content="#f7f9fc"><meta name="author" content="WangN2">
+<link rel="icon" href="../assets/favicon.ico" sizes="32x32"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN"><meta property="og:title" content="Astra × G2：自主建图、探索与语义导航工程方案 · WangN2"><meta property="og:description" content="将 Astra Agent、G2 SDK、SLAM、Frontier Exploration 和 Nav2 组成可验证的自主建图与导航闭环，解析接口、安全、状态机与验收。"><meta property="og:url" content="https://wangn2.github.io/notes/astra-g2-autonomous-navigation.html">
+<meta property="og:image" content="https://wangn2.github.io/assets/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+<meta property="article:published_time" content="2026-11-09"><meta property="article:modified_time" content="2026-11-09"><meta property="article:section" content="应用工程"><script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Astra × G2：自主建图、探索与语义导航工程方案","description":"将 Astra Agent、G2 SDK、SLAM、Frontier Exploration 和 Nav2 组成可验证的自主建图与导航闭环，解析接口、安全、状态机与验收。","url":"https://wangn2.github.io/notes/astra-g2-autonomous-navigation.html","mainEntityOfPage":"https://wangn2.github.io/notes/astra-g2-autonomous-navigation.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"datePublished":"2026-11-09","dateModified":"2026-11-09","about":["Astra","G2","SLAM","Nav2","Frontier Exploration"]}</script><!--/meta-->
+<title>Astra × G2：自主建图、探索与语义导航工程方案 · WangN2</title><meta name="description" content="将 Astra Agent、G2 SDK、SLAM、Frontier Exploration 和 Nav2 组成可验证的自主建图与导航闭环，解析接口、安全、状态机与验收。"><link rel="stylesheet" href="../assets/site.css"></head><body>
+<header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article"><p class="eyebrow">NOTE 25 / 应用篇 · 自主导航</p><h1>Astra × G2：自主建图、探索与语义导航工程方案</h1>
+<p class="lede">让 Astra 决定探索什么，让 SLAM 构图，让导航系统规划与避障，让 G2 的运动控制层始终保有独立安全保护。</p>
+<div class="article-meta"><span><time datetime="2026-11-09">2026-11-09</time></span><span>约 7 分钟</span><span>应用工程</span><a class="series-link" href="../series/">全系列 ›</a></div>
+<p class="callout"><strong>状态声明：</strong>本文是工程设计，不是已完成的 G2 真机导航实验。API 和数值均需在当前设备上核实。</p>
+<nav class="toc" aria-labelledby="toc-title"><p class="toc-title" id="toc-title">本文目录</p><ol><li><a href="#objective">1. 目标与真实场景</a></li>
+<li><a href="#architecture">2. 架构：Astra 决策、SLAM 建图、导航执行</a></li>
+<li><a href="#selection">3. 技术路线：原生导航还是 slam_toolbox + Nav2</a></li>
+<li><a href="#diagnostic">4. 第一步：探测 G2 SDK 与 ROS 2 接口</a></li>
+<li><a href="#tools">5. Astra 的工具协议：只读、仅规划、执行严格分权</a></li>
+<li><a href="#exploration">6. 自主建图：Frontier Exploration 与 Astra 的协作</a></li>
+<li><a href="#semantic">7. 语义地图：把“上料架”落到 map 坐标</a></li>
+<li><a href="#wholebody">8. 轮臂式机器人：底盘路径不是全身安全</a></li>
+<li><a href="#state-machine">9. 任务状态机与故障恢复</a></li>
+<li><a href="#project">10. 工程拆分与日志设计</a></li>
+<li><a href="#validation">11. 分期实施和验收</a></li>
+<li><a href="#conclusion">12. 下一步：从接口清单开始，而不是继续堆 Prompt</a></li></ol></nav>
+<h2 id="objective">1. 目标与真实场景</h2>
+<p>我们要实现的，不是让大模型直接计算轮速，而是让轮臂式 G2 接受“探索工位、建立地图，最后导航到上料架”的任务，能够自主选择观察位置、发起规划、读取运动反馈并诊断失败。工作区域按约 5×10 m 的仪表线束工位考虑：多工位、窄通道、频繁移动、经常需要精确对位。</p><p>本文是技术方案，不是已经完成的 G2 真机测评。SDK 接口、传感器频率、碰撞包络、定位误差都必须以当前设备的实际数据验证。下文所有坐标均为格式示例。</p>
+<h2 id="architecture">2. 架构：Astra 决策、SLAM 建图、导航执行</h2>
+<div class="formula">任务 → Astra（语义理解／探索策略／失败归因）<br>↓ 结构化工具申请<br>Robot Navigation Harness（校验／授权／状态机／日志）<br>↓ SDK Bridge / ROS 2<br>SLAM（地图与定位）＋ Navigation（规划与避障）<br>↓ 受控运动指令<br>G2 底盘控制与独立安全保护 → 传感器反馈</div><table class="coordinates"><thead><tr><th>模块</th><th>职责</th><th>不做什么</th></tr></thead><tbody><tr><td>Astra</td><td>任务拆解、选择探索目标、异常恢复策略</td><td>不直接控制速度或绕过安全互锁</td></tr><tr><td>Harness</td><td>工具合同、状态检查、授权、日志</td><td>不把语言输出当执行证据</td></tr><tr><td>SLAM</td><td>传感器匹配、里程计、位姿图优化与地图</td><td>不交给 LLM 直接估计精确位姿</td></tr><tr><td>Navigation</td><td>全局路径、局部避障、控制闭环</td><td>不等待云端模型处理紧急制动</td></tr><tr><td>G2 Controller</td><td>运动执行、故障和急停保护</td><td>不允许 Agent 越权关闭保护</td></tr></tbody></table><p>核心原则是高层低频决策和低层高频控制分离。Astra 可以换模型，但机器人仍应可独立安全停车。</p>
+<h2 id="selection">3. 技术路线：原生导航还是 slam_toolbox + Nav2</h2>
+<p>首选复用 G2 当前固件开放的建图、定位和导航功能，减少软件栈与硬件耦合。若有原生 SLAM 和位姿但导航能力不足，可适配 ROS 2 Nav2；若只开放雷达、里程计与底盘控制，才考虑自己集成 <code>slam_toolbox + Nav2</code>。不能将其他机型 SDK 话题当成 G2 已存在的接口。</p><table class="coordinates"><thead><tr><th>已具备</th><th>建议</th><th>仍需确认</th></tr></thead><tbody><tr><td>原生 SLAM + 导航</td><td>SDK Tool Adapter</td><td>仅规划、取消、状态回调</td></tr><tr><td>原生 SLAM + 位姿</td><td>接 Nav2</td><td>地图、TF、底盘指令协议</td></tr><tr><td>雷达 + Odom + TF</td><td>slam_toolbox + Nav2</td><td>传感器标定、控制开放程度</td></tr></tbody></table><p>为调试可复现性，优先把原生 SDK 封装成等价工具协议，而不是改造机器人核心控制器。</p>
+<h2 id="diagnostic">4. 第一步：探测 G2 SDK 与 ROS 2 接口</h2>
+<p>先做只读诊断，记录 topic、service、action、frame、消息类型、频率和时间戳。</p><pre tabindex="0"><code>printenv ROS_DISTRO
+ros2 node list
+ros2 topic list -t | grep -Ei 'map|scan|lidar|points|odom|pose|tf|costmap|path'
+ros2 action list -t
+ros2 service list -t | grep -Ei 'map|slam|localiz|nav|plan'
+ros2 run tf2_ros tf2_echo map base_link
+ros2 topic info /map -v
+ros2 topic echo /odom --once</code></pre><p>如果 G2 当前使用厂家私有通信栈、ROS 2 Bridge 未启动或 frame 命名不同，上述命令可能失败；这不是没有导航功能的证据。需要转查官方 GDK SDK。尤其要确认 <code>map→odom→base_link</code> 的可用性和坐标/时间一致性。</p>
+<h2 id="tools">5. Astra 的工具协议：只读、仅规划、执行严格分权</h2>
+<table class="coordinates"><thead><tr><th>拟封装工具</th><th>作用</th><th>权限</th></tr></thead><tbody><tr><td><code>robot_get_state</code></td><td>位姿、控制模式、健康状态</td><td>只读</td></tr><tr><td><code>robot_observe</code></td><td>图像、激光与障碍摘要</td><td>只读</td></tr><tr><td><code>map_start / map_save</code></td><td>管理 SLAM 生命周期</td><td>受控</td></tr><tr><td><code>frontier_get_candidates</code></td><td>可达前沿与收益评估</td><td>只读</td></tr><tr><td><code>navigation_plan</code></td><td>仅规划、无运动</td><td>只规划</td></tr><tr><td><code>navigation_execute</code></td><td>执行有效 plan_id</td><td>显式授权</td></tr><tr><td><code>navigation_get_status</code></td><td>进度和失败原因</td><td>只读</td></tr><tr><td><code>navigation_cancel</code></td><td>取消并核实停止</td><td>本地紧急通道</td></tr></tbody></table><pre tabindex="0"><code>{
+  "tool": "navigation_plan",
+  "arguments": {
+    "goal": {"frame": "map", "x": 2.4, "y": 1.3, "yaw": 1.57},
+    "map_version": "map_008",
+    "footprint_mode": "tray_loaded"
+  }
+}</code></pre><p>以上名称由项目自行定义，绝非已确认存在的 G2 SDK API。建议计划结果包含 <code>plan_id、request_id、map_version、robot_state_hash、expires_at、feasibility</code>。坐标/地图版本、碰撞包络或定位状态变化时，旧计划必须失效。尤其避免“仅规划调用实际就执行”的耦合。</p>
+<h2 id="exploration">6. 自主建图：Frontier Exploration 与 Astra 的协作</h2>
+<p>Frontier 是占据栅格地图上已知自由区与未知区的边界。首先由确定性算法提取、聚类并生成安全观测目标，再由规划器评估可达性，最后 Astra 对候选区域进行任务级排序。可以使用下面的启发式评分，但它不是执行安全证书。</p><div class="formula">score = α × information_gain − β × travel_cost − γ × risk − δ × revisit_penalty</div><pre tabindex="0"><code>while task_active:
+    state = robot_get_state()
+    if state.localization_lost or state.safety_stop:
+        enter_safe_hold(); break
+    frontiers = frontier_get_candidates()
+    options = [f for f in frontiers if f.reachable and f.clearance_ok]
+    if not options:
+        finish_or_request_review(); break
+    target = astra_choose(options, mission_context)
+    plan = navigation_plan(target)
+    if plan.valid and execution_policy_approves(plan):
+        result = navigation_execute(plan.id)
+        record_feedback(result)
+    else:
+        record_rejection(plan)
+    refresh_map_and_frontiers()</code></pre><p>探索的完成不应以模型一句“地图完成了”为准。要结合可达覆盖率、剩余有价值前沿、回环后地图稳定性、定位质量和人工标定的禁入区域。对狭窄工位，严禁为了提高未知格覆盖率盲目探入设备之间。</p>
+<h2 id="semantic">7. 语义地图：把“上料架”落到 map 坐标</h2>
+<p>occupancy grid 表示哪里有障碍，Semantic Map 则补上工位类别、工艺语义、可接近方位、对位方式和校准来源。语义观测必须经过视觉几何估计、TF 变换和物理校验后才能写入世界坐标，不让模型凭图像直接猜出厘米级位置。</p><pre tabindex="0"><code>stations:
+  loading_rack:
+    type: material_supply
+    frame_id: map
+    approach_pose: [1.2, 2.4, 1.57]  # 示例
+    docking: visual_refinement
+  harness_board:
+    type: assembly_station
+    frame_id: map
+    approach_pose: [3.1, 1.8, 0.0]</code></pre><p>可设置“导航到工位前方安全等待点”与“视觉伺服精准对位”两个阶段：前者适合 Nav2，后者适合 AprilTag 或厂家精确停靠接口。地图更新后需要重新验证所有站点坐标与可达性。</p>
+<h2 id="wholebody">8. 轮臂式机器人：底盘路径不是全身安全</h2>
+<p>手臂收拢与伸出、夹爪外形、携带上料盘时的外伸、线束柔性摆动，都可能使可通行空间发生变化。至少定义 <code>stowed</code>、<code>tray_loaded</code>、<code>station_docking</code> 三种碰撞和速度模式。规划结果与相应模式绑定；模式改变后必须重新规划。</p><p>2D footprint 和 inflation layer 不等于全身 3D 碰撞检查。工位横梁、桌面突出部分和悬空线束尤其需要三维感知或现场禁行规则。先用固定收臂姿态实现稳健移动，再推进 Whole-Body Planning，避免一开始同时引入太多未验证变量。</p>
+<h2 id="state-machine">9. 任务状态机与故障恢复</h2>
+<div class="formula">IDLE → OBSERVE → MAP/LOCALIZE → SELECT → PLAN_ONLY<br>→ VALIDATE → EXECUTE → VERIFY → LOG → NEXT<br>任何关键异常 → SAFE_HOLD / HUMAN_REVIEW</div><table class="coordinates"><thead><tr><th>故障</th><th>系统动作</th></tr></thead><tbody><tr><td>定位丢失、TF 时序异常</td><td>进入安全停止，检查传感器和重新定位</td></tr><tr><td>路径规划失败</td><td>给前沿点标记失败，选择其他目标</td></tr><tr><td>局部通道受阻</td><td>局部避障、有限次数重规划，随后等待/接管</td></tr><tr><td>Astra 请求超时</td><td>底层安全策略独立生效；不得因等待云端推理继续冒险运动</td></tr><tr><td>状态/包络变化</td><td>废弃旧 plan_id，重新规划和审批</td></tr></tbody></table><p>完成条件由导航 action 结果、位置与朝向误差、稳定停车反馈等证据共同判断。人的任务授权、Agent 的 API 权限、软件执行许可和控制器安全互锁不是一种授权，任何一层都不应伪造另一层状态。</p>
+<h2 id="project">10. 工程拆分与日志设计</h2>
+<pre tabindex="0"><code>g2_navigation_agent/
+├── agent/          # Astra client / prompt / tool schema
+├── harness/        # permissions / state machine / event log
+├── g2_bridge/      # GDK adapter / ROS 2 action clients
+├── mapping/        # frontier / map metrics / semantic map
+├── navigation/     # plan-only / execution / monitor
+├── config/         # station poses / footprint modes
+└── tests/          # offline / sim / fault injection</code></pre><p>日志必须记录 <code>task_id、request_id、model_version、sdk_version、map_version、robot_pose、tool_call、validator_decision、execution_state、feedback</code>。分别标注“生成计划”“验证通过”“命令已下发”“机器人实际运动”“导航任务成功”，绝不互相替代。对于先前碰到的 G2 执行准入问题，这套证据链也是最短排查路径。</p>
+<h2 id="validation">11. 分期实施和验收</h2>
+<table class="coordinates"><thead><tr><th>阶段</th><th>做什么</th><th>验收</th></tr></thead><tbody><tr><td>P0 接口摸底</td><td>只读 SDK、ROS 2、TF 和地图</td><td>接口表和时间戳一致性</td></tr><tr><td>P1 仿真闭环</td><td>Frontier → plan → simulated execution</td><td>覆盖率、重试与错误恢复统计</td></tr><tr><td>P2 低速受控真机</td><td>限定区域自主探索</td><td>停止验证、导航日志、人工接管可用</td></tr><tr><td>P3 工位导航</td><td>固定站点往返和靠近</td><td>任务成功率、停靠误差及碰撞/近失记录</td></tr><tr><td>P4 语义导航</td><td>自然语言选站、地图与失败记忆</td><td>语义目标准确率和独立到达验证</td></tr></tbody></table><p>建议以地图覆盖率、定位漂移、路径长度/理论最短路径、平均规划耗时、到达率、人工接管率、错误停机、近失事件和恢复成功率作为指标。验收阈值需依据真机数据和风险评估共同确定，而不是凭空承诺厘米级精度。</p>
+<h2 id="conclusion">12. 下一步：从接口清单开始，而不是继续堆 Prompt</h2>
+<p>最短路径是：确认 G2 当前开放的 SLAM/导航能力 → 实现 <code>get_state + plan_only + execute + status</code> → 仿真 Frontier 闭环 → 人工监督的低速探索 → 语义工位与精停。只有确认实际 GDK API 名称和能力以后，才可以把抽象接口替换成真机调用。</p><p><strong>结论：</strong>Astra 适合做有证据约束的导航 Agent，不适合替代 SLAM 后端、实时局部规划或设备安全系统。将“模型提议、Harness 验证、导航执行、证据反馈”变成稳定协议，是线束机器人走向自主作业的关键。</p><p class="references">相关笔记：<a href="./harnessvln.html">HarnessVLN：证据闭环</a> · <a href="./costmap.html">代价地图</a> · <a href="./astra-robot-admission.html">Astra 真机准入复盘</a> · <a href="./swerve-base.html">全向底盘</a></p><p class="references">公开参考：<a href="https://docs.nav2.org/">Nav2 官方文档</a> · <a href="https://github.com/SteveMacenski/slam_toolbox">slam_toolbox</a> · <a href="https://docs.ros.org/">ROS 2 文档</a>。这些资料不代表已确认 G2 支持相同接口。</p>
+<nav class="note-nav" aria-label="笔记导航"><a class="prev" href="./cam-calibration.html"><span>← 上一篇</span><strong>相机标定：四个参数各管什么</strong></a><a class="home" href="../series/"><span>系列索引</span><strong>学习地图 · 全部笔记</strong></a></nav>
+</article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer></body></html>
