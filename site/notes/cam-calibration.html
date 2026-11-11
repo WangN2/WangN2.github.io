@@ -30,7 +30,7 @@
  <p class="eyebrow">NOTE 24 / 标定 · 相机</p>
  <h1>相机标定</h1>
  <p class="lede">标定不是让重投影误差变小，是让参数对得上物理世界。这两件事经常不一致。</p>
-  <div class="article-meta"><span><time datetime="2026-11-08">2026-11-08</time></span><span>约 8 分钟</span><span>标定</span><a class="series-link" href="../series/">全系列 ›</a></div>
+  <div class="article-meta"><span><time datetime="2026-11-08">2026-11-08</time></span><span>约 9 分钟</span><span>标定</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>第一次做标定最容易陷入的困惑是：跑完了，RMS 0.2 像素，看起来很完美，但一上机器人，板子的高度就是差几厘米。这篇把参数的作用讲透，再说清楚为什么会这样。</p>
  <p class="callout"><strong>范围。</strong>针孔相机 + 径向切向畸变这一套主流模型。不涉及鱼眼、卷帘快门补偿和双目立体标定的细节。</p>
@@ -152,6 +152,68 @@
  <p>两个关于参数向量的坑：</p>
  <p><strong>一、畸变向量长度决定用哪个模型。</strong>四个元素是 (k1, k2, p1, p2)，只算径向；五个元素加上 k3；再到 k4–k6、s1–s4 要显式传 <code>CALIB_RATIONAL_MODEL</code> / <code>CALIB_THIN_PRISM_MODEL</code>。<strong>写错长度，OpenCV 不会报错，只会换一个模型悄悄算</strong>。</p>
  <p><strong>二、固定哪些参数要用 flag。</strong><code>CALIB_USE_INTRINSIC_GUESS</code> 让算法从你给的初值出发；<code>CALIB_FIX_PRINCIPAL_POINT</code>、<code>CALIB_FIX_K1</code> 等把某项钉死。数据不足时适当钉死几项，比让它们自由浮动更稳——这本身就是一种正则化。</p>
+
+ <h3 id="cpp">C++ 最小完整流程</h3>
+ <p>把上面那串函数串起来，其实不到四十行。下面这段可以直接编译，改一下读图那段就能用。</p>
+ <pre tabindex="0"><code>#include &lt;opencv2/opencv.hpp&gt;
+#include &lt;iostream&gt;
+
+int main() {
+    const cv::Size pattern(9, 6);      // 内角点数：9 列 6 行（不是格子数）
+    const float square = 0.025f;       // 方格边长，单位米——这个数直接决定尺度
+
+    std::vector&lt;cv::Point3f&gt; obj;
+    for (int r = 0; r &lt; pattern.height; ++r)
+        for (int c = 0; c &lt; pattern.width; ++c)
+            obj.emplace_back(c * square, r * square, 0.f);
+
+    std::vector&lt;std::vector&lt;cv::Point3f&gt;&gt; objectPoints;
+    std::vector&lt;std::vector&lt;cv::Point2f&gt;&gt; imagePoints;
+    cv::Size imageSize;
+
+    // imagePaths: std::vector&lt;std::string&gt;
+    for (const auto&amp; path : imagePaths) {
+        cv::Mat img = cv::imread(path, cv::IMREAD_GRAYSCALE);
+        if (img.empty()) continue;
+        imageSize = img.size();
+
+        std::vector&lt;cv::Point2f&gt; corners;
+        if (!cv::findChessboardCornersSB(img, pattern, corners,
+                cv::CALIB_CB_EXHAUSTIVE | cv::CALIB_CB_ACCURACY))
+            continue;                  // 没找到就跳过，不要硬塞近似值
+
+        imagePoints.push_back(corners);
+        objectPoints.push_back(obj);
+    }
+
+    cv::Mat K, D;
+    std::vector&lt;cv::Mat&gt; rvecs, tvecs;
+    double rms = cv::calibrateCamera(objectPoints, imagePoints, imageSize,
+                                     K, D, rvecs, tvecs);
+
+    std::cout &lt;&lt; "images: " &lt;&lt; imagePoints.size()
+              &lt;&lt; "  RMS: " &lt;&lt; rms &lt;&lt; " px\n";
+    std::cout &lt;&lt; "K =\n" &lt;&lt; K &lt;&lt; "\nD = " &lt;&lt; D.t() &lt;&lt; "\n";
+}</code></pre>
+ <p>三个细节值得注意。第一，<strong>SB 版本内部已经做了亚像素</strong>，不需要再调 <code>cornerSubPix</code>，它的 <code>CALIB_CB_EXHAUSTIVE | CALIB_CB_ACCURACY</code> 就是拿时间换精度。第二，<code>pattern</code> 是<strong>内角点数</strong>：代码里的 9×6 对应 10×7 个方格的板子。这个数填错，角点会全部找不到或全错位，整轮白跑。第三，<code>square</code> 的单位决定输出外参的单位，用毫米就全程毫米，别混。</p>
+ <p>编译大概是这样：</p>
+ <pre tabindex="0"><code>g++ -O2 calib.cpp -o calib $(pkg-config --cflags --libs opencv4)</code></pre>
+ <p>然后是<strong>比标定本身更重要的一步</strong>：逐张看残差。总 RMS 会把一张特别差的图平均掉，逐张看才找得到它。</p>
+ <pre tabindex="0"><code>for (size_t i = 0; i &lt; imagePoints.size(); ++i) {
+    std::vector&lt;cv::Point2f&gt; proj;
+    cv::projectPoints(objectPoints[i], rvecs[i], tvecs[i], K, D, proj);
+
+    double sum = 0, mx = 0;
+    for (size_t k = 0; k &lt; proj.size(); ++k) {
+        double e = cv::norm(proj[k] - imagePoints[k]);
+        sum += e;
+        if (e > mx) mx = e;
+    }
+    std::cout &lt;&lt; "view " &lt;&lt; i
+              &lt;&lt; "  mean " &lt;&lt; sum / proj.size()
+              &lt;&lt; "  max " &lt;&lt; mx &lt;&lt; " px\n";
+}</code></pre>
+ <p>判读方式很简单：<strong>大多数图在 0.2–0.3 px，个别图蹦到 1 px 以上，就把那几张删掉重标</strong>。通常是那一张过曝、动模糊，或者角点被手挡住了。留着一张坏图，等于让整个解往它那边偏。</p>
 
  <h2 id="why">7. 为什么 RMS 合格了还会偏</h2>
  <p>这是上一轮最折磨人的地方，也是这篇最想说清的一点。</p>
