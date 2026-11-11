@@ -42,9 +42,30 @@ test('share image, icons and 404 page are real files',()=>{
 test('sitemap and robots describe exactly the published pages',()=>{
  const sitemap=fs.readFileSync(path.join(root,'sitemap.xml'),'utf8');
  assert.match(sitemap,/^<\?xml version="1\.0" encoding="UTF-8"\?>/);
+ // 只靠正则取 <loc> 抓不到结构错误：某个 </url> 后面多出一截，
+ // <loc> 集合仍然完整，但解析器已经认为整份 sitemap 是坏的，搜索引擎会整份丢弃。
+ // 所以这里额外做一次标签配对检查。
+ const stack=[]; let m;
+ const tag=/<(\/?)([A-Za-z_][\w:.-]*)([^>]*?)(\/?)>/g;
+ while((m=tag.exec(sitemap))){
+  const close=m[1], name=m[2], selfClose=m[4];
+  if(close){
+   assert.equal(stack.pop(),name,'sitemap tag mismatch at </'+name+'>');
+  }else if(!selfClose){
+   stack.push(name);
+  }
+ }
+ assert.deepEqual(stack,[],'sitemap has unclosed tags: '+stack.join(','));
+
  const locs=[...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]);
  assert.deepEqual(new Set(locs),new Set(published.map(p=>origin+canonicalFor(p))),'sitemap entries must match published pages');
  assert.equal(locs.length,new Set(locs).size,'sitemap must not repeat urls');
+ // 每条 url 的字段要齐，别靠解析器宽容——搜索引擎对缺字段的容忍度不一样，
+ // 而且手工插入的条目最容易只写 <loc>。
+ for(const block of sitemap.match(/<url>[\s\S]*?<\/url>/g)){
+  assert.match(block,/^<url><loc>https:\/\/[^<]+<\/loc><lastmod>\d{4}-\d{2}-\d{2}<\/lastmod><changefreq>[a-z]+<\/changefreq><priority>[\d.]+<\/priority><\/url>$/,
+   'sitemap entry missing fields: '+block.slice(0,90));
+ }
  for(const url of locs)assert.match(url,/^https:\/\/wangn2\.github\.io\//);
  const robots=fs.readFileSync(path.join(root,'robots.txt'),'utf8');
  assert.match(robots,/^User-agent: \*$/m);assert.match(robots,/^Sitemap: https:\/\/wangn2\.github\.io\/sitemap\.xml$/m);
