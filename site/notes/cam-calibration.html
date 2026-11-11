@@ -30,7 +30,7 @@
  <p class="eyebrow">NOTE 24 / 标定 · 相机</p>
  <h1>相机标定</h1>
  <p class="lede">标定不是让重投影误差变小，是让参数对得上物理世界。这两件事经常不一致。</p>
-  <div class="article-meta"><span><time datetime="2026-11-08">2026-11-08</time></span><span>约 6 分钟</span><span>标定</span><a class="series-link" href="../series/">全系列 ›</a></div>
+  <div class="article-meta"><span><time datetime="2026-11-08">2026-11-08</time></span><span>约 8 分钟</span><span>标定</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>第一次做标定最容易陷入的困惑是：跑完了，RMS 0.2 像素，看起来很完美，但一上机器人，板子的高度就是差几厘米。这篇把参数的作用讲透，再说清楚为什么会这样。</p>
  <p class="callout"><strong>范围。</strong>针孔相机 + 径向切向畸变这一套主流模型。不涉及鱼眼、卷帘快门补偿和双目立体标定的细节。</p>
@@ -131,11 +131,34 @@
  </tbody></table>
  <p>新手建议：先用 OpenCV 走一遍完整流程，再用 MATLAB 的残差可视化核对一遍。两个结果差得多，说明数据有问题，不是算法有问题。</p>
 
+ <h3 id="opencv">OpenCV calib3d 速查</h3>
+ <p>真正干活时，这个模块只用得到十几二十个函数。按「一步对应一个函数」记，比记 API 列表有用得多。完整签名见 <a href="https://docs.opencv.org/4.11.0/d9/d0c/group__calib3d.html">OpenCV 4.11 calib3d 文档</a>。</p>
+ <table class="coordinates compare"><thead><tr><th>要做的事</th><th>函数</th><th>说明</th></tr></thead><tbody>
+  <tr><td>找角点</td><td><code>findChessboardCorners</code><br><code>findChessboardCornersSB</code></td><td>SB 版基于扇区，对大图和低对比度更稳，不需要再跑亚像素细化</td></tr>
+  <tr><td>角点提精</td><td><code>cornerSubPix</code></td><td>把角点从整像素推到亚像素，直接影响 RMS 能不能压到 0.3 px 以内</td></tr>
+  <tr><td>圆点板</td><td><code>findCirclesGrid</code></td><td>相位不同、对模糊更宽容，工业场景常用</td></tr>
+  <tr><td>标内参</td><td><code>calibrateCamera</code></td><td>一次给内参、畸变、每张图的外参；返回总 RMS</td></tr>
+  <tr><td>高阶畸变</td><td><code>calibrateCameraRO</code></td><td>支持 k4–k6 的有理模型、薄棱镜 s1–s4、倾斜传感器</td></tr>
+  <tr><td>求位姿</td><td><code>solvePnP</code><br><code>solvePnPRansac</code></td><td>已知 3D-2D 对应求位姿；平面目标用 <code>SOLVEPNP_IPPE</code>，有外点时用 Ransac 版</td></tr>
+  <tr><td>投影</td><td><code>projectPoints</code></td><td>算重投影误差就靠它，也是验收脚本的核心</td></tr>
+  <tr><td>去畸变</td><td><code>undistort</code><br><code>initUndistortRectifyMap</code> + <code>remap</code></td><td>单张用前者；视频流用后者，映射表只算一次</td></tr>
+  <tr><td>选新内参</td><td><code>getOptimalNewCameraMatrix</code></td><td>去畸变后画面边缘会空一块，用它决定保留多少视场</td></tr>
+  <tr><td>旋转表示</td><td><code>Rodrigues</code></td><td>旋转向量与旋转矩阵互转；外参调试时天天用</td></tr>
+  <tr><td>手眼</td><td><code>calibrateHandEye</code><br><code>calibrateRobotWorldHandEye</code></td><td>OpenCV 自带 AX=XB 的几种解法，不必自己写</td></tr>
+  <tr><td>双目</td><td><code>stereoCalibrate</code><br><code>stereoRectify</code><br><code>triangulatePoints</code></td><td>双目标定、极线校正、三角化</td></tr>
+  <tr><td>质量检查</td><td><code>estimateChessboardSharpness</code></td><td>检测棋盘是否失焦——模糊的图会让角点整体内缩，是隐蔽的系统误差</td></tr>
+  <tr><td>可视化</td><td><code>drawFrameAxes</code></td><td>把位姿画到图上，肉眼判断朝向对不对</td></tr>
+ </tbody></table>
+ <p>两个关于参数向量的坑：</p>
+ <p><strong>一、畸变向量长度决定用哪个模型。</strong>四个元素是 (k1, k2, p1, p2)，只算径向；五个元素加上 k3；再到 k4–k6、s1–s4 要显式传 <code>CALIB_RATIONAL_MODEL</code> / <code>CALIB_THIN_PRISM_MODEL</code>。<strong>写错长度，OpenCV 不会报错，只会换一个模型悄悄算</strong>。</p>
+ <p><strong>二、固定哪些参数要用 flag。</strong><code>CALIB_USE_INTRINSIC_GUESS</code> 让算法从你给的初值出发；<code>CALIB_FIX_PRINCIPAL_POINT</code>、<code>CALIB_FIX_K1</code> 等把某项钉死。数据不足时适当钉死几项，比让它们自由浮动更稳——这本身就是一种正则化。</p>
+
  <h2 id="why">7. 为什么 RMS 合格了还会偏</h2>
  <p>这是上一轮最折磨人的地方，也是这篇最想说清的一点。</p>
  <p><strong>原因一：外参和板子位姿是一起优化的。</strong>内参固定后，每张图的板子位姿和外参是同一组未知量。模型完全可以通过调整板子位姿，把外参的偏差吸收掉。你得到的是一个<strong>自洽的解</strong>，不是一个<strong>正确的解</strong>。RMS 小，只证明模型内部一致。</p>
  <p><strong>原因二：单个姿态只能定两个旋转自由度。</strong>把板子放在同一个位置、同一个角度，无论怎么标，绕板面法线的那一维（偏航）都没有信息。必须换倾斜方位、换距离，才能把它约束住。</p>
  <p><strong>原因三：用卷尺量绝对高度，会和俯仰耦合。</strong>高度差几毫米，既可以是整体抬高，也可以是一个小角度旋转造成的。两种解释对同一个测量是等价的，所以你永远调不平——这不是手法问题，是观测量不足以区分。</p>
+ <p><strong>原因四：坏标定在画面中心会显得很好。</strong>这一点 OpenCV 的官方文档专门写过：真实镜头的径向畸变应当是单调的，如果估计结果不单调，就应当判定为标定失败；而这种失败「在画面中心附近可能看起来很不错，但在 AR/SFM 类应用里会表现很差」。换句话说，<strong>误差会藏在边缘</strong>——只看中心区域的残差，等于没检查。</p>
  <p>正确的做法是：<strong>用水平仪测角度，不用卷尺测高度</strong>。角度是独立的观测量，高度不是。</p>
 
  <h2 id="verify">8. 验收：不要只看 RMS</h2>
