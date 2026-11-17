@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/localization-gpu.html">
+ <meta name="theme-color" content="#f7f9fc"><meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="定位：GPU 提候选，CPU 守质量 · WangN2">
+ <meta property="og:description" content="把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。这篇解释这个差值从哪来。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/localization-gpu.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="定位：GPU 提候选，CPU 守质量 · WangN2">
+ <meta name="twitter:description" content="把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-11-17"><meta property="article:modified_time" content="2026-11-17"><meta property="article:section" content="感知">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"定位：GPU 提候选，CPU 守质量","description":"把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。这篇解释这个差值从哪来。","url":"https://wangn2.github.io/notes/localization-gpu.html","mainEntityOfPage":"https://wangn2.github.io/notes/localization-gpu.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["AprilTag","PnP","CUDA","定位"],"datePublished":"2026-11-17","dateModified":"2026-11-17"}</script>
+ <!--/meta-->
+ <title>定位：GPU 提候选，CPU 守质量 · WangN2</title>
+ <meta name="description" content="把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。这篇解释这个差值从哪来。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/localization/loc.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 26 / 感知 · 定位链路</p>
+ <h1>定位：GPU 提候选，CPU 守质量</h1>
+ <p class="lede">把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。这个差值本身就是这篇文章要讲的东西。</p>
+  <div class="article-meta"><span><time datetime="2026-11-17">2026-11-17</time></span><span>约 11 分钟</span><span>感知</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>这是对一个 AprilTag 定位模块的整理：整条链路做什么、CUDA 到底改了哪一段、C++ 重构又改了什么、位姿怎么解，以及怎么证明它真的变好了。</p>
+ <p class="callout"><strong>说明。</strong>文中的性能数字都标明版本与配置，是历史测量，不代表当前现场状态。示例数字如果只用于解释机制，会单独标注。源码路径已改写成描述性说法。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#what">1. 这条链路在解什么</a></li>
+   <li><a href="#cost">2. 开销从哪来</a></li>
+   <li><a href="#split">3. 分工：GPU 提候选，CPU 做复核</a></li>
+   <li><a href="#margin">4. 质量契约：margin 不是概率</a></li>
+   <li><a href="#zerocopy">5. 「零拷贝」这个词被用坏了</a></li>
+   <li><a href="#cpp">6. GPU 之后还剩什么</a></li>
+   <li><a href="#pnp">7. 位姿数学：从 SVD 到 IPPE / SQPnP</a></li>
+   <li><a href="#exposure">8. 曝光时刻</a></li>
+   <li><a href="#measure">9. 怎么证明它变好了</a></li>
+   <li><a href="#open">10. 三处我会追问的地方</a></li>
+   <li><a href="#close">11. 收尾</a></li>
+   </ol>
+  </nav>
+ <h2 id="what">1. 这条链路在解什么</h2>
+ <p>它不是「识别到哪个码」就完事。输入的已知信息有三类：</p>
+ <table class="coordinates compare"><thead><tr><th>已知</th><th>用来做什么</th></tr></thead><tbody>
+  <tr><td>相机内参与畸变</td><td>描述三维点如何投成像素</td></tr>
+  <tr><td>Tag 尺寸与安装几何</td><td>把码的角点对应到物体的三维模型</td></tr>
+  <tr><td>外参、TF、里程计</td><td>把相机坐标下的结果换算到别的坐标系</td></tr>
+ </tbody></table>
+ <p>输出是工装板、料盘相对相机与机器人的位姿。中间还要穿过滤波、关联、有效期检查这些环节——它们不产生位姿，但决定位姿能不能用。</p>
+
+ <h2 id="cost">2. 开销从哪来</h2>
+ <p>把 CPU 的工作拆开，大概是五项之和：</p>
+ <div class="formula">C = C解码 + C检测 + C位姿 + C消息与调度 + C发布转发</div>
+ <p>全图检测要在几百万像素里找边界、拟合四边形、解码字——而真正有用的 Tag 往往只占很小一块。这部分天然适合并行硬件。</p>
+ <p>但检测之外的东西不会因为接了 CUDA 就消失：消息反序列化、对象分配、矩阵运算、TF 与里程计查询、状态缓存、发布转发。</p>
+ <p>还有一个容易被误解的前提：<strong>原来的 Python 版本已经在调原生 AprilTag 和 OpenCV 了</strong>，并不是用 Python 循环算图像。所以 C++ 重构压的不是「Python 慢」，而是原生算法之间以及周边的热路径。</p>
+
+ <h2 id="split">3. 分工：GPU 提候选，CPU 做复核</h2>
+ <figure><img src="../assets/localization/fig1_pipeline.png" width="1388" height="592" loading="lazy" alt="一帧的处理流程：GPU 侧硬件解码、三视图候选搜索、映回原图建 ROI；CPU 侧解码到主机、在原图像素上复核、PnP、查询曝光时刻的 TF"><figcaption>图 1｜GPU 只负责「找」，最终结论仍由 CPU 在原始像素上给出。</figcaption></figure>
+ <p>现在的 GPU 后端不是拿 GPU 结果直接当答案，而是：</p>
+ <p>整张图交给 GPU 提出候选（ID + 四个角点）→ 映回原图坐标 → 围绕候选切 ROI → <strong>CPU 在原始像素上重新检测</strong> → 得到最终的 ID、角点、hamming、margin。</p>
+ <p>这里有个不对称，值得单独说：<strong>CPU 复核能剔除坏候选，但补不回 GPU 完全没提出的候选。</strong>所以这套架构天然接受一个召回风险，而这个风险必须实测，不能假设。</p>
+
+ <h3>三个视图，七倍像素</h3>
+ <p>会话里同时建了三个视图：原图 W×H、纵向拉伸 W×2H、整体放大 2W×2H。它们来自同一张照片，不是三个相机。</p>
+ <p>缩放不会创造细节，但会改变检测器看到的离散像素结构——某些小码、斜视码在某个视图下更容易成为候选。代价是<strong>三个视图加起来是 7 倍像素</strong>（1 + 2 + 4），这一项直接进 GPU 墙钟。</p>
+ <p>候选映回原图时用像素中心约定：</p>
+ <div class="formula">x原 = (x缩放 + 0.5) / s − 0.5</div>
+ <p>最终角点一定来自原图复核，<strong>不拿放大图的角点配原相机内参去做 PnP</strong>——否则等于给像素注入了虚假精度。</p>
+
+ <h3>ROI 为什么要留 halo</h3>
+ <p>裁 ROI 时会在候选外扩一圈边界。原因是 CPU 检测器需要完整的码边界和周围背景，裁得太紧就重新识别不出来。</p>
+ <p>代码里还会按 8 像素对齐、合并重叠区域、限制单区域与累计像素数、对重复检测去重。<strong>halo 越大上下文越充分，CPU 要扫的像素也越多</strong>——区域宽高同时涨，面积开销不是线性的。所以 halo=32 的性能不能直接套到 halo=128。</p>
+
+ <h2 id="margin">4. 质量契约：margin 不是概率</h2>
+ <p>接受一个检测要过一组条件：零纠错、margin、重投影、距离、时效。GPU 说「我看到了某个 ID」并不自动满足这些。</p>
+ <p>margin 的计算方式是这样的：在码边界上分别拟合局部的白电平与黑电平，取两者的中点作为阈值，再看每个码元的亮度离这个阈值有多远，黑白两侧分别累计后取较小的那个平均值。</p>
+ <p>直观例子：白 220、黑 40，阈值 130。亮度 210 离阈值 80，判白很明确；亮度 135 只离阈值 5，一点噪声就能翻。</p>
+
+ <section class="loc-lab" aria-labelledby="lo-title" data-ready="false">
+  <h3 id="lo-title">margin 到底是什么</h3>
+  <p class="lo-hint">拖动白色电平、黑色电平和码元亮度，看阈值和余量怎么变。注意：码元亮度只要在阈值一侧，<b>ID 照样能读对</b>，但 margin 可以接近零。</p>
+  <div class="lo-row">
+   <canvas data-canvas role="img" aria-label="亮度轴上黑电平、白电平、阈值与码元位置，以及码元到阈值的距离"></canvas>
+   <div class="lo-side">
+    <div class="lo-ctrl">
+     <label>白色电平 <input type="range" data-in="white" min="120" max="255" step="1" value="220"><output data-out="white">220</output></label>
+     <label>黑色电平 <input type="range" data-in="black" min="0" max="120" step="1" value="40"><output data-out="black">40</output></label>
+     <label>码元亮度 <input type="range" data-in="symbol" min="0" max="255" step="1" value="135"><output data-out="symbol">135</output></label>
+    </div>
+    <dl class="lo-readout">
+     <div><dt>margin</dt><dd data-read="margin">—</dd></div>
+     <div><dt>判定</dt><dd data-read="judge">—</dd></div>
+    </dl>
+   </div>
+  </div>
+  <p class="lo-status" data-status role="status">—</p>
+ </section>
+
+ <p>所以 margin 衡量的<strong>是「黑白判别离边界多远」</strong>，不是正确概率，也不是毫米定位误差。</p>
+ <p>而 hamming=0 是另一件事：读出的码字不用纠错就匹配合法码。它说明码字结构对，不说明每个码元都远离判定边界。<strong>这两项检查不能互相替代</strong>——一个码可以 hamming 完美而 margin 勉强。</p>
+ <p>GPU 的候选结构里只有 ID、角点和视图编号，<strong>没有等价的 margin</strong>。这也是为什么最终要回原图用 CPU 重算：只有那样，质量值才和原来那套判据可比。</p>
+
+ <h2 id="zerocopy">5. 「零拷贝」这个词被用坏了</h2>
+ <p>现在的 JPEG 路径是：硬件解码 → 设备端 BGR → 拷回主机固定缓冲 → 再拷到输出缓冲 → 图像 clone 等处理 → 需要时再传回 GPU 检测。</p>
+ <p>CPU 复核需要原始像素，所以主机图像必须留着。<strong>这条路径里存在显式的双向传输和主机侧复制，不能叫全程零拷贝。</strong></p>
+ <p>谈零拷贝必须先限定范围：同进程、跨进程，还是 CPU/GPU 之间。共享指针复制通常只传句柄；容器深拷贝才复制内容。而解码产生新像素属于必要的数据转换，不是冗余复制——把它算进「拷贝」只会让讨论失去意义。</p>
+ <p>即便 CPU 与 GPU 共享物理内存，<strong>API 路径、映射方式和缓冲管理仍然决定有没有发生复制</strong>。而且零拷贝必须同时保证生命周期与同步：下游没读完，上游不能覆盖缓冲。</p>
+ <p>会话常驻解决的是另一个问题：逐帧创建检测器、申请显存、建 stream 会产生重复初始化成本。所以会话保留 stream、显存、三个检测器和有界结果缓冲，JPEG 解码器也复用容量足够的缓冲。</p>
+
+ <h2 id="cpp">6. GPU 之后还剩什么</h2>
+ <p>检测迁到 GPU 后，消息、状态和坐标处理在剩余 CPU 消耗里的占比反而变大——因为分母小了。</p>
+ <p>C++ 重构覆盖的是相机桥接、感知、物体处理、聚合、只读转发这一整条，而不只是一个 PnP 函数。主要机制：原生类型、减少对象创建与转换、用 OpenCV/Eigen、消除解释器运行时成本、共享消息指针、有界容器、资源复用。</p>
+ <p>举个具体的：帧结构里保存的是消息的共享指针，接收时不必立刻深拷贝整张图。</p>
+ <p><strong>队列必须有界。</strong>每 100 ms 来一帧而处理要 150 ms，无限排队只会让结果越来越旧。现在用的是订阅只留最新一帧、有界深度、待处理帧替换、输出时效检查，以及用 generation 隔离旧任务的结果。</p>
+ <p>这里要澄清一个常见误读：<strong>depth=2 不代表两帧在 GPU 上并行算，它只是有界流水线的容量。</strong></p>
+ <p>还有一个必须分清的点：ROS 消息的 decode 和 JPEG 的 decode 完全不是一回事。前者是「字节 → C++ 消息对象」，后者是「压缩字节 → 像素」。<code>CompressedImage</code> 反序列化之后，里面的 data 仍然可能是 JPEG，还没解压。</p>
+
+ <h2 id="pnp">7. 位姿数学：从 SVD 到 IPPE / SQPnP</h2>
+ <p>统一约定 T 是物体到相机的刚体变换，<code>p_camera = R·p_object + t</code>。已知三维点、二维像素和内参，反求 R、t，就是 PnP。</p>
+ <p>求解前有一个准备工作：把模型点集做 SVD，看它到底是什么形状。</p>
+ <table class="coordinates compare"><thead><tr><th>奇异值形态</th><th>几何形状</th><th>含义</th></tr></thead><tbody>
+  <tr><td>只有第一个明显非零</td><td>直线</td><td>退化，解不出来</td></tr>
+  <tr><td>前两个非零，第三个近零</td><td>平面</td><td>可以走平面专用解法</td></tr>
+  <tr><td>三个都明显非零</td><td>三维分布</td><td>走通用解法</td></tr>
+ </tbody></table>
+ <p>SVD 找到的是轴，但<strong>轴的正负方向不唯一</strong>——v 和 −v 都是有效主方向。三个方向不保证自动组成右手坐标系，所以代码会检查行列式，负的话翻转第三轴。这是修正坐标系的朝向，不是实体板真的镜像了。</p>
+ <p>「摆平」听起来像把板压平，其实是<strong>换一种坐标表达</strong>：为板建一个局部坐标系，前两轴沿板面、第三轴沿法向，然后重新表示点。板上点在新坐标里第三分量恒为零。板没动，相机没动，只是换了说法。</p>
+ <p>换完坐标后 PnP 求出的解要还原回去，用两行公式就够了：</p>
+ <div class="formula">R = R_q · Bᵀ　　t = t_q − R·c</div>
+ <p>所以对外仍然输出原物体坐标系的位姿。</p>
+ <p>接着是两条解法：</p>
+ <p><strong>IPPE</strong> 利用平面结构，从单应关系在参考点附近的局部变化率恢复旋转候选，再求平移并比较投影误差。它<strong>显式给出两个候选</strong>——板远、小、投影接近仿射时，两种倾斜姿态的投影可能非常接近，光看误差分不出来，需要额外先验。</p>
+ <p><strong>SQPnP</strong> 把问题写成带旋转约束的二次优化，用序列二次规划求解，配合区域搜索覆盖目标函数的最优解。注意「全局最优」限定在所定义的目标函数上：代数残差不等于直接最小化像素重投影误差，所以代码仍然继续做 LM 精化与像素门验收。</p>
+ <p>那两个 IPPE 候选和 SVD 的行列式修正不是一回事：它们可以都是合法旋转，不是一个正常矩阵加一个反射。</p>
+
+ <h2 id="exposure">8. 曝光时刻</h2>
+ <p>照片对应的是曝光那一刻，不能无条件用「现在最新」的机器人位姿去转换它。</p>
+ <p>算一下就知道了：机器人以 0.2 m/s 移动，200 ms 的时差就是约 <strong>4 cm</strong> 的平移误差。</p>
+ <p>做法是保存里程计历史（有界环形缓冲，约 500 条）：能精确匹配就直取；夹在两条样本之间且在允许间隔内就插值；没有包围样本就等待，<strong>拒绝外推</strong>。</p>
+ <p>平移线性插值，旋转走相对旋转与旋转向量。重构时特意保留了原实现在零角度、接近 π 时的分支语义——看起来等价的重写，在这里可能改变结果。</p>
+ <p>这是内部查询曝光时刻的变换，不改写也不重新估计上游的里程计。过期的输出仍然按原有效期检查，不能用「重新发布」把旧观测刷新成新的。</p>
+
+ <h2 id="measure">9. 怎么证明它变好了</h2>
+ <p>先破一个直觉：<strong>CPU 更省不等于延迟更低。</strong></p>
+ <p>假设 CPU 方案每帧用 50 ms CPU、55 ms 完成；GPU 混合方案每帧只用 15 ms CPU，但要 90 ms 才完成。10 Hz 下 CPU 从 0.5 核降到 0.15 核，可结果更晚了。这只是个说明用的例子，但方向是真实的。</p>
+ <p>GPU 的墙钟时间包含上传、设备计算与竞争、同步、CPU 复核和后处理；结果年龄还要加上相机与进入算法前的排队。</p>
+ <p><strong>这不是假设——早期整链测试真的出现过。</strong>第一版接 CUDA 后，CPU 下降约 10%–17%，但观察端年龄 P95 从约 209 ms 涨到 417 ms，并出现超时。所以后来那些收益，不是「一接 GPU 就有」的。</p>
+ <h3>ABBA 是一种实验顺序</h3>
+ <p>ABBA 不是缩写，是 A→B→B→A 的平衡顺序。A 可以是 Python，B 是 C++，每轮用同一份录包，频率、参数、预热、资源环境都锁住。</p>
+ <p>A 在第 1、4 次，B 在第 2、3 次，平均位置相同，能抵消近似线性漂移。<strong>它消不掉突发负载、冷启动和缓存残留</strong>——所以异常测试要单独做：乱序、过期、断流、坏消息、TF/odom 配对、恢复。</p>
+ <p>还有一条容易搞错的：要比较 Python CPU 对 C++ CPU、Python GPU 对 C++ GPU，<strong>不能把 CPU/GPU 本身的召回差异算成重构的差异</strong>。</p>
+
+ <h3>同条件下的实测收益</h3>
+ <p>范围是六个热路径进程（桥接、感知、工装板、料盘、聚合、只读转发），原有 C++ 框架不计入。GPU 回放用 halo=32、depth=1，Python 与 C++ 同后端、线程限制一致。</p>
+ <table class="coordinates compare"><thead><tr><th>后端 / 指标</th><th>Python</th><th>C++</th><th>变化</th></tr></thead><tbody>
+  <tr><td>CPU：平均 CPU</td><td>0.887 核</td><td>0.629 核</td><td>−29%</td></tr>
+  <tr><td>CPU：峰值 RSS 合计</td><td>512 MB</td><td>309 MB</td><td>−40%</td></tr>
+  <tr><td>CPU：capture-to-publish P95</td><td>339 ms</td><td>292 ms</td><td>−14%</td></tr>
+  <tr><td>GPU+JPEG：平均 CPU</td><td>0.530 核</td><td>0.239 核</td><td>−55%</td></tr>
+  <tr><td>GPU+JPEG：峰值 RSS 合计</td><td>734 MB</td><td>561 MB</td><td>−23%</td></tr>
+  <tr><td>GPU+JPEG：capture-to-publish P95</td><td>309 ms</td><td>278 ms</td><td>−10%</td></tr>
+ </tbody></table>
+ <p>两个读法上的坑：<strong>0.239 核</strong>表示平均每秒消耗约 0.239 CPU 秒，不是整机利用率 23.9%；<strong>RSS 合计</strong>会重复计算共享页，不等于 PSS，也不等于整机实际占用。</p>
+ <p>最值得看的是最后两组的对比：<strong>GPU 模式 CPU 下降超过一半，P95 只降一成。</strong>这个差值正好说明 CPU 工作和总等待时间是两件事。而且收益用的是同一套 GPU 内核库，不能说成「C++ 加速了 GPU 内核」。</p>
+ <p>正确性那边是另一条腿：同后端下 4,446 帧逐帧差分，角点与 margin 的最大差为 0。</p>
+
+ <h2 id="open">10. 三处我会追问的地方</h2>
+ <p>这节的判断是我自己的，不是原文的结论。</p>
+ <p><strong>一、平面判定的阈值是绝对量，和点集尺度耦合。</strong>代码用「第三奇异值小于 1e-9」判定共面，但奇异值正比于点集尺寸——0.2 m 的板、若干点，σ₁ 大概是 0.2√N 量级。如果模型来自 CAD 导出，z 上带 0.1 mm 噪声，σ₃ 约 1e-4√N，比 1e-9 大五个数量级，<strong>平面判定会失败，IPPE 分支会悄悄退回 SQPnP</strong>。阈值对「精确共面」余量巨大，对「几乎共面」零余量。改成相对量（σ₃/σ₁ 或除以 √N）成本是零。</p>
+ <p><strong>二、三个视图的代价没有量化。</strong>1 + 2 + 4 = 7 倍像素，这是进 GPU 墙钟的实打实开销，也可能是早期延迟回归的因素之一。原文只说了「会增加计算量」。</p>
+ <p><strong>三、自己指出的召回风险，没有数据。</strong>原文准确写了「CPU 复核补不回 GPU 没提出的候选」，但没给召回对比。补一张表就够了：GPU 提出且 CPU 接受 / 仅 CPU 提出 / 仅 GPU 提出。「仅 CPU 提出」那一列如果是 0，这套架构就是安全的；如果是 3%，每次漏检都值得复盘。</p>
+
+ <h2 id="close">11. 收尾</h2>
+ <p>这条链最值得记住的不是哪个数字，而是一种分工方式：<strong>GPU 负责「找」，CPU 负责「判」。</strong></p>
+ <p>找是并行问题，判是契约问题。把这两件事分开，你才能在加速的同时保住原来那套质量定义——否则你加速出来的东西，和原来那套判据根本不可比。</p>
+ <p>而证明它变好，需要两条腿：性能用平衡顺序测，正确性用逐帧差分测。而这两件事，恰好是最容易被「我已经优化完了」这句话跳过的。</p>
+
+ <p class="references">相关笔记：<a href="./apriltag.html">AprilTag 视觉定位详解</a>（标签怎么变成位姿） · <a href="./cam-calibration.html">相机标定：四个参数各管什么</a>（内参错了会怎样） · <a href="./cuda.html">CUDA 与算子</a>（并行与访存的基础） · <a href="./costmap.html">代价地图</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./astra-g2-autonomous-navigation.html"><span>← 上一篇</span><strong>Astra × G2：自主建图、探索与语义导航</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/localization/loc.js"></script>
+</body></html>
