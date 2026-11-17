@@ -196,11 +196,24 @@
   <span class="row"><i>q</i> <span class="op">=</span> <i>B</i><sup>T</sup>(<i>p</i> − <i>c</i>)</span>
   <span class="note">减 <i>c</i> 把原点移到板中心，乘 <i>B</i><sup>T</sup> 得到沿新轴的分量。板上点沿法向没有分量，所以 <i>q</i> 的第三坐标恒为零。</span>
  </div>
- <p>举个具体的：中心 <i>c</i> = (0,0,1)，板绕 X 轴倾斜 30°，取</p>
+ <p>举个具体的：中心 <i>c</i> = (0,0,1)，板绕 X 轴倾斜 30°。</p>
+ <p>这三个基向量不是凭空给的，它们就是<strong>板自己的三个轴，在模型坐标系里指向哪</strong>。板本来是平放的（板面 = XY，法向 = Z），把整块板绕 X 转 30°，三个轴跟着转，于是取绕 X 旋转矩阵的三列：</p>
+ <div class="math">
+  <span class="row"><i>R</i><sub>x</sub>(<i>θ</i>) <span class="op">=</span> [ 1　0　0 ; 0　cos<i>θ</i>　−sin<i>θ</i> ; 0　sin<i>θ</i>　cos<i>θ</i> ]</span>
+  <span class="note">作用在 (1,0,0)、(0,1,0)、(0,0,1) 上，得到的就是下面这三个向量。</span>
+ </div>
  <div class="math">
   <span class="row"><i>b</i><sub>1</sub> <span class="op">=</span> (1<span class="op">,</span>0<span class="op">,</span>0)　<i>b</i><sub>2</sub> <span class="op">=</span> (0<span class="op">,</span>cos30°<span class="op">,</span>sin30°)　<i>b</i><sub>3</sub> <span class="op">=</span> (0<span class="op">,</span>−sin30°<span class="op">,</span>cos30°)</span>
   <span class="row"><i>p</i> <span class="op">=</span> <i>c</i> <span class="op">+</span> <i>a b</i><sub>1</sub> <span class="op">+</span> <i>b b</i><sub>2</sub></span>
   <span class="note">换坐标后就是 <i>q</i> = (<i>a</i>, <i>b</i>, 0)。板、相机、照片都没有移动——变的只是表达。</span>
+ </div>
+ <p>两个容易卡住的地方：</p>
+ <p><strong><i>b</i><sub>1</sub> 为什么一点没变？</strong>因为<strong>它本身就是旋转轴</strong>。绕 X 轴转，X 轴上的向量当然不动。</p>
+ <p><strong><i>b</i><sub>3</sub> 为什么是 −sin 而不是 +sin？</strong>右手定则：绕 +X 正向转，<i>Y</i> 转向 <i>Z</i>。所以 <i>Y</i> 轴变成 (0, cos<i>θ</i>, <strong>+</strong>sin<i>θ</i>)，而 <i>Z</i> 轴往 <strong>−<i>Y</i></strong> 偏，变成 (0, <strong>−</strong>sin<i>θ</i>, cos<i>θ</i>)。两个符号相反，恰好保证正交。</p>
+ <p>验一下这个基对不对——板上那个点应该垂直于法向：</p>
+ <div class="math">
+  <span class="row"><i>b</i><sub>3</sub>·(<i>p</i>−<i>c</i>) <span class="op">=</span> 0×0 <span class="op">+</span> (−0.5)×0.866 <span class="op">+</span> 0.866×0.5 <span class="op">=</span> 0</span>
+  <span class="note">点积为零，说明该点确实落在板面内。同理 <i>b</i><sub>1</sub>·<i>b</i><sub>3</sub> = <i>b</i><sub>2</sub>·<i>b</i><sub>3</sub> = 0，且 det(<i>B</i>) = +1，所以它是一个合法的右手正交基。</span>
  </div>
  <p>不想信公式的话，把 (a,b) = (0,1) 代进去手算一遍：</p>
  <div class="math">
