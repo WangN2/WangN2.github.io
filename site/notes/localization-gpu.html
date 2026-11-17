@@ -30,7 +30,7 @@
  <p class="eyebrow">NOTE 26 / 感知 · 定位链路</p>
  <h1>AprilTag 的 GPU 加速实施方案</h1>
  <p class="lede">把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。这个差值本身就是这篇文章要讲的东西。</p>
-  <div class="article-meta"><span><time datetime="2026-11-17">2026-11-17</time></span><span>约 14 分钟</span><span>感知</span><a class="series-link" href="../series/">全系列 ›</a></div>
+  <div class="article-meta"><span><time datetime="2026-11-17">2026-11-17</time></span><span>约 15 分钟</span><span>感知</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>这是对一个 AprilTag 定位模块的整理：整条链路做什么、CUDA 到底改了哪一段、C++ 重构又改了什么、位姿怎么解，以及怎么证明它真的变好了。</p>
  <p class="callout"><strong>说明。</strong>文中的性能数字都标明版本与配置，是历史测量，不代表当前现场状态。示例数字如果只用于解释机制，会单独标注。源码路径已改写成描述性说法。</p>
@@ -187,8 +187,11 @@
   <span class="note">翻转后仍然正交，行列式变成 +1。平面法向反向也仍然是法向。这是修正坐标系朝向，不是实体板真的发生了镜像。</span>
  </div>
 
- <h3>摆平：换一种坐标表达</h3>
- <p>为板建一个局部坐标系，前两轴沿板面、第三轴沿法向，然后把点重新表示：</p>
+ <h3>摆平：换一套坐标轴，不改数据</h3>
+ <p>「摆平」这个词容易读成「把板压平」。它不是。板、相机、照片都没有移动——变的是<strong>你拿哪一组轴去量它</strong>。</p>
+ <p>问题出在这里：平面专用解法（IPPE）要求点的第三坐标恒为零。但模型点是在机器人坐标系里描述的，板一旦倾斜，z 就不再是常数，平面解法直接用不了。</p>
+ <p>解法是给板建一个自己的坐标系：前两轴沿板面、第三轴沿法向，然后把点<strong>重新表达</strong>一遍。</p>
+ <figure><img src="../assets/localization/fig2_frames.png" width="1377" height="613" loading="lazy" alt="同一个倾斜的板在两套坐标系下：左侧模型坐标系里各点 z 不同，右侧板的局部坐标系里第三分量恒为零"><figcaption>图 2｜同一个板，两套轴。左边 z 各不相同，右边恒为零。</figcaption></figure>
  <div class="math">
   <span class="row"><i>q</i> <span class="op">=</span> <i>B</i><sup>T</sup>(<i>p</i> − <i>c</i>)</span>
   <span class="note">减 <i>c</i> 把原点移到板中心，乘 <i>B</i><sup>T</sup> 得到沿新轴的分量。板上点沿法向没有分量，所以 <i>q</i> 的第三坐标恒为零。</span>
@@ -198,6 +201,18 @@
   <span class="row"><i>b</i><sub>1</sub> <span class="op">=</span> (1<span class="op">,</span>0<span class="op">,</span>0)　<i>b</i><sub>2</sub> <span class="op">=</span> (0<span class="op">,</span>cos30°<span class="op">,</span>sin30°)　<i>b</i><sub>3</sub> <span class="op">=</span> (0<span class="op">,</span>−sin30°<span class="op">,</span>cos30°)</span>
   <span class="row"><i>p</i> <span class="op">=</span> <i>c</i> <span class="op">+</span> <i>a b</i><sub>1</sub> <span class="op">+</span> <i>b b</i><sub>2</sub></span>
   <span class="note">换坐标后就是 <i>q</i> = (<i>a</i>, <i>b</i>, 0)。板、相机、照片都没有移动——变的只是表达。</span>
+ </div>
+ <p>不想信公式的话，把 (a,b) = (0,1) 代进去手算一遍：</p>
+ <div class="math">
+  <span class="row"><i>p</i> <span class="op">=</span> <i>c</i> <span class="op">+</span> <i>b b</i><sub>2</sub> <span class="op">=</span> (0<span class="op">,</span> 0.866<span class="op">,</span> 1.5)</span>
+  <span class="note">模型坐标系下 z 是 1.5，不是常数——这正是平面解法用不了的原因。</span>
+ </div>
+ <div class="math">
+  <span class="row"><i>p</i> − <i>c</i> <span class="op">=</span> (0<span class="op">,</span> 0.866<span class="op">,</span> 0.5)</span>
+  <span class="row"><i>q</i><sub>1</sub> <span class="op">=</span> <i>b</i><sub>1</sub>·(<i>p</i>−<i>c</i>) <span class="op">=</span> 0</span>
+  <span class="row"><i>q</i><sub>2</sub> <span class="op">=</span> <i>b</i><sub>2</sub>·(<i>p</i>−<i>c</i>) <span class="op">=</span> 0.866×0.866 <span class="op">+</span> 0.5×0.5 <span class="op">=</span> 1.0</span>
+  <span class="row"><i>q</i><sub>3</sub> <span class="op">=</span> <i>b</i><sub>3</sub>·(<i>p</i>−<i>c</i>) <span class="op">=</span> −0.5×0.866 <span class="op">+</span> 0.866×0.5 <span class="op">=</span> 0</span>
+  <span class="note">得到 <i>q</i> = (0, 1, 0)：第三坐标精确为零，平面解法现在适用。</span>
  </div>
  <p>在新坐标下 PnP 求得 <i>p</i><sub>cam</sub> = <i>R</i><sub>q</sub> <i>q</i> + <i>t</i><sub>q</sub>，代回去就还原成原物体坐标系：</p>
  <div class="math">
