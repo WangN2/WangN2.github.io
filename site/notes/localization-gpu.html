@@ -191,6 +191,13 @@
  <p>「摆平」这个词容易读成「把板压平」。它不是。板、相机、照片都没有移动——变的是<strong>你拿哪一组轴去量它</strong>。</p>
  <p>问题出在这里：平面专用解法（IPPE）要求点的第三坐标恒为零。但模型点是在机器人坐标系里描述的，板一旦倾斜，z 就不再是常数，平面解法直接用不了。</p>
  <p>解法是给板建一个自己的坐标系：前两轴沿板面、第三轴沿法向，然后把点<strong>重新表达</strong>一遍。</p>
+ <p>先约定四个记号，它们的量纲不同，别混：</p>
+ <table class="coordinates compare"><thead><tr><th>记号</th><th>是什么</th><th>维度</th></tr></thead><tbody>
+  <tr><td><i>c</i></td><td>板中心在模型坐标系里的位置</td><td>三维<b>点</b></td></tr>
+  <tr><td><i>b</i><sub>1</sub>、<i>b</i><sub>2</sub></td><td>板面内的两个单位方向（横、纵）</td><td>三维<b>方向</b>，长度 1</td></tr>
+  <tr><td><i>α</i>、<i>β</i></td><td>某个点沿这两个方向走了多远</td><td><b>标量</b>，单位米</td></tr>
+ </tbody></table>
+ <p>于是板上任意一点写作「板心 + 横着走 <i>α</i> + 纵着走 <i>β</i>」。<strong><i>α</i>、<i>β</i> 是这块板自己的平面坐标，<i>b</i><sub>1</sub>、<i>b</i><sub>2</sub> 是这两个坐标轴朝哪指。</strong></p>
  <figure><img src="../assets/localization/fig2_frames.png" width="1377" height="613" loading="lazy" alt="同一个倾斜的板在两套坐标系下：左侧模型坐标系里各点 z 不同，右侧板的局部坐标系里第三分量恒为零"><figcaption>图 2｜同一个板，两套轴。左边 z 各不相同，右边恒为零。</figcaption></figure>
  <div class="math">
   <span class="row"><i>q</i> <span class="op">=</span> <i>B</i><sup>T</sup>(<i>p</i> − <i>c</i>)</span>
@@ -204,8 +211,8 @@
  </div>
  <div class="math">
   <span class="row"><i>b</i><sub>1</sub> <span class="op">=</span> (1<span class="op">,</span>0<span class="op">,</span>0)　<i>b</i><sub>2</sub> <span class="op">=</span> (0<span class="op">,</span>cos30°<span class="op">,</span>sin30°)　<i>b</i><sub>3</sub> <span class="op">=</span> (0<span class="op">,</span>−sin30°<span class="op">,</span>cos30°)</span>
-  <span class="row"><i>p</i> <span class="op">=</span> <i>c</i> <span class="op">+</span> <i>a b</i><sub>1</sub> <span class="op">+</span> <i>b b</i><sub>2</sub></span>
-  <span class="note">换坐标后就是 <i>q</i> = (<i>a</i>, <i>b</i>, 0)。板、相机、照片都没有移动——变的只是表达。</span>
+  <span class="row"><i>p</i> <span class="op">=</span> <i>c</i> <span class="op">+</span> <i>α</i> <i>b</i><sub>1</sub> <span class="op">+</span> <i>β</i> <i>b</i><sub>2</sub></span>
+  <span class="note">换坐标后就是 <i>q</i> = (<i>α</i>, <i>β</i>, 0)。板、相机、照片都没有移动——变的只是表达。</span>
  </div>
  <p>两个容易卡住的地方：</p>
  <p><strong><i>b</i><sub>1</sub> 为什么一点没变？</strong>因为<strong>它本身就是旋转轴</strong>。绕 X 轴转，X 轴上的向量当然不动。</p>
@@ -215,9 +222,9 @@
   <span class="row"><i>b</i><sub>3</sub>·(<i>p</i>−<i>c</i>) <span class="op">=</span> 0×0 <span class="op">+</span> (−0.5)×0.866 <span class="op">+</span> 0.866×0.5 <span class="op">=</span> 0</span>
   <span class="note">点积为零，说明该点确实落在板面内。同理 <i>b</i><sub>1</sub>·<i>b</i><sub>3</sub> = <i>b</i><sub>2</sub>·<i>b</i><sub>3</sub> = 0，且 det(<i>B</i>) = +1，所以它是一个合法的右手正交基。</span>
  </div>
- <p>不想信公式的话，把 (a,b) = (0,1) 代进去手算一遍：</p>
+ <p>不想信公式的话，把 (<i>α</i>,<i>β</i>) = (0,1) 代进去手算一遍：</p>
  <div class="math">
-  <span class="row"><i>p</i> <span class="op">=</span> <i>c</i> <span class="op">+</span> <i>b b</i><sub>2</sub> <span class="op">=</span> (0<span class="op">,</span> 0.866<span class="op">,</span> 1.5)</span>
+  <span class="row"><i>p</i> <span class="op">=</span> <i>c</i> <span class="op">+</span> 1·<i>b</i><sub>2</sub> <span class="op">=</span> (0<span class="op">,</span> 0.866<span class="op">,</span> 1.5)</span>
   <span class="note">模型坐标系下 z 是 1.5，不是常数——这正是平面解法用不了的原因。</span>
  </div>
  <div class="math">
@@ -234,9 +241,9 @@
  </div>
 
  <h3>IPPE：把平面结构用尽</h3>
- <p>平面点的第三坐标为零，把它代进投影式，旋转矩阵按列拆开：</p>
+ <p>平面点的第三坐标为零（也就是 <i>q</i><sub>3</sub> = 0），把它代进投影式，旋转矩阵按列拆开：</p>
  <div class="math">
-  <span class="row"><i>s</i> [<i>u</i>　<i>v</i>　1]<sup>T</sup> <span class="op">=</span> <i>K</i> [<i>r</i><sub>1</sub>　<i>r</i><sub>2</sub>　<i>t</i>] [<i>a</i>　<i>b</i>　1]<sup>T</sup></span>
+  <span class="row"><i>s</i> [<i>u</i>　<i>v</i>　1]<sup>T</sup> <span class="op">=</span> <i>K</i> [<i>r</i><sub>1</sub>　<i>r</i><sub>2</sub>　<i>t</i>] [<i>α</i>　<i>β</i>　1]<sup>T</sup></span>
   <span class="note">第三列 <i>r</i><sub>3</sub> 乘的是恒为零的 <i>z</i>，直接消失了——这就是平面结构带来的简化。</span>
  </div>
  <p>所以板平面到去畸变图像之间存在一个单应关系：</p>
@@ -246,7 +253,7 @@
  </div>
  <p>IPPE 不是简单地把 <i>H</i> 分解掉，而是用平面映射在参考点附近的<strong>局部变化率</strong>（雅可比）来恢复旋转候选：</p>
  <div class="math">
-  <span class="row"><i>h</i>(<i>a</i>,<i>b</i>) <span class="op">≈</span> <i>h</i>(0,0) <span class="op">+</span> <i>J</i> · [<i>a</i>　<i>b</i>]<sup>T</sup></span>
+  <span class="row"><i>h</i>(<i>α</i>,<i>β</i>) <span class="op">≈</span> <i>h</i>(0,0) <span class="op">+</span> <i>J</i> · [<i>α</i>　<i>β</i>]<sup>T</sup></span>
   <span class="note">「Infinitesimal」指的是这个局部微分关系，不是实体板无限小。</span>
  </div>
  <p>它<strong>显式给出两个候选</strong>。板远、小、投影接近仿射时，两种倾斜姿态的投影可能非常接近，光看误差分不出来，需要额外先验。这两个候选都是合法旋转——和一个正常矩阵加一个 det = −1 的反射完全是两回事。</p>
