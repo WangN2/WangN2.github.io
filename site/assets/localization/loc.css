@@ -16,3 +16,13 @@
 .loc-lab .lo-status{font-size:12.5px;line-height:1.7;color:var(--muted);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}
 .loc-lab .lo-status[data-warn=true]{color:#b0592f}
 @media(max-width:680px){.lo-row canvas{width:100%!important;height:auto!important}}
+/* 公式块：不引 MathJax，用衬线字体 + Unicode 排版，静态站点也能读 */
+.math{margin:18px 0;padding:18px 22px;background:#f8fafc;border-left:3px solid #c3d2df;border-radius:8px;
+  font-family:"Times New Roman",Georgia,"Songti SC",serif;font-size:17.5px;line-height:2.15;color:#19334d;overflow-x:auto}
+.math .row{display:block;white-space:nowrap}
+.math .note{display:block;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;font-size:13px;line-height:1.8;color:#54687c;margin-top:8px;white-space:normal}
+.math .mx{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-style:normal;font-size:.94em;letter-spacing:.01em}
+.math i{font-style:italic;letter-spacing:.01em}
+.math sub{font-size:.7em;vertical-align:-.25em}
+.math sup{font-size:.7em;vertical-align:.45em}
+.math .op{color:#5d7083;padding:0 .35em}

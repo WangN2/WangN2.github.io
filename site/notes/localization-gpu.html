@@ -30,7 +30,7 @@
  <p class="eyebrow">NOTE 26 / 感知 · 定位链路</p>
  <h1>AprilTag 的 GPU 加速实施方案</h1>
  <p class="lede">把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。这个差值本身就是这篇文章要讲的东西。</p>
-  <div class="article-meta"><span><time datetime="2026-11-17">2026-11-17</time></span><span>约 11 分钟</span><span>感知</span><a class="series-link" href="../series/">全系列 ›</a></div>
+  <div class="article-meta"><span><time datetime="2026-11-17">2026-11-17</time></span><span>约 14 分钟</span><span>感知</span><a class="series-link" href="../series/">全系列 ›</a></div>
 
  <p>这是对一个 AprilTag 定位模块的整理：整条链路做什么、CUDA 到底改了哪一段、C++ 重构又改了什么、位姿怎么解，以及怎么证明它真的变好了。</p>
  <p class="callout"><strong>说明。</strong>文中的性能数字都标明版本与配置，是历史测量，不代表当前现场状态。示例数字如果只用于解释机制，会单独标注。源码路径已改写成描述性说法。</p>
@@ -129,24 +129,114 @@
  <p>还有一个必须分清的点：ROS 消息的 decode 和 JPEG 的 decode 完全不是一回事。前者是「字节 → C++ 消息对象」，后者是「压缩字节 → 像素」。<code>CompressedImage</code> 反序列化之后，里面的 data 仍然可能是 JPEG，还没解压。</p>
 
  <h2 id="pnp">7. 位姿数学：从 SVD 到 IPPE / SQPnP</h2>
- <p>统一约定 T 是物体到相机的刚体变换，<code>p_camera = R·p_object + t</code>。已知三维点、二维像素和内参，反求 R、t，就是 PnP。</p>
- <p>求解前有一个准备工作：把模型点集做 SVD，看它到底是什么形状。</p>
+ <p>统一约定 <i>T</i> 是物体到相机的刚体变换：</p>
+ <div class="math">
+  <span class="row"><i>p</i><sub>cam</sub> <span class="op">=</span> <i>R</i> <i>p</i><sub>obj</sub> <span class="op">+</span> <i>t</i></span>
+  <span class="note"><i>R</i> 是 3×3 旋转，<i>t</i> 是平移。忽略畸变时，投影为下面两式。</span>
+ </div>
+ <div class="math">
+  <span class="row"><i>u</i> <span class="op">=</span> <i>f</i><sub>x</sub> · <i>X</i>/<i>Z</i> <span class="op">+</span> <i>c</i><sub>x</sub><span class="op">,</span>　　<i>v</i> <span class="op">=</span> <i>f</i><sub>y</sub> · <i>Y</i>/<i>Z</i> <span class="op">+</span> <i>c</i><sub>y</sub></span>
+ </div>
+ <p>已知三维点、对应像素和内参，反求 <i>R</i>、<i>t</i>，就是 PnP。求解前先做一个准备工作：把模型点集做奇异值分解，判断它到底是直线、平面还是三维分布。</p>
+
+ <h3>奇异值分解在算什么</h3>
+ <p>SVD 把任意 <i>N</i>×3 矩阵拆成三个矩阵的乘积：</p>
+ <div class="math">
+  <span class="row"><i>X</i> <span class="op">=</span> <i>U</i> <i>Σ</i> <i>V</i><sup>T</sup></span>
+  <span class="note"><i>X</i> 是 <i>N</i>×3，<i>U</i> 是 <i>N</i>×<i>N</i> 正交阵，<i>Σ</i> 是对角奇异值，<i>V</i> 是 3×3 正交阵。代码里先把点集减去中心 <i>c</i>，再按行堆成 <i>X</i>。</span>
+ </div>
+ <p>奇异值本身描述点集的形状，不描述它相对坐标轴的摆放——整块板旋转之后，奇异值不变。</p>
+
+ <h3>为什么特征向量就是主方向</h3>
+ <p>取一个单位方向 <i>v</i>，把所有点投影到这个方向上，投影长度的平方和是：</p>
+ <div class="math">
+  <span class="row">‖<i>Xv</i>‖<sup>2</sup> <span class="op">=</span> <i>v</i><sup>T</sup> <i>X</i><sup>T</sup><i>X</i> <i>v</i></span>
+  <span class="note">这就是瑞利商。它的最大值出现在 <i>X</i><sup>T</sup><i>X</i> 最大特征值对应的特征向量上——点在图上的投影铺得最开的方向。</span>
+ </div>
+ <p>而 <i>X</i><sup>T</sup><i>X</i> 与 SVD 的关系是直接的：</p>
+ <div class="math">
+  <span class="row"><i>X</i><sup>T</sup><i>X</i> <span class="op">=</span> <i>V</i> <i>Σ</i><sup>T</sup><i>Σ</i> <i>V</i><sup>T</sup><span class="op">,</span>　　<i>λ</i><sub><i>i</i></sub> <span class="op">=</span> <i>σ</i><sub><i>i</i></sub><sup>2</sup></span>
+  <span class="note">所以 <i>V</i> 的三列就是三个主方向（按 λ 从大到小），奇异值的平方就是特征值。再往下除 <i>N</i>−1 就是协方差矩阵 <i>C</i> = <i>X</i><sup>T</sup><i>X</i>/(<i>N</i>−1)，这就是 PCA。</span>
+ </div>
+ <p>换个说法：<strong>找主方向，就是找「投影后最散」的那个方向；而它恰好是 <i>X</i><sup>T</sup><i>X</i> 的特征向量。</strong></p>
+
+ <h3>一个算得出来的例子</h3>
+ <p>矩形的四个角 (−2,−1)、(−2,1)、(2,1)、(2,−1)，中心化后按行堆成：</p>
+ <div class="math">
+  <span class="row"><i>X</i> <span class="op">=</span> [ <span class="mx">−2 −1 0</span> ; <span class="mx">2 −1 0</span> ; <span class="mx">2 1 0</span> ; <span class="mx">−2 1 0</span> ]</span>
+  <span class="row"><i>X</i><sup>T</sup><i>X</i> <span class="op">=</span> <span class="mx">diag(16, 4, 0)</span>　⟹　<i>σ</i> <span class="op">=</span> <span class="mx">(4, 2, 0)</span></span>
+  <span class="note">交叉项 Σxy = 2 − 2 + 2 − 2 = 0，所以矩阵是对角阵；第三列为零，说明点完全没有厚度。</span>
+ </div>
+ <p>三个奇异值直接把形状说完了：</p>
  <table class="coordinates compare"><thead><tr><th>奇异值形态</th><th>几何形状</th><th>含义</th></tr></thead><tbody>
   <tr><td>只有第一个明显非零</td><td>直线</td><td>退化，解不出来</td></tr>
   <tr><td>前两个非零，第三个近零</td><td>平面</td><td>可以走平面专用解法</td></tr>
   <tr><td>三个都明显非零</td><td>三维分布</td><td>走通用解法</td></tr>
  </tbody></table>
- <p>SVD 找到的是轴，但<strong>轴的正负方向不唯一</strong>——v 和 −v 都是有效主方向。三个方向不保证自动组成右手坐标系，所以代码会检查行列式，负的话翻转第三轴。这是修正坐标系的朝向，不是实体板真的镜像了。</p>
- <p>「摆平」听起来像把板压平，其实是<strong>换一种坐标表达</strong>：为板建一个局部坐标系，前两轴沿板面、第三轴沿法向，然后重新表示点。板上点在新坐标里第三分量恒为零。板没动，相机没动，只是换了说法。</p>
- <p>换完坐标后 PnP 求出的解要还原回去，用两行公式就够了：</p>
- <div class="formula">R = R_q · Bᵀ　　t = t_q − R·c</div>
- <p>所以对外仍然输出原物体坐标系的位姿。</p>
- <p>接着是两条解法：</p>
- <p><strong>IPPE</strong> 利用平面结构，从单应关系在参考点附近的局部变化率恢复旋转候选，再求平移并比较投影误差。它<strong>显式给出两个候选</strong>——板远、小、投影接近仿射时，两种倾斜姿态的投影可能非常接近，光看误差分不出来，需要额外先验。</p>
- <p><strong>SQPnP</strong> 把问题写成带旋转约束的二次优化，用序列二次规划求解，配合区域搜索覆盖目标函数的最优解。注意「全局最优」限定在所定义的目标函数上：代数残差不等于直接最小化像素重投影误差，所以代码仍然继续做 LM 精化与像素门验收。</p>
- <p>那两个 IPPE 候选和 SVD 的行列式修正不是一回事：它们可以都是合法旋转，不是一个正常矩阵加一个反射。</p>
+ <p>平面情况下的第三主方向就是法向。正方形的前两个奇异值可能相等，此时平面内主轴不唯一——但这不影响平面判定，也不影响坐标变换的有效性。</p>
 
- <h2 id="exposure">8. 曝光时刻</h2>
+ <h3>正交基、行列式与右手系</h3>
+ <p>正交矩阵满足 <i>B</i><sup>T</sup><i>B</i> = <i>I</i>，轴互相垂直且长度为 1，但行列式可以是 +1 或 −1。要判断它是不是纯旋转，看：</p>
+ <div class="math">
+  <span class="row">det(<i>B</i>) <span class="op">=</span> (<i>b</i><sub>1</sub> × <i>b</i><sub>2</sub>) · <i>b</i><sub>3</sub></span>
+  <span class="note">三列依次做叉乘再点乘：+1 保持左右手关系，−1 含反射（例如 diag(1,1,−1)，等于关于 XY 平面照镜子），不能由纯旋转实现。</span>
+ </div>
+ <p><strong>轴的正负方向本身不唯一</strong>——<i>v</i> 和 −<i>v</i> 都是有效主方向，所以三个方向不保证自动组成右手系。代码的修正是翻转第三轴：</p>
+ <div class="math">
+  <span class="row">if det(<i>B</i>) &lt; 0：　<i>b</i><sub>3</sub> ← −<i>b</i><sub>3</sub></span>
+  <span class="note">翻转后仍然正交，行列式变成 +1。平面法向反向也仍然是法向。这是修正坐标系朝向，不是实体板真的发生了镜像。</span>
+ </div>
+
+ <h3>摆平：换一种坐标表达</h3>
+ <p>为板建一个局部坐标系，前两轴沿板面、第三轴沿法向，然后把点重新表示：</p>
+ <div class="math">
+  <span class="row"><i>q</i> <span class="op">=</span> <i>B</i><sup>T</sup>(<i>p</i> − <i>c</i>)</span>
+  <span class="note">减 <i>c</i> 把原点移到板中心，乘 <i>B</i><sup>T</sup> 得到沿新轴的分量。板上点沿法向没有分量，所以 <i>q</i> 的第三坐标恒为零。</span>
+ </div>
+ <p>举个具体的：中心 <i>c</i> = (0,0,1)，板绕 X 轴倾斜 30°，取</p>
+ <div class="math">
+  <span class="row"><i>b</i><sub>1</sub> <span class="op">=</span> (1<span class="op">,</span>0<span class="op">,</span>0)　<i>b</i><sub>2</sub> <span class="op">=</span> (0<span class="op">,</span>cos30°<span class="op">,</span>sin30°)　<i>b</i><sub>3</sub> <span class="op">=</span> (0<span class="op">,</span>−sin30°<span class="op">,</span>cos30°)</span>
+  <span class="row"><i>p</i> <span class="op">=</span> <i>c</i> <span class="op">+</span> <i>a b</i><sub>1</sub> <span class="op">+</span> <i>b b</i><sub>2</sub></span>
+  <span class="note">换坐标后就是 <i>q</i> = (<i>a</i>, <i>b</i>, 0)。板、相机、照片都没有移动——变的只是表达。</span>
+ </div>
+ <p>在新坐标下 PnP 求得 <i>p</i><sub>cam</sub> = <i>R</i><sub>q</sub> <i>q</i> + <i>t</i><sub>q</sub>，代回去就还原成原物体坐标系：</p>
+ <div class="math">
+  <span class="row"><i>R</i> <span class="op">=</span> <i>R</i><sub>q</sub> <i>B</i><sup>T</sup>　　<i>t</i> <span class="op">=</span> <i>t</i><sub>q</sub> − <i>R c</i></span>
+  <span class="note">验算：<i>p</i><sub>cam</sub> = <i>R</i><sub>q</sub><i>B</i><sup>T</sup>(<i>p</i>−<i>c</i>) + <i>t</i><sub>q</sub> = <i>R p</i> + <i>t</i>。</span>
+ </div>
+
+ <h3>IPPE：把平面结构用尽</h3>
+ <p>平面点的第三坐标为零，把它代进投影式，旋转矩阵按列拆开：</p>
+ <div class="math">
+  <span class="row"><i>s</i> [<i>u</i>　<i>v</i>　1]<sup>T</sup> <span class="op">=</span> <i>K</i> [<i>r</i><sub>1</sub>　<i>r</i><sub>2</sub>　<i>t</i>] [<i>a</i>　<i>b</i>　1]<sup>T</sup></span>
+  <span class="note">第三列 <i>r</i><sub>3</sub> 乘的是恒为零的 <i>z</i>，直接消失了——这就是平面结构带来的简化。</span>
+ </div>
+ <p>所以板平面到去畸变图像之间存在一个单应关系：</p>
+ <div class="math">
+  <span class="row"><i>H</i> <span class="op">∼</span> <i>K</i> [<i>r</i><sub>1</sub>　<i>r</i><sub>2</sub>　<i>t</i>]</span>
+  <span class="note">正比于 3×3 单应矩阵。<i>H</i> 有 8 个自由度，而旋转只有 3 个——所以能反解出旋转，但会得到不止一组解。</span>
+ </div>
+ <p>IPPE 不是简单地把 <i>H</i> 分解掉，而是用平面映射在参考点附近的<strong>局部变化率</strong>（雅可比）来恢复旋转候选：</p>
+ <div class="math">
+  <span class="row"><i>h</i>(<i>a</i>,<i>b</i>) <span class="op">≈</span> <i>h</i>(0,0) <span class="op">+</span> <i>J</i> · [<i>a</i>　<i>b</i>]<sup>T</sup></span>
+  <span class="note">「Infinitesimal」指的是这个局部微分关系，不是实体板无限小。</span>
+ </div>
+ <p>它<strong>显式给出两个候选</strong>。板远、小、投影接近仿射时，两种倾斜姿态的投影可能非常接近，光看误差分不出来，需要额外先验。这两个候选都是合法旋转——和一个正常矩阵加一个 det = −1 的反射完全是两回事。</p>
+
+ <h3>SQPnP：带旋转约束的二次优化</h3>
+ <p>从归一化图像坐标出发，<i>x</i> = <i>X</i>/<i>Z</i>、<i>y</i> = <i>Y</i>/<i>Z</i>，移项得两条线性约束：</p>
+ <div class="math">
+  <span class="row"><i>X</i> − <i>x Z</i> <span class="op">=</span> 0　　<i>Y</i> − <i>y Z</i> <span class="op">=</span> 0</span>
+  <span class="note">把 <i>X</i>,<i>Y</i>,<i>Z</i> 用 <i>R p</i> + <i>t</i> 代入，就得到一组关于旋转与平移的代数方程。</span>
+ </div>
+ <p>消去平移后，目标函数可以写成九维旋转向量 <i>r</i> 的二次型：</p>
+ <div class="math">
+  <span class="row">min　<i>r</i><sup>T</sup> <i>Ω</i> <i>r</i></span>
+  <span class="row">s.t.　<i>R</i><sup>T</sup><i>R</i> <span class="op">=</span> <i>I</i><span class="op">,</span>　det(<i>R</i>) <span class="op">=</span> 1</span>
+  <span class="note">这正是它叫「二次规划」的原因：目标二次，约束是正交性。SQP 在当前估计附近反复线性化约束、求二次子问题、更新估计。</span>
+ </div>
+ <p>注意「全局最优」的适用范围：代数残差 <i>X</i> − <i>xZ</i> 等于 <i>Z</i>(<i>X</i>/<i>Z</i> − <i>x</i>)，它<strong>不等于</strong>直接最小化像素重投影误差，所以不保证真实物理精度。这也是代码在它之后还要继续做 LM 精化和像素门验收的原因。</p>
+<h2 id="exposure">8. 曝光时刻</h2>
  <p>照片对应的是曝光那一刻，不能无条件用「现在最新」的机器人位姿去转换它。</p>
  <p>算一下就知道了：机器人以 0.2 m/s 移动，200 ms 的时差就是约 <strong>4 cm</strong> 的平移误差。</p>
  <p>做法是保存里程计历史（有界环形缓冲，约 500 条）：能精确匹配就直取；夹在两条样本之间且在允许间隔内就插值；没有包围样本就等待，<strong>拒绝外推</strong>。</p>
