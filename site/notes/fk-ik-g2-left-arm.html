@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/fk-ik-g2-left-arm.html">
+ <meta name="theme-color" content="#f7f9fc"><meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="从 G2 左臂的 7 个关节，一步一步算到 TCP · WangN2">
+ <meta property="og:description" content="用真实 URDF 常量，从关节角连乘到末端位姿，再反过来只凭位姿求回关节角。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/fk-ik-g2-left-arm.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="从 G2 左臂的 7 个关节，一步一步算到 TCP · WangN2">
+ <meta name="twitter:description" content="用真实 URDF 常量，从关节角连乘到末端位姿，再反过来只凭位姿求回关节角。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-11-19"><meta property="article:modified_time" content="2026-11-19"><meta property="article:section" content="运动学">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"从 G2 左臂的 7 个关节，一步一步算到 TCP","description":"用真实 URDF 常量，从关节角连乘到末端位姿，再反过来只凭位姿求回关节角。","url":"https://wangn2.github.io/notes/fk-ik-g2-left-arm.html","mainEntityOfPage":"https://wangn2.github.io/notes/fk-ik-g2-left-arm.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["正运动学","逆运动学","URDF"],"datePublished":"2026-11-19","dateModified":"2026-11-19"}</script>
+ <!--/meta-->
+ <title>从 G2 左臂的 7 个关节，一步一步算到 TCP · WangN2</title>
+ <meta name="description" content="用真实 URDF 常量，从关节角连乘到末端位姿，再反过来只凭位姿求回关节角。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/fkik/fkik.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 27 / 运动学 · FK 与 IK</p>
+ <h1>从 G2 左臂的 7 个关节，一步一步算到 TCP</h1>
+ <p class="lede">用真实 URDF 常量，从关节角连乘到末端位姿，再反过来只凭位姿求回关节角。</p>
+  <div class="article-meta"><span><time datetime="2026-11-19">2026-11-19</time></span><span>约 6 分钟</span><span>运动学</span><a class="series-link" href="../series/">全系列 ›</a></div>
+ <p>这次用的是真实的 G2 左臂模型（左 KZ25 / 右 POST），不再用两连杆近似。下面有可拖动关节的 FK 演示、每一级变换矩阵，以及实际跑出来的 IK 结果。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#ref">1．先明确参考系与“零位”</a></li>
+   <li><a href="#joints">2．七个关节的实际安装数据</a></li>
+   <li><a href="#drag">3．自己拖动关节：立即看到 FK 变化</a></li>
+   <li><a href="#chain">4．选定这一组关节角，逐级相乘</a></li>
+   <li><a href="#tcp">5．腕部还不是 TCP：不能漏掉固定工具变换</a></li>
+   <li><a href="#ik">6．反过来做 IK：只给刚才的末端位姿</a></li>
+   <li><a href="#materials">7．可复现材料与边界</a></li>
+   </ol>
+  </nav>
+
+ <div class="fkik">
+<p>这次使用 G2 左 KZ25 / 右 POST 模型，不再使用两连杆替代。下面既有可拖动关节的 FK 演示，也有实际 GPU IK 结果和每一级变换矩阵。</p><p class="fk-note">数据来源：内部工作区的一份锁定模型资产；算法与资产各有独立提交，工作区检出与锁定值不同，本页一律使用锁定文件，不修改工作区。没有连接机器人、没有下发运动指令，也未核验任何一台机器人的当前安装版本。</p>
+<section><h2 id="ref">1．先明确参考系与“零位”</h2><p><b>参考系是 base_link。</b>本例把底盘虚拟坐标和五个躯干关节都设为 0，左臂角度按模型顺序排列。不是实时反馈，不是指定站立姿态，也不是让机器人执行全零。</p><p>URDF 中的 joint origin 描述“父 link 到关节零位坐标系”的固定安装变换。q=0 时，child link 与这个关节零位坐标系对齐；q≠0 时，再绕 axis 指定的局部轴按右手定则旋转。模型零位不等于原始编码器读数 0，硬件零偏需要控制/标定链说明，不能从 URDF 猜测。</p><p>左臂 7 个 axis 都是 [0,0,1]。这表示<b>各自坐标系的 Z 轴</b>。父级运动和安装旋转会改变该轴在 base_link 中的方向。</p><pre tabindex="0">关节 i 的变换：
+T_parent_child(q_i) = Trans(xyz_i) · Rz(yaw_i) · Ry(pitch_i) · Rx(roll_i) · Rz(q_i)
+
+RPY 是固定安装角；q_i 是关节变量。两者不能混为一谈。
+正方向：右手拇指沿局部 +Z，四指弯曲方向为 q_i 增大方向。</pre><figure><a href="../assets/fkik/g2_left_frames_full.png" target="_blank" rel="noopener"><img src="../assets/fkik/g2_left_frames.png" width="1420" height="659" loading="lazy" alt="G2 左臂运动学骨架：左为零位，右为演算姿态，紫色箭头为各关节正旋转轴"></a><figcaption>图 1｜左为零位、右为演算姿态。点击看原图。</figcaption></figure></section>
+<section><h2 id="joints">2．七个关节的实际安装数据</h2><p>xyz 单位为 mm；RPY 使用源文件的 rad，保留 1.5708，计算不擅自替换为精确 π/2。最后一列只是 URDF 单关节限位，不是完整可执行性检查。</p><div class="fk-table" tabindex="0" role="group" aria-label="可横向滚动的数据表"><table><tr><th>关节</th><th>父 / 子坐标系</th><th>origin xyz (mm)</th><th>origin RPY (rad)</th><th>局部 axis</th><th>全零时 axis 在 base_link</th><th>限位 (°)</th></tr><tr><td>J1<br><code>arm_l_joint1</code></td><td>arm_base_link → arm_l_link1</td><td>[0.0, 0.0, 69.0]</td><td>[0.0000000, 0.0000000, 0.0000000]</td><td>[0,0,1]</td><td>[0.000000, 1.000000, 0.000000]</td><td>-176.00 … 176.00</td></tr><tr><td>J2<br><code>arm_l_joint2</code></td><td>arm_l_link1 → arm_l_link2</td><td>[0.0, 0.0, 174.5]</td><td>[1.5708000, 0.0000000, 0.0000000]</td><td>[0,0,1]</td><td>[0.000000, -0.000004, 1.000000]</td><td>-118.00 … 118.00</td></tr><tr><td>J3<br><code>arm_l_joint3</code></td><td>arm_l_link2 → arm_l_link3</td><td>[0.0, 0.0, 0.0]</td><td>[-1.5708000, 0.0000000, 0.0000000]</td><td>[0,0,1]</td><td>[0.000000, 1.000000, 0.000000]</td><td>-176.00 … 176.00</td></tr><tr><td>J4<br><code>arm_l_joint4</code></td><td>arm_l_link3 → arm_l_link4</td><td>[10.5, 0.0, 332.0]</td><td>[1.5708000, 0.0000000, 0.0000000]</td><td>[0,0,1]</td><td>[0.000000, -0.000004, 1.000000]</td><td>-143.00 … 58.00</td></tr><tr><td>J5<br><code>arm_l_joint5</code></td><td>arm_l_link4 → arm_l_link5</td><td>[-10.5, 0.0, 0.0]</td><td>[-1.5708000, 0.0000000, 0.0000000]</td><td>[0,0,1]</td><td>[0.000000, 1.000000, 0.000000]</td><td>-176.00 … 176.00</td></tr><tr><td>J6<br><code>arm_l_joint6</code></td><td>arm_l_link5 → arm_l_link6</td><td>[0.0, 0.0, 278.0]</td><td>[1.5708000, 0.0000000, 0.0000000]</td><td>[0,0,1]</td><td>[0.000000, -0.000004, 1.000000]</td><td>-58.00 … 58.00</td></tr><tr><td>J7<br><code>arm_l_joint7</code></td><td>arm_l_link6 → arm_l_link7</td><td>[0.0, 0.0, 0.0]</td><td>[1.5708000, 0.0000000, 1.5708000]</td><td>[0,0,1]</td><td>[1.000000, 0.000004, -0.000004]</td><td>-88.00 … 88.00</td></tr></table></div><p>在这份 profile 的全状态向量中，左臂为零基索引 8…14；arm_l_joint1…7 是关节名称，不是数组索引。</p><p>所以全零时可近似记为：J1 +Y、J2 +Z、J3 +Y、J4 +Z、J5 +Y、J6 +Z、J7 +X。注意这个简记只适用于本例的全零基准，关节运动后不能继续把这些轴当作固定世界轴。</p><p>J2 与 J3 原点重合，J6 与 J7 原点重合；它们的旋转轴不同。原点重合不等于同一个自由度。J4 与 J5 则还有 10.5 mm 安装偏移。</p></section>
+<section><h2 id="drag">3．自己拖动关节：立即看到 FK 变化</h2><p>这是同一份 URDF 常量的浏览器离线 FK。选中一个关节可显示它的局部 XYZ 三轴；红 X、绿 Y、蓝 Z；关节的局部 Z 就是正旋转轴。所有按钮只更新页面，不连接任何设备。</p><div class="fk-grid"><div><svg id="view" viewBox="0 0 700 520" role="img" aria-label="左臂关节与TCP三维投影"></svg><label>观察方向 <input id="camera" type="range" min="-180" max="180" value="35"></label><label>显示坐标系 <select id="frame"><option value="0" >J1 / arm_l_link1</option><option value="1" >J2 / arm_l_link2</option><option value="2" >J3 / arm_l_link3</option><option value="3" selected>J4 / arm_l_link4</option><option value="4" >J5 / arm_l_link5</option><option value="5" >J6 / arm_l_link6</option><option value="6" >J7 / arm_l_link7</option><option value="7">TCP</option></select></label><p class="fk-small">以 base_link 方向绘制；图像是运动学骨架投影，不是碰撞几何。更改滑块只做 FK，不会自动执行 IK。</p></div><div><label>J1 <output id="out0"></output>°<input type="range" id="q0" min="-176.00117550828628" max="176.00117550828628" step="any" value="30.0"></label><label>J2 <output id="out1"></output>°<input type="range" id="q1" min="-118.00065790719303" max="118.00065790719303" step="any" value="-20.0"></label><label>J3 <output id="out2"></output>°<input type="range" id="q2" min="-176.00117550828628" max="176.00117550828628" step="any" value="15.0"></label><label>J4 <output id="out3"></output>°<input type="range" id="q3" min="-143.00453608670216" max="58.000517601093236" step="any" value="-60.0"></label><label>J5 <output id="out4"></output>°<input type="range" id="q4" min="-176.00117550828628" max="176.00117550828628" step="any" value="20.0"></label><label>J6 <output id="out5"></output>°<input type="range" id="q5" min="-58.000517601093236" max="58.000517601093236" step="any" value="15.0"></label><label>J7 <output id="out6"></output>°<input type="range" id="q6" min="-88.00058775414314" max="88.00058775414314" step="any" value="-10.0"></label><button id="zero">全零</button><button id="example">FK 示例</button><button id="free">7 关节 IK 解</button><button id="held">固定 J3 的 IK 解</button><p id="xyz"></p><pre id="matrix" tabindex="0"></pre></div></div></section>
+<section><h2 id="chain">4．选定这一组关节角，逐级相乘</h2><pre tabindex="0">q_deg = [30, -20, 15, -60, 20, 15, -10]
+q_rad = [0.523598776, -0.349065850, 0.261799388, -1.047197551, 0.349065850, 0.261799388, -0.174532925]</pre><p>五个躯干关节为零时，先得到共同的臂座变换：</p><pre tabindex="0">T_base_arm_base =
+ 1.000000000  0.000000000  0.000000000  0.102000000
+ 0.000000000  0.000000000  1.000000000  0.000000000
+ 0.000000000 -1.000000000  0.000000000  1.341500000
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre><p>接着按 J1→J7 连乘，最后再经过腕部和夹爪固定变换。J1 的旋转不会移动它自己的原点，但会旋转后续坐标系；本模型 J2 的安装位移沿 J1 旋转轴，因此只改变 J1 时，J2 原点也不移动。这些都可以在滑块图中验证。</p><pre tabindex="0">T_base_tcp = T_base_arm_base · A1(q1) · A2(q2) · … · A7(q7)
+           · T_link7_wrist · T_wrist_gripper · T_gripper_tcp</pre><p>下面每一项均来自实际计算，可展开看完整 4×4 矩阵。矩阵右上角是位置，左上角的三列分别是该坐标系的 X、Y、Z 轴在 base_link 中的方向。</p><details><summary>arm_base_link：位置 [0.102000, 0.000000, 1.341500] m</summary><pre tabindex="0"> 1.000000000  0.000000000  0.000000000  0.102000000
+ 0.000000000  0.000000000  1.000000000  0.000000000
+ 0.000000000 -1.000000000  0.000000000  1.341500000
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>arm_l_link1：位置 [0.102000, 0.069000, 1.341500] m</summary><pre tabindex="0"> 0.866025404 -0.500000000  0.000000000  0.102000000
+ 0.000000000  0.000000000  1.000000000  0.069000000
+-0.500000000 -0.866025404  0.000000000  1.341500000
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>arm_l_link2：位置 [0.102000, 0.243500, 1.341500] m</summary><pre tabindex="0"> 0.813797053  0.296199859  0.500000000  0.102000000
+-0.342020143  0.939692621 -0.000003673  0.243500000
+-0.469847398 -0.171007082  0.866025404  1.341500000
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>arm_l_link3：位置 [0.102000, 0.243500, 1.341500] m</summary><pre tabindex="0"> 0.656657787 -0.693590140  0.296198022  0.102000000
+-0.330366032  0.088521541  0.939692621  0.243500000
+-0.677981442 -0.714910242 -0.171010264  1.341500000
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>arm_l_link4：位置 [0.207233, 0.552009, 1.277606] m</summary><pre tabindex="0"> 0.071811676  0.716782610  0.693589052  0.207232650
+-0.978980416  0.183740771 -0.088524993  0.552009107
+-0.190893763 -0.672652971  0.714910870  1.277605787
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>arm_l_link5：位置 [0.206479, 0.562288, 1.279610] m</summary><pre tabindex="0">-0.169741426 -0.676324028  0.716780062  0.206478627
+-0.889663573  0.418016670  0.183741097  0.562288401
+-0.423894533 -0.606504635 -0.672655597  1.279610172
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>arm_l_link6：位置 [0.405743, 0.613368, 1.092612] m</summary><pre tabindex="0"> 0.021559347  0.736291087  0.676321395  0.405743485
+-0.811793724  0.407740664 -0.418017345  0.613368426
+-0.583546180 -0.540021283  0.606507106  1.092611916
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>arm_l_link7：位置 [0.405743, 0.613368, 1.092612] m</summary><pre tabindex="0"> 0.607663102  0.793902223  0.021559567  0.405743485
+ 0.474137571 -0.340865718 -0.811790691  0.613368426
+-0.637133517  0.503517450 -0.583550391  1.092611916
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>arm_l_end_link：位置 [0.460433, 0.656041, 1.035270] m</summary><pre tabindex="0"> 0.021559567 -0.793902223  0.607663102  0.460433164
+-0.811790691  0.340865718  0.474137571  0.656040807
+-0.583550391 -0.503517450 -0.637133517  1.035269899
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>dex1c_l_gripper_base_link：位置 [0.459193, 0.655898, 1.037138] m</summary><pre tabindex="0"> 0.793902223 -0.607663102  0.021559567  0.459193110
+-0.340865718 -0.474137571 -0.811790691  0.655897821
+ 0.503517450  0.637133517 -0.583550391  1.037137819
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details><details><summary>left_tcp：位置 [0.629623, 0.738335, 0.824220] m</summary><pre tabindex="0"> 0.793902223 -0.607663102  0.021559567  0.629622560
+-0.340865718 -0.474137571 -0.811790691  0.738335335
+ 0.503517450  0.637133517 -0.583550391  0.824219949
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre></details></section>
+<section><h2 id="tcp">5．腕部还不是 TCP：不能漏掉固定工具变换</h2><p>arm_l_link7 → arm_l_end_link：位移 [0.09,0,0] m，RPY=[π,-π/2,0]。之后还有腕部→夹爪安装座、安装座→left_tcp 两级固定变换。本模型合成后的腕部→TCP 矩阵为：</p><pre tabindex="0"> 0.000000000  0.000000000  1.000000000  0.060000000
+-1.000000000  0.000000000  0.000000000 -0.000001122
+ 0.000000000 -1.000000000  0.000000000  0.276296078
+ 0.000000000  0.000000000  0.000000000  1.000000000</pre><p>这表示 TCP 原点在腕部坐标中约为 [60.000, -0.001122, 276.296078] mm；同时坐标轴也旋转了。必须计算 p_tcp = p_wrist + R_wrist · p_wrist_tcp，不能把这三个偏移直接加到基座坐标。</p><h3>本次 FK 最终结果</h3><pre tabindex="0">T_base_tcp =
+ 0.793902223 -0.607663102  0.021559567  0.629622560
+-0.340865718 -0.474137571 -0.811790691  0.738335335
+ 0.503517450  0.637133517 -0.583550391  0.824219949
+ 0.000000000  0.000000000  0.000000000  1.000000000
+
+position_m = [0.629622560, 0.738335335, 0.824219949]
+quaternion_xyzw = [0.844332604, -0.280851650, 0.155471024, 0.429014644]
+RPY_deg (Rz·Ry·Rx) = [132.486559, -30.232987, -23.236498]</pre><p>独立 MuJoCo FK 对照：4×4 矩阵最大绝对差 7.77e-16。MuJoCo 使用同源安装参数构建的无网格运动学链；验证的是变换实现一致性，不验证原始机械标定是否准确。</p></section>
+<section><h2 id="ik">6．反过来做 IK：只给刚才的末端位姿</h2><p>目标使用上述完整位置和朝向。初值故意选择不同的关节角：[20.0, -10.0, 0.0, -45.0, 10.0, 5.0, 0.0]°，没有把原 FK 输入当作答案直接返回。</p><p>本课单独实现几何雅可比阻尼最小二乘，全部迭代在 单卡 GPU 上进行。它用于展示 7 关节 IK 的机制，<b>不是 生产用的 cuRobo 轨迹优化器，也没有运行碰撞、质心和轨迹验收</b>。</p><pre tabindex="0">e_p = p_target - p_current
+e_R = Log(R_target · R_currentᵀ)       # 在基座坐标表达的旋转误差
+
+每个旋转关节 i 的雅可比列：
+J_i = [ a_i × (p_tcp - o_i) ]         # 位置如何随关节小变化而变化
+      [         a_i        ]         # 姿态如何随关节小变化而变化
+
+J 是 6×7，Δq = Jᵀ (J Jᵀ + λ² I)⁻¹ e
+本例 λ=1e-4；单轮最大 |Δq_i| 限制为 0.15 rad 后乘 0.8；再检查单关节上下界。</pre><p>先让 7 个关节都参与，再补做“固定 J3=15°”的对照。固定 J3 时从雅可比中移除该列，其有效初值也把 J3 设为 15°，其余初值不变。</p><div class="fk-table" tabindex="0" role="group" aria-label="可横向滚动的数据表"><table><tr><th>关节</th><th>FK 原角度 °</th><th>7 自由度 IK 初值 °</th><th>7 自由度 IK 解 °</th><th>固定 J3 后 IK 解 °</th></tr><tr><td>J1</td><td>30.000000</td><td>20.000000</td><td>31.518978</td><td>30.000000</td></tr><tr><td>J2</td><td>-20.000000</td><td>-10.000000</td><td>-19.873102</td><td>-20.000000</td></tr><tr><td>J3</td><td>15.000000</td><td>0.000000</td><td>12.531366</td><td>15.000000</td></tr><tr><td>J4</td><td>-60.000000</td><td>-45.000000</td><td>-60.000000</td><td>-60.000000</td></tr><tr><td>J5</td><td>20.000000</td><td>10.000000</td><td>21.140121</td><td>20.000000</td></tr><tr><td>J6</td><td>15.000000</td><td>5.000000</td><td>14.777022</td><td>15.000000</td></tr><tr><td>J7</td><td>-10.000000</td><td>0.000000</td><td>-10.614792</td><td>-10.000000</td></tr></table></div><p>7 自由度求解：17 次更新，位置残差 1.99e-11 m，旋转残差 1.9e-09°。固定 J3：16 次更新，恢复原角度附近的解。</p><p>本例 6×7 雅可比秩为 6，局部有一个冗余方向。相同 6D 末端位姿可以对应不同的 7 维关节组合。它不保证每个目标都有解，也不保证固定任意一个关节后一定能解出。</p><figure><a href="../assets/fkik/g2_ik_convergence_full.png" target="_blank" rel="noopener"><img src="../assets/fkik/g2_ik_convergence.png" width="1420" height="426" loading="lazy" alt="IK 迭代过程中关节角与位置、旋转残差的收敛曲线"></a><figcaption>图 2｜IK 迭代收敛：残差在十余次更新内降到 1e-11 量级。点击看原图。</figcaption></figure></section>
+<section><h2 id="materials">7．可复现材料与边界</h2><p>本页展示的是最终结果；完整的 FK / IK 脚本、MuJoCo 对照链与逐次迭代记录保留在内部报告里，未随本页发布。</p><p>远端输出目录：内部输出目录；执行镜像 内部开发镜像，GPU RTX GPU 工作站。脚本不导入 SDK、ROS，不连接机器人。</p><p class="fk-note">小数值残差只说明“同一模型内部，目标和解一致”。未检验实机零偏、机械装配误差、工具标定误差、碰撞、质心、关节耦合和可执行路径。不要把本例角度当作运动指令。</p><p class="fk-small">URDF 校验和（SHA256 前 16 位）：b52a0c973616739a<br>本例没有更新或切换远端工作区，没有部署。</p></section>
+ </div>
+
+ <p class="references">相关笔记：<a href="./kinematics.html">机器人运动学</a>（关节到末端的整体框架） · <a href="./hand-eye.html">手眼标定</a>（相机与末端的固定变换） · <a href="./calibration.html">机器人标定</a>（为什么模型零位不等于编码器零位） · <a href="./collision-envelope.html">碰撞包络</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./localization-gpu.html"><span>← 上一篇</span><strong>AprilTag 的 GPU 加速实施方案</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/fkik/fkik.js"></script>
+</body></html>
