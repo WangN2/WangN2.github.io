@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/harness-engineering.html">
+ <meta name="theme-color" content="#f7f9fc"><meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="Harness 工程：把纪律写进环境，而不是写进代码 · WangN2">
+ <meta property="og:description" content="OpenAI 五个月、一百万行、零手写代码的实验。六条做法里，五条能搬到机器人，一条必须砍掉。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/harness-engineering.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="Harness 工程：把纪律写进环境，而不是写进代码 · WangN2">
+ <meta name="twitter:description" content="OpenAI 五个月、一百万行、零手写代码的实验。六条做法里，五条能搬到机器人，一条必须砍掉。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-11-20"><meta property="article:modified_time" content="2026-11-20"><meta property="article:section" content="工程">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Harness 工程：把纪律写进环境，而不是写进代码","description":"OpenAI 五个月、一百万行、零手写代码的实验。六条做法里，五条能搬到机器人，一条必须砍掉。","url":"https://wangn2.github.io/notes/harness-engineering.html","mainEntityOfPage":"https://wangn2.github.io/notes/harness-engineering.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["智能体工程","Codex","工程纪律"],"datePublished":"2026-11-20","dateModified":"2026-11-20"}</script>
+ <!--/meta-->
+ <title>Harness 工程：把纪律写进环境，而不是写进代码 · WangN2</title>
+ <meta name="description" content="OpenAI 五个月、一百万行、零手写代码的实验。六条做法里，五条能搬到机器人，一条必须砍掉。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <link rel="stylesheet" href="../assets/harness/he.css">
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+ <p class="eyebrow">NOTE 28 / 工程 · 智能体协作</p>
+ <h1>Harness 工程</h1>
+ <p class="lede">OpenAI 用五个月、三个工程师、零手写代码做出了一百万行。真正值得学的不是速度，是他们把纪律放在了哪里。</p>
+  <div class="article-meta"><span><time datetime="2026-11-20">2026-11-20</time></span><span>约 6 分钟</span><span>工程</span><a class="series-link" href="../series/">全系列 ›</a></div>
+
+ <p>这是对 OpenAI 那篇 <a href="https://openai.com/zh-Hans-CN/index/harness-engineering/">Harness engineering</a> 的整理与评注。前半是他们的做法，后半是我认为该保留、该改造、该扔掉的部分。</p>
+ <p class="callout"><strong>边界。</strong>原文是一个五个月的产品实验，不是长期维护的老系统。文中所有数字都出自原文；我的判断部分会单独标出来。</p>
+
+  <nav class="toc" aria-labelledby="toc-title">
+   <p class="toc-title" id="toc-title">本文目录</p>
+   <ol>
+   <li><a href="#exp">1. 实验本身</a></li>
+   <li><a href="#role">2. 角色变了：从写代码到造环境</a></li>
+   <li><a href="#repo">3. 仓库即记录系统：给地图，不给手册</a></li>
+   <li><a href="#read">4. 可读性：看不见的就不存在</a></li>
+   <li><a href="#mech">5. 机械化执行：管不变量，不管实现</a></li>
+   <li><a href="#throughput">6. 吞吐量改变了合并理念</a></li>
+   <li><a href="#budget">7. 为什么「注意力」是真瓶颈</a></li>
+   <li><a href="#entropy">8. 熵与垃圾回收</a></li>
+   <li><a href="#counter">9. 三个反直觉的判断</a></li>
+   <li><a href="#transfer">10. 搬到机器人：五条能用，一条要砍</a></li>
+   <li><a href="#limits">11. 这篇文章的边界</a></li>
+   <li><a href="#close">12. 收尾</a></li>
+   </ol>
+  </nav>
+ <h2 id="exp">1. 实验本身</h2>
+ <table class="coordinates compare"><thead><tr><th>项</th><th>数字</th></tr></thead><tbody>
+  <tr><td>起点</td><td>一个空 git 仓库（2025 年 8 月首次提交）</td></tr>
+  <tr><td>时长 / 产出</td><td>五个月 / 约 <strong>100 万行</strong></td></tr>
+  <tr><td>PR</td><td>约 <strong>1500</strong> 个，全部合并</td></tr>
+  <tr><td>团队</td><td>3 人起，后扩到 7 人（吞吐量反而上升）</td></tr>
+  <tr><td>手写代码</td><td><strong>零行</strong></td></tr>
+  <tr><td>相对传统方式</td><td>约 <strong>1/10</strong> 的时间</td></tr>
+ </tbody></table>
+ <p>连第一份指导智能体的 <code>AGENTS.md</code> 本身都是 Codex 写的。人类只做两件事：掌舵，和验收。</p>
+
+ <h2 id="role">2. 角色变了：从写代码到造环境</h2>
+ <p>原文里最关键的一句不是数字，是这个：</p>
+ <p class="formula">不顺利时，解决方案不再是「再努力一点」，而是「还缺什么能力，怎么让它对智能体清晰可读且可强制执行」</p>
+ <p>也就是说，<strong>每一次失败都被翻译成一条环境改进</strong>，而不是一次人工补救。这是全篇的枢纽——后面六条做法都是这条原则的展开。</p>
+
+ <h2 id="repo">3. 仓库即记录系统：给地图，不给手册</h2>
+ <p>他们先试了「一个巨大的 AGENTS.md」，失败了。四条理由写得很准确：</p>
+ <table class="coordinates compare"><thead><tr><th>失败原因</th><th>含义</th></tr></thead><tbody>
+  <tr><td>情境是稀缺资源</td><td>大文件会挤掉任务、代码和文档本身</td></tr>
+  <tr><td>过多指导反而无效</td><td>什么都重要 = 什么都不重要，智能体退化成模式匹配</td></tr>
+  <tr><td>会立刻腐烂</td><td>没人维护的手册变成陈旧规则的坟场</td></tr>
+  <tr><td>无法机械检查</td><td>单个 blob 没法验证覆盖率、新鲜度、交叉链接</td></tr>
+ </tbody></table>
+ <p>改法：<code>AGENTS.md</code> 压到约 <strong>100 行</strong>，只当<strong>内容目录</strong>，指向 <code>docs/</code> 里真正的知识库。他们把这叫<strong>渐进式披露</strong>——从小而稳定的入口进去，再被指引到深处。</p>
+
+ <h2 id="read">4. 可读性：看不见的就不存在</h2>
+ <p>原文说得极直白：</p>
+ <p class="formula">智能体运行时访问不到的东西，对它来说就是不存在</p>
+ <p>所以那句让团队在架构上达成一致的 Slack 讨论，如果没进仓库，智能体就像三个月后入职的新人一样一无所知。</p>
+ <p>他们为此把整个应用做成<strong>可被程序验证</strong>的：每个改动能起一个独立实例、接 Chrome DevTools 协议、用一个临时的本地可观测性栈（日志 / 指标 / 追踪），智能体自己复现 bug、改、重启、再验证——单次运行常常超过六小时。</p>
+
+ <h2 id="mech">5. 机械化执行：管不变量，不管实现</h2>
+ <p>这是我认为最值得抄的一条：<strong>通过强制执行不变量，而不是微观管理实施过程。</strong></p>
+ <p>他们的边界规则是：每个业务域内部只能单向依赖固定层，横切关注点只能走唯一入口。</p>
+ <div class="formula">Types → Config → Repo → Service → Runtime → UI　　横切走 Providers</div>
+ <p>执行方式是<strong>自定义 linter + 结构测试</strong>——而这些 linter 本身也是 Codex 写的。有意思的是他们只规定「在边界处解析数据形状」，不规定用哪个库。</p>
+ <p>还有一个细节值得单独拎出来：<strong>自定义 lint 的错误信息会直接写入修复指令</strong>，因为错误信息本身就是智能体的情境。</p>
+
+ <h2 id="throughput">6. 吞吐量改变了合并理念</h2>
+ <p>他们大幅减少了阻塞式的合并门：PR 生命周期短，偶发失败的测试靠重跑解决，而不是无限期堵住。</p>
+ <p>理由是成本判断：<strong>纠错成本低，等待成本高。</strong></p>
+ <p>但他们也写了那句必须一起读的话：<strong>在低吞吐量环境中，这样做是不负责任的。</strong></p>
+
+ <h2 id="budget">7. 为什么「注意力」是真瓶颈</h2>
+ <p>把这句话算一遍就清楚了。设每天有 N 个 PR、每个需要 m 分钟人工审查、团队 P 人、每人每天能拿出 H 分钟：</p>
+ <div class="formula">需要 = N × m　　可用 = P × H</div>
+ <p>拖一下就知道，同一个做法在两种规模下的结论完全相反。</p>
+
+ <section class="he-lab" aria-labelledby="he-title" data-ready="false">
+  <h3 id="he-title">你的团队还剩多少审查工时</h3>
+  <p class="he-hint">默认是原文的量级：3.5 PR/人/天 × 7 人 ≈ 24.5 个 PR，每人每天两小时审查。把 PR 数拉到 60 看会发生什么。</p>
+  <div class="he-row">
+   <canvas data-canvas role="img" aria-label="每天所需的审查工时与团队可提供的审查工时对比，以及缺口"></canvas>
+   <div class="he-side">
+    <div class="he-ctrl">
+     <label>每天 PR 数 <input type="range" data-in="N" min="2" max="80" step="1" value="24"><output data-out="N">24</output></label>
+     <label>每个 PR 审查分钟 <input type="range" data-in="m" min="2" max="40" step="1" value="12"><output data-out="m">12 分钟</output></label>
+     <label>团队人数 <input type="range" data-in="P" min="1" max="20" step="1" value="5"><output data-out="P">5 人</output></label>
+     <label>每人每天可审查 <input type="range" data-in="H" min="20" max="480" step="10" value="120"><output data-out="H">120 分钟</output></label>
+    </div>
+    <dl class="he-readout">
+     <div><dt>需要</dt><dd data-read="need">—</dd></div>
+     <div><dt>可用</dt><dd data-read="have">—</dd></div>
+     <div><dt>缺口</dt><dd data-read="gap">—</dd></div>
+     <div><dt>按此负载需要</dt><dd data-read="people">—</dd></div>
+    </dl>
+   </div>
+  </div>
+  <p class="he-status" data-status role="status">—</p>
+ </section>
+
+ <p>这就是为什么第 6 条不是「偷懒」而是「必要条件」：当审查需求超过人力上限，PR 必然积压，而积压的代价比放过一个小错误更高。</p>
+ <p>反过来也成立——<strong>如果审查工时还有富余，你完全有底气坚持严格门禁。</strong>同一套哲学，换个规模就是错的。</p>
+
+ <h2 id="entropy">8. 熵与垃圾回收</h2>
+ <p>智能体会<strong>复制仓库里已有的模式，包括坏模式</strong>。最初他们每周五花 20% 的时间人工清理「AI 残渣」，不可扩展。</p>
+ <p>改法：把「黄金原则」编码进仓库，再加一组后台任务定期扫描偏差、发重构 PR，多数一分钟内可审、自动合并。</p>
+ <p>原文的比喻很准：<strong>技术债务像高息贷款，不断小额偿还比攒着一次性解决便宜得多。</strong></p>
+
+ <h2 id="counter">9. 三个反直觉的判断</h2>
+ <p><strong>①「枯燥」的技术对智能体更友好。</strong>原文说，那些可组合性强、API 稳定、在训练集里见得多的技术，反而更容易被建模。</p>
+ <p><strong>② 有时宁可自己重写，也不要绕不透明上游。</strong>他们没引入通用的并发限流包，而是自己写了一个与遥测深度集成、测试全覆盖的版本——因为「绕过不透明的上游行为」比「重写一个子集」更贵。</p>
+ <p><strong>③ 人类品味必须被编码。</strong>审查评论、重构 PR、用户 bug 会被记录成文档更新，或直接变成工具规则。原文一句话：<strong>当文档不够完善时，把规则转化为代码。</strong></p>
+
+ <h2 id="transfer">10. 搬到机器人：五条能用，一条要砍</h2>
+ <figure><img src="../assets/harness/fig1_transfer.png" width="1366" height="723" loading="lazy" alt="六条做法与迁移性的对照表：四条可直接用，一条要改造，一条不要照搬"><figcaption>图 1｜六条做法对机器人领域的迁移性。</figcaption></figure>
+ <p><strong>能直接用的：</strong>AGENTS.md 当索引、机械化执行不变量、错误信息写修复指令、熵管理。这几条的共同点是<strong>只依赖仓库内的东西</strong>，不需要接物理世界。</p>
+ <p><strong>要改造的：</strong>「看不见就不存在」在机器人里有个更硬的版本——<strong>物理世界本来就不在仓库里</strong>。软件可以起 worktree 点两下验证，机器人只能靠仿真回放加真机日志，成本高两个数量级。</p>
+ <p><strong>要砍掉的：</strong>第 6 条「减少阻塞合并门」。</p>
+ <p>它成立的前提是<strong>错误可逆</strong>。软件 merge 错了，重跑一次；机器人 merge 错了，撞一次。这个代价不对称，所以「纠错便宜」这句话在物理世界里不成立。</p>
+ <p>我的建议是一句话：<strong>把机械化的部分用足，把吞吐量的部分收着用。</strong></p>
+
+ <h2 id="limits">11. 这篇文章的边界</h2>
+ <p>原文自己划了三条，值得原样记住：</p>
+ <p><strong>① 强绑定这个仓库。</strong>原文明确写：这套行为取决于该仓库的具体结构和工具，<strong>不应假定它可以泛化</strong>。</p>
+ <p><strong>② 长期架构连贯性未知。</strong>「在一个完全由智能体生成的系统中，架构连贯性会如何随时间演变，我们尚不清楚。」</p>
+ <p><strong>③ 五个月的内部 beta。</strong>1500 个 PR 里，没有一个是「三年后要有人接手」的那种代码。长期维护成本还没被验证。</p>
+ <p>还有一条他们没直说、但我认为要标出来的：<strong>「智能体审智能体」的循环会收敛到共同盲区。</strong>人类评审的价值有相当一部分是「我说不清哪里不对，但这段不对劲」——这个信号在 agent-to-agent 的闭环里会消失。</p>
+
+ <h2 id="close">12. 收尾</h2>
+ <p>这篇文章真正的新意，不是「AI 能写代码」——那已经不新鲜了。新意是它给出了一个可操作的答案：</p>
+ <p><strong>当执行变便宜时，瓶颈会自动转移到「定义正确」这件事上。</strong>而定义正确的方式，是把约束写成机器能检查的东西。</p>
+ <p>所以它表面在讲智能体，实际在讲一件更老的事：<strong>纪律要放在支撑结构里，而不是放在人的自觉里。</strong>这句话在没有智能体的年代就成立，只是以前没人有动力去做。</p>
+
+ <p class="references">原文：<a href="https://openai.com/zh-Hans-CN/index/harness-engineering/">Harness engineering: leveraging Codex in an agent-first world</a>（Ryan Lopopolo，2026-02-11）</p>
+ <p class="references">相关笔记：<a href="./harnessvln.html">HarnessVLN：证据闭环</a> · <a href="./astra-g2-autonomous-navigation.html">Astra × G2 自主导航</a> · <a href="./astra-robot-admission.html">Astra 真机准入复盘</a></p>
+
+ <nav class="note-nav" aria-label="笔记导航">
+  <a class="prev" href="./fk-ik-g2-left-arm.html"><span>← 上一篇</span><strong>从 G2 左臂的 7 个关节，一步一步算到 TCP</strong></a>
+  <a class="home" href="../series/"> <span>系列索引</span><strong>学习地图 · 全部笔记</strong></a>
+ </nav>
+ </article></main>
+ <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/harness/he.js"></script>
+</body></html>
