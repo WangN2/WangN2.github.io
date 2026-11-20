@@ -3,7 +3,8 @@ const root=path.join(__dirname,'../site');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const notes=['notes/sam-visp-visual-servo.html','notes/kinematics.html','notes/collision-envelope.html','notes/apriltag.html','notes/tray-grasp.html','notes/swerve-base.html','notes/hand-eye.html','notes/costmap.html','notes/grasp-timeline.html','notes/lingbot-vla2.html','notes/vla-g2-deploy.html','notes/nvjpeg.html','notes/optimizer-muon.html','notes/genie4-vs-astra.html','notes/train-5k.html','notes/cuda.html','notes/calibration.html','notes/cem.html','notes/astra-robot-admission.html','notes/ensemble.html','notes/training-stack.html','notes/embodied-data.html','notes/data-formats.html','notes/harnessvln.html','notes/cam-calibration.html','notes/fk-ik-g2-left-arm.html','notes/harness-engineering.html','notes/astra-g2-autonomous-navigation.html','notes/localization-gpu.html'];
 function body(s){return s.slice(s.indexOf('<article'),s.indexOf('</article>'));}
-function plain(html){return html.replace(/<script[\s\S]*?<\/script>/g,' ').replace(/<[^>]+>/g,' ');}
+// KaTeX includes hidden MathML plus visible HTML; count the equation only once.
+function plain(html){return html.replace(/<math[\s\S]*?<\/math>/g,' ').replace(/<script[\s\S]*?<\/script>/g,' ').replace(/<[^>]+>/g,' ');}
 function minutes(html){
  const text=plain(body(html)),cjk=(text.match(/[\u4e00-\u9fff]/g)||[]).length,
   latin=(text.match(/[A-Za-z][A-Za-z0-9_.+-]*/g)||[]).length;

@@ -89,3 +89,7 @@ AprilTag 编码：AprilRobotics tag36h11 官方 codedata，经格式打包后本
 - three.txt SHA-256：7dddf7c5b8fd10ee654db8857d75d104b5557889aa5a91fc4ca545ea7c07062f
 
 运动学实验室仅作运动学教学：无碰撞、重力、力矩、摩擦或夹持力计算。逆解只约束末端位置，不保持朝向。碰撞包络笔记另外展示静态球体记录，不执行在线避障或路径验收；它与运动学网格没有自动配准。所有页面均不连接真机，网页读数不代表真实机器人精度或安全间隙。
+
+## SAM / ViSP 笔记排版
+
+源稿为 `templates/sam-visp-note.html`，使用 LaTeX 行内与行间公式。修改后执行 `npm ci`、`npm run render:sam`，再运行常规构建、测试与公开扫描。KaTeX 固定为 0.19.1；生成的 HTML、CSS 与 WOFF2 字体一起提交，线上无需 JavaScript 渲染公式或访问 CDN。专属版式位于 `site/assets/sam-visp.css`。阅读时长统计忽略辅助阅读用 MathML 的重复文本。

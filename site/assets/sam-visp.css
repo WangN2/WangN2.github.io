@@ -1,0 +1,40 @@
+
+body.sam-note{background:#faf9f6;color:#23333b}
+.sam-note .article{max-width:760px;margin:64px auto 96px;font-size:17px;line-height:1.95}
+.sam-note .article h1{font-family:"Songti SC","Noto Serif CJK SC",serif;font-size:45px;font-weight:700;line-height:1.4;letter-spacing:-1px;margin:22px 0}
+.sam-note .article .lede{max-width:650px;font-size:19px;line-height:1.9;color:#59666b;margin:26px 0 30px}
+.sam-note .article .eyebrow{color:#306b69;font-size:12px;letter-spacing:2px}
+.sam-note .article-meta{border-top:1px solid #d8ded9;border-bottom:0;padding-top:18px;margin-bottom:32px;color:#65716f;font-size:13px}
+.sam-note .article p{margin:18px 0;line-height:1.95}
+.sam-note .article h2{font-family:"Songti SC","Noto Serif CJK SC",serif;font-size:30px;line-height:1.5;margin:72px 0 24px;padding-top:28px;border-top:1px solid #d8ded9;color:#233f42;scroll-margin-top:24px}
+.sam-note .article h3{font-size:20px;margin:36px 0 16px;color:#306b69}
+.sam-note .toc{background:transparent;border:0;border-left:3px solid #9eb7ae;border-radius:0;padding:4px 0 4px 24px;margin:32px 0 40px}
+.sam-note .toc ol{display:grid;grid-template-columns:1fr 1fr;gap:9px 24px;padding-left:0;list-style:none;font-size:14px;line-height:1.7}
+.sam-note .toc a{color:#485f60}
+.sam-note .article figure{margin:34px 0 40px;background:#f0f4f1;border:1px solid #dce5dd;border-radius:16px;overflow:hidden}
+.sam-note .figure-scroll{overflow-x:auto;padding:12px 12px 0}
+.sam-note figure svg{display:block;width:100%;height:auto;font-family:Arial,sans-serif;fill:#243e44}
+.sam-note .article figcaption{margin:0;padding:15px 22px 18px;font-size:13px;line-height:1.7;color:#53685f;background:#f0f4f1;border-top:1px solid #dce5dd}
+.sam-note .table-scroll{overflow:auto;margin:28px 0 34px;border-top:2px solid #456d66;border-bottom:1px solid #d8ded9}
+.sam-note table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.75}
+.sam-note th,.sam-note td{padding:15px 14px;text-align:left;vertical-align:top;border:0;border-bottom:1px solid #e0e5df;min-width:100px}
+.sam-note th{background:#edf1ea;color:#324e48;font-weight:600}
+.sam-note tbody tr:nth-child(even){background:#f2f4ef}
+.sam-note .article pre{position:relative;margin:28px 0;padding:26px 24px;overflow:auto;background:#20383d;color:#edf4ef;border:0;border-radius:12px;font-size:13px;line-height:1.9;box-shadow:0 8px 24px #20383d09}
+.sam-note .article pre code{background:transparent;color:inherit;padding:0}
+.sam-note .article code{background:#eaf0e9;color:#2c5b51;border-radius:4px;padding:2px 5px;font-size:.86em}
+.sam-note .equation{position:relative;margin:30px 0;padding:28px 24px 16px;background:#fffefb;border:1px solid #e2e4dc;border-radius:10px;box-shadow:0 6px 24px #33443b04}
+.sam-note .equation-scroll{overflow-x:auto;padding:4px 0 12px}
+.sam-note .equation .katex-display{margin:0;text-align:center}
+.sam-note .equation .katex-display>.katex{white-space:nowrap}
+.sam-note .equation .katex{font-size:1.14em;color:#233f42}
+.sam-note .equation-label{display:block;font:12px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;color:#65796e;text-align:right;margin-top:5px}
+.sam-note .math-inline .katex{font-size:1.06em}
+.sam-note .worked-example{border-left:3px solid #b58b46;padding:4px 0 4px 25px;margin:40px 0}
+.sam-note .worked-example h3{color:#86612c;margin-top:12px}
+.sam-note .worked-example .equation{background:#fffdf7}
+.sam-note .takeaway{font-size:19px;line-height:1.85;padding:25px 28px;margin:30px 0;background:#edf3ee;border-radius:10px;color:#2e5550}
+.sam-note .article strong{color:#224e4b}
+.sam-note .note-nav{margin-top:58px}
+@media(max-width:600px){.sam-note .article{margin-top:32px;font-size:16px}.sam-note .article h1{font-size:33px;letter-spacing:0}.sam-note .article .lede{font-size:17px}.sam-note .article h2{font-size:26px;margin-top:52px}.sam-note .toc ol{grid-template-columns:1fr}.sam-note .article pre{padding:20px 16px}.sam-note .equation{padding:22px 12px 12px}.sam-note .equation .katex{font-size:1em}.sam-note .worked-example{padding-left:16px}.sam-note .figure-scroll svg{min-width:620px}.sam-note .takeaway{padding:20px;font-size:17px}}
+@media print{.sam-note .site-header,.sam-note .toc,.sam-note .note-nav{display:none}.sam-note .article{max-width:100%;font-size:11pt}.sam-note .equation,.sam-note figure{break-inside:avoid}.sam-note .equation-scroll{overflow:visible}}
