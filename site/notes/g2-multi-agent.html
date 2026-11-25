@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!--meta-->
+ <link rel="canonical" href="https://wangn2.github.io/notes/g2-multi-agent.html">
+ <meta name="theme-color" content="#f7f9fc"><meta name="author" content="WangN2">
+ <link rel="icon" href="../assets/favicon.ico" sizes="32x32">
+ <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+ <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+ <meta property="og:type" content="article"><meta property="og:site_name" content="WangN2 · 机器人技术笔记"><meta property="og:locale" content="zh_CN">
+ <meta property="og:title" content="多Agent协作在G2开发中的应用 · WangN2">
+ <meta property="og:description" content="以工装板目标点选择为例，看 G2 团队怎样用任务卡绑定聊天和工作树，让定位、导航、上料的交接与验收有据可查。">
+ <meta property="og:url" content="https://wangn2.github.io/notes/g2-multi-agent.html">
+ <meta property="og:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+ <meta property="og:image:alt" content="WangN2 机器人技术笔记：让机器人知识，动起来。旁边是 G2 人形机器人整机渲染">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="多Agent协作在G2开发中的应用 · WangN2">
+ <meta name="twitter:description" content="以工装板目标点选择为例，看 G2 团队怎样用任务卡绑定聊天和工作树，让定位、导航、上料的交接与验收有据可查。">
+ <meta name="twitter:image" content="https://wangn2.github.io/assets/og.png">
+ <meta property="article:published_time" content="2026-11-25"><meta property="article:modified_time" content="2026-11-25"><meta property="article:section" content="工程">
+ <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"多Agent协作在G2开发中的应用","description":"以工装板目标点选择为例，看 G2 团队怎样用任务卡绑定聊天和工作树，让定位、导航、上料的交接与验收有据可查。","url":"https://wangn2.github.io/notes/g2-multi-agent.html","mainEntityOfPage":"https://wangn2.github.io/notes/g2-multi-agent.html","inLanguage":"zh-CN","author":{"@type":"Person","name":"WangN2","url":"https://github.com/WangN2"},"publisher":{"@type":"Person","name":"WangN2"},"isPartOf":{"@type":"WebSite","name":"WangN2 · 机器人技术笔记","url":"https://wangn2.github.io/"},"about":["智能体工程","Codex","机器人研发协作"],"datePublished":"2026-11-25","dateModified":"2026-11-25"}</script>
+ <!--/meta-->
+ <title>多Agent协作在G2开发中的应用 · WangN2</title>
+ <meta name="description" content="以工装板目标点选择为例，看 G2 团队怎样用任务卡绑定聊天和工作树，让定位、导航、上料的交接与验收有据可查。">
+ <link rel="stylesheet" href="../assets/site.css">
+ <style>
+.case-log{list-style:none;padding:0}.case-log li{border-left:2px solid var(--blue);padding:0 0 1rem 1.2rem;position:relative}.case-log li::before{content:"";position:absolute;top:.45em;left:-.34rem;width:.55rem;height:.55rem;border-radius:50%;background:var(--blue)}.case-log li:last-child{padding-bottom:0}.case-log time{font-variant-numeric:tabular-nums;color:var(--blue);margin-right:.6em}.case-log p{margin:.25em 0 0}.case-state{display:inline-block;background:#e1eff7;color:#174263;border-radius:.4em;padding:.2em .65em}.file-map dt{margin-top:.85em;font-weight:700}.file-map dd{margin-left:0}
+ </style>
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<main class="wrap"><article class="article">
+<p class="eyebrow">NOTE 30 / 应用篇 · 机器人研发协作</p>
+<h1>多Agent协作在G2开发中的应用</h1>
+<p class="lede">“根据工装板选目标点”听起来是一张导航卡。真正开工时，导航要问定位拿哪一版板模型，还要问上料怎样判断车已停稳。三个 Agent 都回了消息，项目负责人仍有一个问题：这项功能到底推进到了哪一步？</p>
+<div class="article-meta"><span><time datetime="2026-11-25">2026-11-25</time></span><span>约 4 分钟</span><span>工程应用</span><a class="series-link" href="../series/">全系列 ›</a></div>
+<nav class="toc" aria-label="本文目录"><p class="toc-title">本文目录</p><ol><li><a href="#case">一次导航任务的三方交接</a></li><li><a href="#roles">谁收单，谁对结果负责</a></li><li><a href="#parallel">同一个角色怎样并行做两件事</a></li><li><a href="#workspace">聊天、代码和证据分别放在哪里</a></li><li><a href="#close">从建卡走到归档</a></li></ol></nav>
+<h2 id="case">一次导航任务的三方交接</h2>
+<p><span class="case-state">卡片快照 · 进行中</span>　2026 年 11 月 25 日回读任务卡、桌面聊天和接手记录时，这项任务已经迁入统一工作区。下面是前一晚的四条实际记录，时间均为北京时间。</p>
+<ol class="case-log">
+<li><time datetime="2026-11-24T23:20+08:00">23:20</time><strong>导航确认从哪里继续开发</strong><p>接手方对齐工作树、分支和上游提交，检查聊天与代码目录的绑定，并核对迁移证据的文件校验值。后续开发有了唯一入口。</p></li>
+<li><time datetime="2026-11-24T23:22+08:00">23:22</time><strong>上料确认配置兼容，留下联调项</strong><p>取料步骤和导航配置可以衔接。一次取料成功、导航到位和最终停车能否通过任务 ID 串成同一次执行，仍要用回执验证。</p></li>
+<li><time datetime="2026-11-24T23:26+08:00">23:26</time><strong>定位指出缺少哪个输入</strong><p>新工装板模型和 CAD 配准依赖另一张定位卡交付。导航还要核对观测的采集时间和地图版本，才能判断目标点使用了哪一次观测。</p></li>
+<li><time datetime="2026-11-24T23:27+08:00">23:27</time><strong>项目助理登记迁移验收结果</strong><p>接手检查通过，三方回执齐全。原有离线回归记录已随任务迁入，本轮没有重跑。业务卡保留在“进行中”。</p></li>
+</ol>
+<p>这几条记录给出了下一轮分工：导航排查持续集成中的检查和构建失败，定位补齐模型与配准，上料参与回执联调。仅看“迁移通过”四个字，很容易把功能可用性估高。</p>
+<h2 id="roles">谁收单，谁对结果负责</h2>
+<p>团队设有定位、导航移动、上料、上料可视化四个研发角色，各有一个常驻主会话。用户可以直接找角色，也可以把复杂需求交给项目助理拆解。两种入口都先按任务查重，明确交付物、唯一主责和验收条件，再开任务聊天。</p>
+<p>项目助理跟踪依赖，核对证据和潜在文件冲突。研发主责负责技术实现和故障归因，指定验收人判断是否满足条件。涉及优先级、发布或共享实机时段时，助理列出可选安排和影响，由项目负责人拍板。</p>
+<h2 id="parallel">同一个角色怎样并行做两件事</h2>
+<p>例如，上料角色可以同时接到“分析执行耗时”和“排查取料失败”。每张卡绑定一个桌面可见的聊天，标题带卡号、任务名和状态。用户打开第一张卡看统计口径，打开第二张卡看故障证据。两边都能独立留下待确认项，主会话继续接单。</p>
+<p>需要改代码的任务再登记 Git 工作树、分支与基线，开工或恢复前核对卡号、聊天和实际目录。只读排查可以先从日志开始。两棵工作树能隔离未提交的修改，但两张卡依然可能改到同一个接口文件；助理要把重叠路径和集成顺序写到交接里，请接收方确认。</p>
+<h2 id="workspace">聊天、代码和证据分别放在哪里</h2>
+<dl class="file-map">
+<dt>规则与入口 · <code>roles/</code> 和 <code>coordination/</code></dt><dd>前者记录角色职责。后者保存角色与聊天的映射、任务卡、事件、交接及工作树登记。只读看板汇总这些记录，看板上的交接仍须通知接收方并收到回执。</dd>
+<dt>开发检出 · <code>repos/</code> 和 <code>worktrees/</code></dt><dd>基础仓提供分支与提交，任务工作树承载具体改动。同一张卡跨算法与资产仓时，分别登记两边的版本，才能复现组合。</dd>
+<dt>辅助脚本与证据 · <code>work/</code> 和 <code>evidence/</code></dt><dd>任务辅助脚本与验收材料按卡归放。卡片引用可复查的提交、测试或原始回执，聊天记录本轮做了什么、还差什么。</dd>
+</dl>
+<h2 id="close">从建卡走到归档</h2>
+<ol><li><strong>建卡并绑定。</strong>写明交付物、主责与验收人，按卡号创建或复用桌面任务聊天。</li>
+<li><strong>开工与交接。</strong>登记检出，核对执行入口。上游说明接口变化、受影响版本和验证方法，下游回写兼容结论或具体阻塞。</li>
+<li><strong>提交与验收。</strong>研发附上对应版本的证据，将卡转为待验收。指定验收人逐项核对；缺少实机或生产输入验证时，写明条件与下一步。</li>
+<li><strong>完成与恢复。</strong>验收通过后留下结项摘要，释放执行绑定，归档本卡的任务聊天。角色主会话常驻，后续重开同一卡时可恢复原聊天，沿证据继续。</li></ol>
+<p>回到选目标点的例子，负责人可以从一张卡回答三个具体问题：导航接手的是哪份代码，定位承诺交付哪份模型，上料还缺哪条停车回执。下一次汇报只要更新这些答案，以及能复核它们的证据。</p>
+<nav class="note-nav" aria-label="笔记导航"><a class="prev" href="./sam-visp-visual-servo.html"><span>← 上一篇</span><strong>SAM、ViSP 与视觉伺服</strong></a><a class="home" href="../series/"><span>系列索引</span><strong>学习地图 · 全部笔记</strong></a></nav>
+</article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
+ <script src="../assets/harness/he.js"></script>
+</body></html>
