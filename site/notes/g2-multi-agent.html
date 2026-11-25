@@ -23,45 +23,74 @@
  <title>多Agent协作在G2开发中的应用 · WangN2</title>
  <meta name="description" content="以工装板目标点选择为例，看 G2 团队怎样用任务卡绑定聊天和工作树，让定位、导航、上料的交接与验收有据可查。">
  <link rel="stylesheet" href="../assets/site.css">
- <style>
-.case-log{list-style:none;padding:0}.case-log li{border-left:2px solid var(--blue);padding:0 0 1rem 1.2rem;position:relative}.case-log li::before{content:"";position:absolute;top:.45em;left:-.34rem;width:.55rem;height:.55rem;border-radius:50%;background:var(--blue)}.case-log li:last-child{padding-bottom:0}.case-log time{font-variant-numeric:tabular-nums;color:var(--blue);margin-right:.6em}.case-log p{margin:.25em 0 0}.case-state{display:inline-block;background:#e1eff7;color:#174263;border-radius:.4em;padding:.2em .65em}.file-map dt{margin-top:.85em;font-weight:700}.file-map dd{margin-left:0}
- </style>
+ <link rel="stylesheet" href="../assets/g2-project-guide.css">
 </head>
 <body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
 <main class="wrap"><article class="article">
 <p class="eyebrow">NOTE 30 / 应用篇 · 机器人研发协作</p>
 <h1>多Agent协作在G2开发中的应用</h1>
 <p class="lede">“根据工装板选目标点”听起来是一张导航卡。真正开工时，导航要问定位拿哪一版板模型，还要问上料怎样判断车已停稳。三个 Agent 都回了消息，项目负责人仍有一个问题：这项功能到底推进到了哪一步？</p>
-<div class="article-meta"><span><time datetime="2026-11-25">2026-11-25</time></span><span>约 4 分钟</span><span>工程应用</span><a class="series-link" href="../series/">全系列 ›</a></div>
-<nav class="toc" aria-label="本文目录"><p class="toc-title">本文目录</p><ol><li><a href="#case">一次导航任务的三方交接</a></li><li><a href="#roles">谁收单，谁对结果负责</a></li><li><a href="#parallel">同一个角色怎样并行做两件事</a></li><li><a href="#workspace">聊天、代码和证据分别放在哪里</a></li><li><a href="#close">从建卡走到归档</a></li></ol></nav>
-<h2 id="case">一次导航任务的三方交接</h2>
-<p><span class="case-state">卡片快照 · 进行中</span>　2026 年 11 月 25 日回读任务卡、桌面聊天和接手记录时，这项任务已经迁入统一工作区。下面是前一晚的四条实际记录，时间均为北京时间。</p>
-<ol class="case-log">
-<li><time datetime="2026-11-24T23:20+08:00">23:20</time><strong>导航确认从哪里继续开发</strong><p>接手方对齐工作树、分支和上游提交，检查聊天与代码目录的绑定，并核对迁移证据的文件校验值。后续开发有了唯一入口。</p></li>
-<li><time datetime="2026-11-24T23:22+08:00">23:22</time><strong>上料确认配置兼容，留下联调项</strong><p>取料步骤和导航配置可以衔接。一次取料成功、导航到位和最终停车能否通过任务 ID 串成同一次执行，仍要用回执验证。</p></li>
-<li><time datetime="2026-11-24T23:26+08:00">23:26</time><strong>定位指出缺少哪个输入</strong><p>新工装板模型和 CAD 配准依赖另一张定位卡交付。导航还要核对观测的采集时间和地图版本，才能判断目标点使用了哪一次观测。</p></li>
-<li><time datetime="2026-11-24T23:27+08:00">23:27</time><strong>项目助理登记迁移验收结果</strong><p>接手检查通过，三方回执齐全。原有离线回归记录已随任务迁入，本轮没有重跑。业务卡保留在“进行中”。</p></li>
-</ol>
-<p>这几条记录给出了下一轮分工：导航排查持续集成中的检查和构建失败，定位补齐模型与配准，上料参与回执联调。仅看“迁移通过”四个字，很容易把功能可用性估高。</p>
-<h2 id="roles">谁收单，谁对结果负责</h2>
-<p>团队设有定位、导航移动、上料、上料可视化四个研发角色，各有一个常驻主会话。用户可以直接找角色，也可以把复杂需求交给项目助理拆解。两种入口都先按任务查重，明确交付物、唯一主责和验收条件，再开任务聊天。</p>
-<p>项目助理跟踪依赖，核对证据和潜在文件冲突。研发主责负责技术实现和故障归因，指定验收人判断是否满足条件。涉及优先级、发布或共享实机时段时，助理列出可选安排和影响，由项目负责人拍板。</p>
-<h2 id="parallel">同一个角色怎样并行做两件事</h2>
+<div class="article-meta"><span><time datetime="2026-11-25">2026-11-25</time></span><span>约 7 分钟</span><span>工程应用</span><a class="series-link" href="../series/">全系列 ›</a></div>
+<nav class="toc" aria-label="本文目录"><p class="toc-title">本文目录</p><ol><li><a href="#case">实战案例 · 根据工装板选目标点</a></li><li><a href="#model-heading">从哪里进入项目</a></li><li><a href="#roles">谁负责什么</a></li><li><a href="#parallel">同一个角色怎样并行做两件事</a></li><li><a href="#close">一张卡如何走到归档</a></li><li><a href="#workspace">工作区文件架构</a></li><li><a href="#example-heading">交接示例：工装板坐标更新</a></li></ol></nav>
+<div class="g2-guide"><section id="field-case" aria-labelledby="case">
+<div class="case-head"><h2 id="case">实战案例 · 根据工装板选目标点</h2><time datetime="2026-11-25T12:13:00+08:00">工作区快照　2026 年 11 月 25 日 12:13（北京时间）</time></div>
+<div class="case-layout">
+<div class="case-card"><div class="case-id"><span>导航任务 · 快照</span><span class="case-status">进行中</span></div>
+<h3>导航移动开发</h3><p>目标是让导航能选择工装板两侧的目标点，并通过执行回执确认到位和停车。</p>
+<dl><dt>桌面入口</dt><dd>「G2开发项目」下本卡专属任务聊天</dd><dt>登记工作树</dt><dd>工作区内的导航专用检出</dd><dt>接手检查</dt><dd>检出版本与上游提交一致</dd></dl></div>
+<div><h3>11 月 24 日晚 · 从交接到核验</h3><ol class="receipts">
+<li><time datetime="2026-11-24T23:20:51+08:00">23:20</time><strong>导航确认接手</strong><p>核对检出路径、分支和上游提交，执行绑定检查通过，并确认迁移证据的文件校验值一致。</p></li>
+<li><time datetime="2026-11-24T23:22:46+08:00">23:22</time><strong>上料回复接口核对结果</strong><p>任务配置与取料流程兼容。取料成功、导航到位和停车回执能否用同一任务 ID 串起来，仍需联调。</p></li>
+<li><time datetime="2026-11-24T23:26:42+08:00">23:26</time><strong>定位指出输入依赖</strong><p>正式 16 Tag 工装板模型及 CAD 配准依赖 定位任务交付。观测源时间和地图版本也有待核实。</p></li>
+<li><time datetime="2026-11-24T23:27:32+08:00">23:27</time><strong>项目助理登记核验</strong><p>迁移接手验收通过，三方回执已记录。已有离线回归结果随迁移保留，本轮只做了回读。</p></li>
+</ol></div></div>
+<div class="case-next"><strong>下一步由谁推进？</strong> 导航接到开工指令后排查 持续集成的检查和构建失败；定位补齐模型与配准，上料配合回执联调。业务验收仍待完成。</div>
+<details><summary>查看快照依据</summary><p>快照来自当时的任务卡、已绑定的桌面聊天和三个角色的交接回执。接手记录列出了分支和版本核对结果，另有一份跨任务文件清单说明需要协调编辑的路径。</p></details>
+</section>
+
+<section><h2 id="model-heading">从哪里进入项目</h2><div class="model">
+<div><span class="kicker">CODEX DESKTOP</span><h3>找人 · 角色主会话</h3><p>在「G2开发项目」里找项目助理，或直接找对应研发角色。主会话常驻，负责收单和分工。</p></div>
+<div><span class="kicker">TASK CHAT</span><h3>跟事 · 一卡一聊天</h3><p>每张卡关联一个可见的桌面聊天。标题用「卡号｜任务名称｜当前状态」，打开即可读最近简报或继续沟通。</p></div>
+<div><span class="kicker">PROJECT BOARD</span><h3>看全局 · 项目看板</h3><p>只读看板汇总状态、负责人、交接与登记路径。研发通过工作区工具回写；飞书按配置推送重要变化。</p></div></div></section>
+<section><h2 id="roles">谁负责什么</h2><div class="roles">
+<div><h3>G2 项目专业项目助理</h3><p>澄清目标和验收口径，提出拆卡、优先级及里程碑建议。跟踪依赖、风险、证据与归档，向负责人提交进展、选项和建议。</p></div>
+<div><h3>项目负责人及指定验收人</h3><p>负责人决定优先级、资源取舍和发布安排。卡上指定的验收人按约定条件判断是否通过，并留下结论和依据。</p></div>
+<div><h3>定位开发</h3><p>负责定位、双目标定、坐标系和观测质量；接口变化时说明数据含义和验证方法。</p></div>
+<div><h3>导航移动开发</h3><p>负责站位、目标点选择、移动和终态回执；验证定位输入与下游动作之间的约定。</p></div>
+<div><h3>上料开发</h3><p>负责取放料、配方、带载姿态和执行流程。并行任务分别记录进展、阻塞和结果。</p></div>
+<div><h3>上料可视化开发</h3><p>维护业务观察台 <code>g2_viewer</code>，展示机器人状态、定位和上料过程。项目任务进度由项目看板展示。</p></div></div></section>
+<section><h2 id="parallel">同一个角色怎样并行做两件事</h2>
 <p>例如，上料角色可以同时接到“分析执行耗时”和“排查取料失败”。每张卡绑定一个桌面可见的聊天，标题带卡号、任务名和状态。用户打开第一张卡看统计口径，打开第二张卡看故障证据。两边都能独立留下待确认项，主会话继续接单。</p>
 <p>需要改代码的任务再登记 Git 工作树、分支与基线，开工或恢复前核对卡号、聊天和实际目录。只读排查可以先从日志开始。两棵工作树能隔离未提交的修改，但两张卡依然可能改到同一个接口文件；助理要把重叠路径和集成顺序写到交接里，请接收方确认。</p>
-<h2 id="workspace">聊天、代码和证据分别放在哪里</h2>
-<dl class="file-map">
-<dt>规则与入口 · <code>roles/</code> 和 <code>coordination/</code></dt><dd>前者记录角色职责。后者保存角色与聊天的映射、任务卡、事件、交接及工作树登记。只读看板汇总这些记录，看板上的交接仍须通知接收方并收到回执。</dd>
-<dt>开发检出 · <code>repos/</code> 和 <code>worktrees/</code></dt><dd>基础仓提供分支与提交，任务工作树承载具体改动。同一张卡跨算法与资产仓时，分别登记两边的版本，才能复现组合。</dd>
-<dt>辅助脚本与证据 · <code>work/</code> 和 <code>evidence/</code></dt><dd>任务辅助脚本与验收材料按卡归放。卡片引用可复查的提交、测试或原始回执，聊天记录本轮做了什么、还差什么。</dd>
-</dl>
-<h2 id="close">从建卡走到归档</h2>
-<ol><li><strong>建卡并绑定。</strong>写明交付物、主责与验收人，按卡号创建或复用桌面任务聊天。</li>
-<li><strong>开工与交接。</strong>登记检出，核对执行入口。上游说明接口变化、受影响版本和验证方法，下游回写兼容结论或具体阻塞。</li>
-<li><strong>提交与验收。</strong>研发附上对应版本的证据，将卡转为待验收。指定验收人逐项核对；缺少实机或生产输入验证时，写明条件与下一步。</li>
-<li><strong>完成与恢复。</strong>验收通过后留下结项摘要，释放执行绑定，归档本卡的任务聊天。角色主会话常驻，后续重开同一卡时可恢复原聊天，沿证据继续。</li></ol>
-<p>回到选目标点的例子，负责人可以从一张卡回答三个具体问题：导航接手的是哪份代码，定位承诺交付哪份模型，上料还缺哪条停车回执。下一次汇报只要更新这些答案，以及能复核它们的证据。</p>
+</section>
+<section><h2 id="close">一张卡如何走到归档</h2><ol class="flow">
+<li><h3>接单与拆卡</h3><p>先在 <code>g2.py list</code> 查重，再写清目的、交付物、唯一主责、验收人和完成条件。能独立交付的工作拆成子卡，通过 <code>--parent</code> 关联。项目助理标出先后依赖、资源冲突和需负责人决定的取舍。</p></li>
+<li><h3>绑定桌面任务聊天</h3><p>按卡号查找、创建或复用聊天，将卡号、桌面宿主和聊天 ID 登记到角色的 <code>workers</code>。任务聊天回读卡片，留下首份简报。即使同属上料角色，两张并行卡也各有可见入口。</p></li>
+<li><h3>登记代码工作树并开工</h3><p>需要改代码时，研发为卡登记仓库、工作树、分支、基线和相关 MR。跨仓任务逐仓登记。开工或恢复时执行 <code>execution.py enter</code> 和 <code>check</code>，核对当前聊天和工作树。只读排查可以直接从日志和回执开始。</p></li>
+<li><h3>迭代、并行与交接</h3><p>研发在开始、阻塞、待验收等节点同步卡片、聊天标题和简报，注明可验证成果、阻塞和下一步。写卡前读最新版本，冲突时重读。不同工作树仍可能修改同一文件，项目助理核对重叠路径，协调修改顺序及集成验证。</p><p>接口变化由上游登记 <code>handoff</code> 并通知下游任务聊天；下游用 <code>ack</code> 写明兼容判断、验证结果或阻塞。在看板上出现交接记录后，仍需接收方实际确认。</p></li>
+<li><h3>提交证据与验收</h3><p>研发附上 MR、提交版本、测试日志或原始回执，将卡置为待验收。指定验收人对照完成条件写结论，项目助理用 <code>verify</code> 登记证据核对结果。尚缺实机验证时注明条件、责任人和下一步。</p></li>
+<li><h3>结项、归档与恢复</h3><p>卡验收完成后，任务聊天写结项摘要，核对并释放活动执行绑定（<code>leave</code>）。确认聊天只属于本卡后归档，项目助理复核。角色主会话常驻，证据、分支和聊天映射保留；重开同一卡时恢复原聊天。</p></li></ol></section>
+<section><h2 id="workspace">工作区文件架构</h2><p>以下按用途列出主要目录。项目管理边界是这个根目录内已明确接入的项目和任务。</p>
+<code class="path">项目工作区 /</code><div class="tree">
+<div><code>AGENTS.md · README.md</code><span>工作区总约定和运行说明。接单、会话绑定、验收和归档规则从这里查。</span></div>
+<div><code>roles/</code><span>五个角色目录。<code>coordination/AGENTS.md</code> 定义项目助理职责，另四个目录分别是 <code>localization</code>、<code>navigation</code>、<code>loading</code>、<code>visualization</code>。</span></div>
+<div><code>coordination/roles.json</code><span>角色与桌面聊天的登记表。<code>thread</code> 指向角色主会话，<code>workers</code> 按卡号关联任务聊天。</span></div>
+<div><code>coordination/g2.py · execution.py</code><span>前者读写卡片、进展、交接、核验和路径登记，后者校验当前任务会话与实际代码工作树。</span></div>
+<div><code>coordination/data/g2.sqlite3</code><span>保存卡片、状态事件、交接回执、工作树登记与执行绑定。看板从工作区记录取数。</span></div>
+<div><code>coordination/server.py · index.html</code><span>只读项目看板的服务和页面。同目录的 <code>g2-workspace-board.service</code> 管理服务，<code>feishu_notify.py</code> 负责通知。</span></div>
+<div><code>repos/</code><span>按用途保存算法、资产和设计资产的共享 Git 基础仓。开发前读取此目录的 README。</span></div>
+<div><code>worktrees/</code><span>任务代码检出位置。新检出按「仓库／卡号-主题」组织；已有任务以卡上登记的实际路径为准。算法与配套资产应分别核对版本。</span></div>
+<div><code>work/</code><span>已有任务的辅助工作文件，例如验证和就绪检查脚本。业务代码的工作树位置以登记记录为准。</span></div>
+<div><code>evidence/</code><span>按任务号保存交接、测试与验收材料。卡片记录证据位置，便于从结论追溯原始记录。</span></div>
+<div><code>g2_viewer/</code><span>运行中的上料观察台目录。可视化开发改动在 <code>worktrees/g2_viewer/</code> 下登记的任务检出中进行。</span></div>
+<div><code>docs/g2-project-guide.html</code><span>团队使用的离线协作指南。新成员可以先从这里了解角色、入口和任务生命周期。</span></div></div>
+<details><summary>旧任务迁入时要检查什么？</summary><p>仅处理明确批准迁入的任务。先核对源分支、HEAD、未提交改动、配套资产和证据，再核对工作区内目标检出，更新卡片路径与桌面聊天绑定。接收方在新路径回读确认后继续开发；旧目录清理由负责人单独决定。</p></details></section>
+<section><h2 id="example-heading">交接示例：工装板坐标更新</h2><p>以下用假设场景说明定位和导航如何并行，以及何时需要等待。</p><div class="example">
+<div><span class="kicker">上游 / 定位</span><h3>说清变化</h3><p>定位卡拟更新工装板坐标约定。上游给出旧、新坐标系，资产版本、样例输入和预期输出，指明受影响的导航卡。</p></div>
+<div><span class="kicker">下游 / 导航</span><h3>验证后回执</h3><p>导航可先用样例准备目标点测试。拿到指定版本后，检查选点和朝向，用结果确认兼容；有偏差则写清复现条件并标记阻塞。</p></div>
+<div><span class="kicker">项目助理 / 负责人</span><h3>解决优先级冲突</h3><p>项目助理核对两卡是否修改同一资产，跟进回执与复测窗口。若仅有一个实机时段，整理先测哪张卡、对交付的影响和建议，由负责人决定。</p></div></div>
+<p class="note"><strong>汇报时看四项：</strong>当前在做什么、哪些结果能复核、还在等谁或什么条件、下一步由谁推进。读者可从卡片找到任务聊天、实际检出和证据。</p></section></div>
 <nav class="note-nav" aria-label="笔记导航"><a class="prev" href="./sam-visp-visual-servo.html"><span>← 上一篇</span><strong>SAM、ViSP 与视觉伺服</strong></a><a class="home" href="../series/"><span>系列索引</span><strong>学习地图 · 全部笔记</strong></a></nav>
 </article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
- <script src="../assets/harness/he.js"></script>
+
 </body></html>

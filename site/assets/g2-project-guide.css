@@ -1,0 +1,35 @@
+.article:has(.g2-guide) { max-width: 1040px; }
+.g2-guide { --edge: #d1dfda; --tint: #eef6f2; --accent: #00685e; color: #192f35; }
+.g2-guide section { border-top: 1px solid var(--edge); padding: 1.5rem 0; }
+.article .g2-guide h2 { margin: 0 0 .8rem; }
+.article .g2-guide h3 { margin: 0; font-size: 1.09rem; }
+.article .g2-guide p { margin: .4rem 0 .65rem; }
+.g2-guide .case-layout { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.5fr); gap: 1.5rem; align-items: start; }
+.g2-guide .case-head time { display: block; margin-bottom: .9rem; color: #465e61; }
+.g2-guide .case-card, .g2-guide .model > div, .g2-guide .roles > div, .g2-guide .example > div { padding: 1rem; background: white; border: 1px solid var(--edge); border-radius: 8px; }
+.g2-guide .case-card, .g2-guide .model > div { border-top: 3px solid var(--accent); background: var(--tint); }
+.g2-guide .case-id { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.g2-guide .case-status { background: #c5eadb; color: #174c3d; padding: .1rem .65rem; border-radius: 2rem; font-size: .9rem; }
+.g2-guide dt, .g2-guide .kicker { color: var(--accent); font-size: .85rem; font-weight: 650; }
+.g2-guide dt { margin-top: .75rem; }
+.g2-guide dd { margin: 0; }
+.g2-guide .receipts, .g2-guide .flow { list-style: none; padding: 0; }
+.g2-guide .receipts li { border-left: 2px solid #a3c5b7; padding: 0 0 .55rem 1.1rem; position: relative; margin: 0 0 0 .4rem; }
+.g2-guide .receipts li::before { content: ''; position: absolute; left: -6px; top: .55rem; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.g2-guide .receipts time { color: var(--accent); margin-right: .6rem; font-variant-numeric: tabular-nums; }
+.g2-guide .case-next, .g2-guide .note { background: #fff4d9; padding: .8rem 1rem; border-left: 3px solid #ae7b2d; margin: 1rem 0; }
+.g2-guide .model, .g2-guide .roles, .g2-guide .example { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .8rem; }
+.g2-guide .roles { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.g2-guide .kicker { display: block; letter-spacing: .06em; margin-bottom: .4rem; }
+.g2-guide .flow { counter-reset: phase; }
+.g2-guide .flow li { counter-increment: phase; position: relative; padding: .75rem 0 .75rem 3rem; border-top: 1px solid var(--edge); }
+.g2-guide .flow li::before { content: counter(phase,decimal-leading-zero); position: absolute; top: .72rem; left: 0; background: var(--accent); color: white; border-radius: 50%; width: 2rem; text-align: center; line-height: 2rem; }
+.g2-guide .path { display: block; color: white; background: #24464a; padding: .7rem 1rem; }
+.g2-guide .tree > div { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.5fr); gap: 1rem; padding: .65rem 1rem; background: white; border: 1px solid var(--edge); border-top: none; }
+.g2-guide code { overflow-wrap: anywhere; white-space: normal; }
+.g2-guide details { margin: .9rem 0; }
+.g2-guide summary { color: var(--accent); font-weight: 650; cursor: pointer; }
+@media (max-width: 720px) {
+  .g2-guide .case-layout, .g2-guide .model, .g2-guide .roles, .g2-guide .example, .g2-guide .tree > div { grid-template-columns: 1fr; }
+  .g2-guide .tree > div { gap: .3rem; }
+}
