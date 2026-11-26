@@ -31,9 +31,14 @@
  <meta name="description" content="用 9 分 22 秒中文动画和配套笔记，理解 LingBot-VLA 2.0 的输入、联合注意力、MoE、Flow Matching、时空蒸馏与闭环执行，附官方论文和固定代码版本。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/lingbot-vla2/tutorial.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="./../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="./../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article lingbot-article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%85%B7%E8%BA%AB%E6%A8%A1%E5%9E%8B">具身模型</a></nav>
+<!-- breadcrumb:end -->
 <p class="eyebrow">NOTE 09 / 具身模型 · 动画教学</p>
 <h1>LingBot-VLA 2.0：<br>从看懂指令到连续动作</h1>
 <p class="lede">一句「把杯子放到托盘上」，怎样变成一小段机器人动作？先用动画抓住整体，再把注意力、MoE、Flow Matching 和训练监督放回同一条数据流。</p>
@@ -82,5 +87,8 @@
 <ul class="source-list"><li><a href="https://arxiv.org/html/2607.06403v1">官方论文：From Foundation to Application</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2">官方仓库与版本说明</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/lingbotvla/models/vla/lingbot_vla/modeling_lingbot_vla_v2.py">主模型：联合注意力、训练与 sample_actions</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/lingbotvla/models/vla/lingbot_vla/configuration_lingbot_vla.py">动作块与积分次数的默认配置</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/configs/vla/robotwin/robotwin.yaml">RoboTwin 后训练 YAML</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/configs/vla/real_robot/real_robot.yaml">实机后训练 YAML</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/tasks/vla/train_lingbotvla.py">训练教师构造</a></li><li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/deploy/lingbot_vla_v2_policy.py">部署 policy：截取动作和重新预测</a></li></ul>
 <p class="callout"><strong>论文不等于每一份后训练配置。</strong>论文描述 loss-free MoE 负载均衡；当前公开后训练 YAML 使用 sequence auxiliary loss 与 router z-loss。部分未来查询屏蔽开关与旧文档示例不同。本文讲机制时标明论文，讲运行路径时以固定提交的实现为准。</p>
 <p class="references">动画中的轨迹和机器人均为教学示意。保留官方来源便于核查，不暗示本片由官方制作或背书。完整逐字讲稿与视频章节可在本页上方下载。</p>
-<nav class="note-nav" aria-label="笔记导航"><a class="prev" href="./grasp-timeline.html"><span>← 上一篇</span><strong>一次完整抓取：从看到到夹住</strong></a><a class="next" href="./vla-g2-deploy.html"><span>下一篇 →</span><strong>把大模型放在闭环外面</strong></a></nav>
+<!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./vla-g2-deploy.html"><small>相关阅读</small>把大模型放在闭环外面</a><a href="./genie4-vs-astra.html"><small>相关阅读</small>Genie 4 与 Astra</a></nav>
+<nav class="note-nav" hidden data-route="model" aria-label="模型进阶"><a href="../series/#model-route">模型进阶 · 第 3/3 篇</a><a href="./grasp-timeline.html?route=model"><small>上一篇</small>一次完整抓取：从看到到夹住</a></nav>
+<!-- navigation:end -->
 </article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer><script src="../assets/lingbot-vla2/chapters.js" defer></script></body></html>

@@ -31,9 +31,14 @@
  <meta name="description" content="占用栅格只说有没有障碍，代价地图说的是离障碍多远值多少代价。附可拖动的膨胀与代价值实验。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/costmap/costmap.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%AF%BC%E8%88%AA%E4%B8%8E%E8%A7%84%E5%88%92">导航与规划</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 07 / 导航规划 · 代价地图</p>
  <h1>代价地图：<br>把「不能去」<br>变成「尽量别去」</h1>
  <p class="lede">占用栅格只会说「这一格有没有障碍」。可机器人有大小的，贴着墙走也是合法的——如果不给它一点偏好，规划器凭什么离墙远一点？</p>
@@ -133,10 +138,9 @@
  <p class="references">外部参考：<a href="https://docs.nav2.org/jazzy/configuration_and_development/configuration_guide/core_servers/costmap_2d/costmap_plugins/inflation/">Nav2 Inflation Layer</a> · <a href="https://api.nav2.org/nav2-jazzy/html/inflation__layer_8cpp_source.html">Nav2 膨胀层源码</a></p>
  <p class="references">相关笔记：<a href="./collision-envelope.html">G2 的碰撞球</a>（三维几何那一层） · <a href="./swerve-base.html">全向底盘</a>（怎么按路径走） · <a href="./hand-eye.html">手眼标定</a>（定位从哪来）</p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./swerve-base.html"><span>← 上一篇</span><strong>全向底盘：四个舵轮怎么同时听话</strong></a>
-  <a class="next" href="./grasp-timeline.html"><span>下一篇 →</span><strong>一次完整抓取：从看到到夹住</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./swerve-base.html"><small>相关阅读</small>全向底盘：四个舵轮怎么同时听话</a><a href="./collision-envelope.html"><small>相关阅读</small>G2 的碰撞球：有距离，为什么还停住？</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/costmap/costmap.js"></script>

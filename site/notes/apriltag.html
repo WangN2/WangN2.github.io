@@ -33,10 +33,15 @@
  <title>AprilTag 视觉定位详解 · WangN2</title>
  <meta name="description" content="从 tag36h11 编码、汉明纠错到 PnP 六自由度位姿解算，配合交互实验理解 AprilTag 视觉定位。">
  <link rel="stylesheet" href="../assets/site.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
 <body>
- <header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+ <header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
  <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E6%84%9F%E7%9F%A5%E4%B8%8E%E5%AE%9A%E4%BD%8D">感知与定位</a></nav>
+<!-- breadcrumb:end -->
   <p class="eyebrow">NOTE 03 / 视觉定位 · 含交互实验</p>
   <h1>AprilTag 视觉定位详解</h1>
   <p class="lede">贴一张黑白图案，相机看到它，就能求出标签相对相机的三维位置与朝向。AprilTag 的价值不只是“认出几号图案”，而是把一组像素角点变成可用的 6DoF 位姿。</p>
@@ -140,14 +145,14 @@ for d in detections:
    <tr><th>pupil-apriltags</th><td>AprilTag 3 的 Python 绑定；检测与位姿估计要正确提供内参和黑框尺寸。</td></tr>
    <tr><th>机器人精定位</th><td>检测只是起点，还需要外参、质量门限、重投影检查与多帧稳定性。</td></tr>
   </tbody></table>
-  <div class="note-actions"><a class="primary-link" href="../demos/apriltag/index.html">再进实验室，亲手破坏一张标签 →</a><a class="outline-link" href="../index.html#notes">返回全部笔记</a></div>
+  <div class="note-actions"><a class="primary-link" href="../demos/apriltag/index.html">再进实验室，亲手破坏一张标签 →</a><a class="outline-link" href="../series/">返回全部笔记</a></div>
   <p class="references">参考：<a href="https://github.com/AprilRobotics/apriltag">AprilRobotics / AprilTag</a> · <a href="https://github.com/pupil-labs/apriltags">Pupil Labs / pupil-apriltags</a> · <a href="../licenses/attribution.html">本站来源与许可</a></p>
 
  <p class="references">相关笔记：<a href="./hand-eye.html">手眼标定</a>（相机位姿怎么搬进机器人） · <a href="./tray-grasp.html">料盘抓取</a>（用这里的位姿去插孔）</p>
-  <nav class="note-nav" aria-label="笔记导航">
-   <a class="next" href="./hand-eye.html"><span>下一篇 →</span><strong>手眼标定：把「相机看到的」搬进机器人坐标系</strong></a>
-   <a class="prev" href="./collision-envelope.html"><span>← 上一篇</span><strong>G2 的碰撞球：有距离，为什么还停住？</strong></a>
-  </nav>
+  <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./hand-eye.html"><small>相关阅读</small>手眼标定：把「相机看到的」搬进机器人坐标系</a><a href="./nvjpeg.html"><small>相关阅读</small>nvJPEG 基础原理</a></nav>
+<nav class="note-nav" hidden data-route="engineering" aria-label="工程入门"><a href="../series/#engineering-route">工程入门 · 第 2/5 篇</a><a href="./kinematics.html?route=engineering"><small>上一篇</small>从关节角到末端运动：正运动学与雅可比</a><a href="./hand-eye.html?route=engineering"><small>下一篇</small>手眼标定：把「相机看到的」搬进机器人坐标系</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
 </body>

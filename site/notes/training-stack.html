@@ -24,9 +24,14 @@
  <meta name="description" content="训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/trainstack/ts.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%85%B7%E8%BA%AB%E6%A8%A1%E5%9E%8B">具身模型</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 20 / 训练 · 系统</p>
  <h1>训练系统</h1>
  <p class="lede">七层栈、一条流水线、四本账。训练系统的瓶颈只有四种，所有「优化」都是先判断哪一本失衡。</p>
@@ -203,10 +208,9 @@
 
  <p class="references">相关笔记：<a href="./cuda.html">CUDA 与算子</a>（算子为什么快、分块与合并访存） · <a href="./optimizer-muon.html">优化器与 Muon</a>（学习率语义与状态开销） · <a href="./nvjpeg.html">nvJPEG 基础原理</a>（数据管线的第一段） · <a href="./ensemble.html">集成与 MoE</a>（多个网络的两条路线） · <a href="./train-5k.html">把 VLA 装进 G2</a>（这套配置的一次真实复盘）</p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./ensemble.html"><span>← 上一篇</span><strong>集成与 MoE：两种「多个网络」</strong></a>
-  <a class="next" href="./embodied-data.html"><span>下一篇 →</span><strong>具身数据：来源、供应商与市场</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./lingbot-vla2.html"><small>相关阅读</small>LingBot-VLA 2.0：从看懂指令到连续动作</a><a href="./vla-g2-deploy.html"><small>相关阅读</small>把大模型放在闭环外面</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/trainstack/ts.js"></script>

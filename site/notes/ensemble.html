@@ -24,9 +24,14 @@
  <meta name="description" content="同样是把多个子网络并用，集成为的是知道「我没把握」，MoE 为的是用同样的电费装更多知识。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/ensemble/ens.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%85%B7%E8%BA%AB%E6%A8%A1%E5%9E%8B">具身模型</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 19 / 模型结构 · 不确定性与容量</p>
  <h1>集成与 MoE</h1>
  <p class="lede">同样是把多个子网络并用，集成为的是知道「我没把握」，MoE 为的是用同样的电费装更多知识。</p>
@@ -186,10 +191,9 @@ bias:   [5, 1, out_features]</code></pre>
  <p class="references">相关笔记：<a href="./cem.html">CEM 与 Diffusion</a>（集成给出的分歧怎么被规划器用掉） · <a href="./lingbot-vla2.html">LingBot-VLA 2.0 原理</a>（MoE 在动作专家里的用法） · <a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（世界模型与闭环的分工）</p>
  <p class="references">外部参考：<a href="https://arxiv.org/abs/1805.12114">PETS: Deep RL in a Handful of Trials（Chua et al. 2018）</a> · <a href="https://arxiv.org/abs/1611.03530">Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles（Lakshminarayanan et al. 2017）</a></p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./astra-robot-admission.html"><span>← 上一篇</span><strong>当 AI Agent 遇到真机：Astra 的权限、准入与调试困境</strong></a>
-  <a class="next" href="./training-stack.html"><span>下一篇 →</span><strong>训练系统：七层栈与四本账</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./lingbot-vla2.html"><small>相关阅读</small>LingBot-VLA 2.0：从看懂指令到连续动作</a><a href="./vla-g2-deploy.html"><small>相关阅读</small>把大模型放在闭环外面</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/ensemble/ens.js"></script>

@@ -89,8 +89,8 @@ with sync_playwright() as p:
     assert 'AprilTag 视觉定位详解' in page.locator('h1').inner_text()
     assert page.locator('a[href="../demos/apriltag/index.html"]').count()>=2
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-    page.goto(base+'/index.html#notes')
-    page.locator('a[href="./notes/apriltag.html"]').click()
+    page.goto(base+'/series/')
+    page.locator('a.article-card[href="../notes/apriltag.html"]').click()
     assert page.url.endswith('/notes/apriltag.html')
     page.locator('a[href="../demos/apriltag/index.html"]').first.click()
     page.locator('#apriltag-lab[data-ready=true]').wait_for(timeout=10000)

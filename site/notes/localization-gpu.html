@@ -24,9 +24,14 @@
  <meta name="description" content="把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。这篇解释这个差值从哪来。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/localization/loc.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E6%84%9F%E7%9F%A5%E4%B8%8E%E5%AE%9A%E4%BD%8D">感知与定位</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 26 / 感知 · 定位链路</p>
  <h1>AprilTag 的 GPU 加速实施方案</h1>
  <p class="lede">把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。这个差值本身就是这篇文章要讲的东西。</p>
@@ -315,10 +320,9 @@
 
  <p class="references">相关笔记：<a href="./apriltag.html">AprilTag 视觉定位详解</a>（标签怎么变成位姿） · <a href="./cam-calibration.html">相机标定：四个参数各管什么</a>（内参错了会怎样） · <a href="./cuda.html">CUDA 与算子</a>（并行与访存的基础） · <a href="./costmap.html">代价地图</a></p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./astra-g2-autonomous-navigation.html"><span>← 上一篇</span><strong>Astra × G2：自主建图、探索与语义导航</strong></a>
-  <a class="next" href="./fk-ik-g2-left-arm.html"><span>下一篇 →</span><strong>从 G2 左臂的 7 个关节，一步一步算到 TCP</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./tray-grasp.html"><small>相关阅读</small>料盘抓取：离线示教、在线重算与大模型协作</a><a href="./apriltag.html"><small>相关阅读</small>AprilTag 视觉定位详解</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/localization/loc.js"></script>

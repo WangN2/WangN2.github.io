@@ -23,9 +23,14 @@
  <title>机器人数据格式全景：URDF、USD、rosbag 与训练数据集 · WangN2</title>
  <meta name="description" content="用一张四层地图分清本体、场景、运行日志与训练数据，再看 URDF、USD、rosbag2、LeRobot 怎样连成数据闭环。">
  <link rel="stylesheet" href="../assets/site.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%85%B7%E8%BA%AB%E6%A8%A1%E5%9E%8B">具身模型</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 22 / 数据基础 · 格式与生命周期</p>
  <h1>机器人数据格式全景</h1>
  <p class="lede">URDF 描述身体，USD 组织场景，rosbag 保存运行过程，训练数据集整理可学习的经验。它们不是竞品，而是同一条数据链上的不同容器。</p>
@@ -243,10 +248,9 @@ sample = ds[0]</code></pre>
 
  <p class="references">外部参考：<a href="https://openusd.org/release/index.html">USD 官方文档</a> · <a href="https://mcap.dev/">MCAP 官方说明</a> · <a href="https://github.com/huggingface/lerobot">LeRobot 官方仓库</a> · <a href="https://github.com/google-research/rlds">RLDS 官方仓库</a> · <a href="https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/URDF-Main.html">ROS 2 URDF 教程</a></p>
  <p class="references">相关笔记：<a href="./kinematics.html">正运动学与雅可比</a>（结构怎样变成运动） · <a href="./calibration.html">机器人标定</a>（坐标与时间怎样对齐） · <a href="./training-stack.html">训练系统</a>（数据怎样进入训练链路） · <a href="./embodied-data.html">具身数据</a>（数据来源与供应）</p>
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./embodied-data.html"><span>← 上一篇</span><strong>具身数据：来源、供应商与市场</strong></a>
-  <a class="next" href="./harnessvln.html"><span>下一篇 →</span><strong>HarnessVLN：给冻结大模型接上证据闭环</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./optimizer-muon.html"><small>相关阅读</small>优化器与 Muon</a><a href="./cuda.html"><small>相关阅读</small>CUDA 与算子</a></nav>
+<!-- navigation:end -->
 </article></main>
 <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
 </body></html>

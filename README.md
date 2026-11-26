@@ -39,7 +39,7 @@ python3 tests/browser_costmap.py --base-url http://127.0.0.1:8765
 python3 tests/browser_timeline.py --base-url http://127.0.0.1:8765
 ```
 
-也可设置 CHROME_PATH 为本机 Chrome 可执行文件。测试使用独立浏览器上下文，不读取日常浏览资料。截图和结果在被忽略的 artifacts/ 中。测试拦截第三方请求，检查桌面/360 px 手机布局、iframe 高度校验、中文错误提示、存储异常与交互。
+也可设置 CHROME_PATH 为本机 Chrome 可执行文件。测试使用独立浏览器上下文，不读取日常浏览资料。截图和结果在被忽略的 artifacts/ 中。测试拦截第三方请求，检查桌面/360 px 手机布局、独立实验入口与阅读路线、中文错误提示、存储异常与交互。
 
 ## 站点基础
 
@@ -52,7 +52,7 @@ python3 tests/browser_timeline.py --base-url http://127.0.0.1:8765
 ## 维护入口
 
 - site/index.html：主页；site/notes/kinematics.html、collision-envelope.html、apriltag.html、hand-eye.html、tray-grasp.html、swerve-base.html、costmap.html、grasp-timeline.html、lingbot-vla2.html、vla-g2-deploy.html、nvjpeg.html、optimizer-muon.html、genie4-vs-astra.html、train-5k.html、cuda.html、calibration.html、cem.html、astra-robot-admission.html、ensemble.html、training-stack.html、embodied-data.html、data-formats.html、harnessvln.html：技术笔记。
-- site/series/index.html：系列总览页（链路图 + 分组卡片 + 按问题找 + 三种读法）。新增笔记时必须同时更新这里：`tests/site-meta.test.cjs` 会校验系列页列出的编号连续、与 `site/notes/` 目录一一对应，并要求每篇都有回到 `../series/` 的链接。
+- content/notes.json：标题、主题、摘要、精选和路线的统一索引。添加文章后运行 npm run build，生成笔记库、首页精选与文章导航。
 - site/guide/index.html：机器人本体选型指南。数据由 WangN2/robot_guide 的 CSV 生成后内嵌进页面（`<script id="guide-data">`），页面不请求任何外部资源。更新流程：改来源仓库的 CSV → 重新生成 JSON → 替换内嵌块。`tests/browser_guide.py` 会校验默认权重下首行必须是 4.60、改权重后排名必须变、恢复后必须回到 4.60。
 - site/assets/guide/models/：13 张产品缩略图（200 px WebP），版权归原厂商，仅用于型号识别，页脚有署名说明。
 - site/notes/tray-grasp.html：料盘抓取的离线示教、在线重算与大模型协作（第 10–15 节讲分工、参数搜索、自然语言示教与排障边界，只写方法，不含量化结论）。交互部分在 site/assets/tray/ 下，是纯 Canvas 2D 的刚体搬运示意，不连接真机、不做碰撞检查；文中数值是示意值，改稿时不要写成站点验证过的结论。

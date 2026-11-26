@@ -31,9 +31,14 @@
  <meta name="description" content="示教为什么必须存在盘系？运行时如何只跟随 5 个自由度？以及从写代码、调参数到排障，大模型该站在哪一格——附 Code as Policies、OPRO、π0.5 等工作的对照。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/tray/tray-grasp.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E8%BF%90%E5%8A%A8%E4%B8%8E%E6%8E%A7%E5%88%B6">运动与控制</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 05 / 视觉伺服 · 工程实践</p>
  <h1>料盘抓取：<br>离线示教、在线重算<br>与大模型协作</h1>
  <p class="lede">示教文件把「工具相对料盘」的位姿冻结在盘系里；每次运行时只用本次观测到的盘位姿，把它搬运到基座系。所以盘怎么挪，程序都不用重教——只要它还看得见、还在臂展内。后半部分换一个角度：这条链路本身是怎么被搭出来、调出来和排障的，大模型在其中站在哪一格。</p>
@@ -269,10 +274,10 @@
  <p class="references">参考文献：<a href="https://arxiv.org/abs/2209.07753">Code as Policies（arXiv:2209.07753）</a> · <a href="https://arxiv.org/abs/2309.03409">Large Language Models as Optimizers / OPRO（arXiv:2309.03409）</a> · <a href="https://arxiv.org/abs/2410.09084">Diagnosing Robotics Systems Issues with LLMs / SysDiagBench（arXiv:2410.09084）</a> · <a href="https://arxiv.org/abs/2504.16054">π0.5（arXiv:2504.16054）</a> · <a href="https://arxiv.org/abs/2505.04769">VLA 综述（arXiv:2505.04769）</a> · <a href="https://arxiv.org/abs/2507.23589">Can LLM-Reasoning Models Replace Classical Planning?（arXiv:2507.23589）</a> · <a href="https://arxiv.org/abs/2509.08813">Calib3R（arXiv:2509.08813）</a></p>
  <p class="references">相关笔记：<a href="./apriltag.html">AprilTag 视觉定位详解</a>（盘位姿从哪来） · <a href="./kinematics.html">从关节角到末端运动</a>（末端目标怎么变成关节角）</p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./hand-eye.html"><span>← 上一篇</span><strong>手眼标定：把「相机看到的」搬进机器人坐标系</strong></a>
-  <a class="next" href="./swerve-base.html"><span>下一篇 →</span><strong>全向底盘：四个舵轮怎么同时听话</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./grasp-timeline.html"><small>相关阅读</small>一次完整抓取：从看到到夹住</a><a href="./localization-gpu.html"><small>相关阅读</small>AprilTag 的 GPU 加速实施方案</a></nav>
+<nav class="note-nav" hidden data-route="engineering" aria-label="工程入门"><a href="../series/#engineering-route">工程入门 · 第 4/5 篇</a><a href="./hand-eye.html?route=engineering"><small>上一篇</small>手眼标定：把「相机看到的」搬进机器人坐标系</a><a href="./grasp-timeline.html?route=engineering"><small>下一篇</small>一次完整抓取：从看到到夹住</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/tray/tray-grasp.js"></script>

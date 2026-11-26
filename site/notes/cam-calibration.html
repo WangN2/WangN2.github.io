@@ -24,9 +24,14 @@
  <meta name="description" content="标定不是让重投影误差变小，是让参数对得上物理世界。一个可拖的投影沙盘，看清每个参数怎么把检测结果推偏。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/camcal/cc.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E6%84%9F%E7%9F%A5%E4%B8%8E%E5%AE%9A%E4%BD%8D">感知与定位</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 24 / 标定 · 相机</p>
  <h1>相机标定</h1>
  <p class="lede">标定不是让重投影误差变小，是让参数对得上物理世界。这两件事经常不一致。</p>
@@ -237,10 +242,9 @@ int main() {
 
  <p class="references">相关笔记：<a href="./calibration.html">机器人标定：内参、外参、手眼与时间</a>（四类标定的系统视角） · <a href="./apriltag.html">AprilTag 视觉定位详解</a>（标签怎么变成位姿） · <a href="./hand-eye.html">手眼标定：AX=XB</a></p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./harnessvln.html"><span>← 上一篇</span><strong>HarnessVLN 机制与行业趋势</strong></a>
-  <a class="next" href="./astra-g2-autonomous-navigation.html"><span>下一篇 →</span><strong>Astra × G2 自主建图与导航</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./apriltag.html"><small>相关阅读</small>AprilTag 视觉定位详解</a><a href="./hand-eye.html"><small>相关阅读</small>手眼标定：把「相机看到的」搬进机器人坐标系</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/camcal/cc.js"></script>

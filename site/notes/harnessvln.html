@@ -23,9 +23,14 @@
  <title>HarnessVLN：给冻结大模型接上证据闭环 · WangN2</title>
  <meta name="description" content="用原创动图拆解 HarnessVLN 的证据闭环，并分析具身导航从模型竞赛走向运行时、数据闭环与系统验收的产业趋势。">
  <link rel="stylesheet" href="../assets/site.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%AF%BC%E8%88%AA%E4%B8%8E%E8%A7%84%E5%88%92">导航与规划</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 23 / 具身模型 · Agent 导航</p>
  <h1>HarnessVLN：<br>给冻结大模型接上证据闭环</h1>
  <p class="lede">大模型可以提议“向左走”或“停止”，但不直接控制环境。HarnessVLN 更值得关注的行业信号是：具身导航的竞争正从单个模型，扩展到记忆、工具、执行反馈与独立验收组成的系统能力。</p>
@@ -165,10 +170,9 @@
 
  <p class="references">论文与项目：<a href="https://arxiv.org/abs/2609.15195">HarnessVLN arXiv:2609.15195</a> · <a href="https://arxiv.org/html/2609.15195v3">论文 v3 全文</a> · <a href="https://agibot-harnessvln.netlify.app/">项目页与演示</a> · <a href="https://github.com/AgibotGeneral/harnessvln">官方仓库</a></p>
  <p class="references">相关笔记：<a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（模型与运行时的分工） · <a href="./data-formats.html">机器人数据格式全景</a>（观测、日志与训练数据） · <a href="./calibration.html">机器人标定</a>（位姿对齐与时间证据） · <a href="./costmap.html">代价地图</a>（几何通行性）</p>
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./data-formats.html"><span>← 上一篇</span><strong>机器人数据格式全景</strong></a>
-  <a class="next" href="./cam-calibration.html"><span>下一篇 →</span><strong>相机标定：四个参数各管什么</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./lingbot-vla2.html"><small>相关阅读</small>LingBot-VLA 2.0：从看懂指令到连续动作</a><a href="./vla-g2-deploy.html"><small>相关阅读</small>把大模型放在闭环外面</a></nav>
+<!-- navigation:end -->
 </article></main>
 <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
 </body></html>

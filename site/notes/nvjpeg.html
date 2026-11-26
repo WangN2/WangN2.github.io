@@ -31,9 +31,14 @@
  <meta name="description" content="JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快，它让那一半和另一半同时进行。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/nvjpeg/nvjpeg.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E6%84%9F%E7%9F%A5%E4%B8%8E%E5%AE%9A%E4%BD%8D">感知与定位</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 11 / 视觉管线 · 解码原理</p>
  <h1>nvJPEG 基础原理</h1>
  <p class="lede">JPEG 解码里有一半天生串行。nvJPEG 没有让那一半变快——它让那一半，和另外一半同时进行。</p>
@@ -150,10 +155,9 @@
  <p class="references">相关笔记：<a href="./apriltag.html">AprilTag 视觉定位</a>（像素从哪来） · <a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（延迟与部署形态） · <a href="./grasp-timeline.html">一次完整抓取</a>（链路时序）</p>
  <p class="references">外部参考：<a href="https://docs.nvidia.com/cuda/nvjpeg/index.html">nvJPEG 官方文档</a></p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./vla-g2-deploy.html"><span>← 上一篇</span><strong>把大模型放在闭环外面</strong></a>
-  <a class="next" href="./optimizer-muon.html"><span>下一篇 →</span><strong>优化器与 Muon</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./apriltag.html"><small>相关阅读</small>AprilTag 视觉定位详解</a><a href="./hand-eye.html"><small>相关阅读</small>手眼标定：把「相机看到的」搬进机器人坐标系</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/nvjpeg/nvjpeg.js"></script>

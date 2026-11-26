@@ -31,9 +31,14 @@
  <meta name="description" content="分清更新矩阵的奇异值与损失曲面的曲率，再理解 Muon 如何用 Newton–Schulz 迭代做近似正交化。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/optimizer/opt.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%85%B7%E8%BA%AB%E6%A8%A1%E5%9E%8B">具身模型</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 12 / 训练方法 · 优化器</p>
  <h1>优化器与 Muon</h1>
  <p class="lede">优化器之间的差别，可以从更新量如何缩放来理解。Muon 特别之处，是调整二维更新矩阵的谱，而不是直接测量损失曲率。</p>
@@ -149,10 +154,9 @@
  <p class="references">相关笔记：<a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（训练量与评测设计） · <a href="./lingbot-vla2.html">LingBot-VLA 2.0 原理</a>（动作专家与流匹配） · <a href="./nvjpeg.html">nvJPEG 基础原理</a>（另一条「换个组织方式就快了」的线）</p>
  <p class="references">外部参考：<a href="https://arxiv.org/abs/2606.04058">Spectral Scaling Laws of Muon（arXiv:2606.04058）</a> · <a href="https://github.com/KellerJordan/modded-nanogpt">KellerJordan/modded-nanogpt</a></p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./nvjpeg.html"><span>← 上一篇</span><strong>nvJPEG 基础原理</strong></a>
-  <a class="next" href="./genie4-vs-astra.html"><span>下一篇 →</span><strong>Genie 4 与 Astra</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./cuda.html"><small>相关阅读</small>CUDA 与算子</a><a href="./cem.html"><small>相关阅读</small>CEM 与 Diffusion：采样优化和分布生成</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/optimizer/opt.js"></script>

@@ -40,9 +40,9 @@ test('planar homography decomposition recovers noise-free 6DoF poses',()=>{
  }
 });
 
-test('AprilTag note, lab and homepage navigation are present',()=>{
- const root=path.join(__dirname,'../site'),home=fs.readFileSync(path.join(root,'index.html'),'utf8'),note=fs.readFileSync(path.join(root,'notes/apriltag.html'),'utf8'),lab=fs.readFileSync(path.join(root,'demos/apriltag/index.html'),'utf8');
- assert.ok(home.includes('href="./notes/apriltag.html"'));assert.ok(home.includes('AprilTag 视觉定位详解'));
+test('AprilTag note, lab and library navigation are present',()=>{
+ const root=path.join(__dirname,'../site'),home=fs.readFileSync(path.join(root,'series/index.html'),'utf8'),note=fs.readFileSync(path.join(root,'notes/apriltag.html'),'utf8'),lab=fs.readFileSync(path.join(root,'demos/apriltag/index.html'),'utf8');
+ assert.ok(home.includes('href="../notes/apriltag.html"'));assert.ok(home.includes('AprilTag 视觉定位详解'));
  for(const text of ['tag36h11','pupil_apriltags','estimate_tag_pose=True','camera_params','tag_size','T_base_cam'])assert.ok(note.includes(text),text);
  for(const text of ['id="decode-lab"','id="pose-lab"','id="tag-canvas"','id="pose-canvas"','core.cjs','tag36h11.cjs'])assert.ok(lab.includes(text),text);
  assert.ok(fs.existsSync(path.join(root,'licenses/apriltag.txt')));

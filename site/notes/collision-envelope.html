@@ -27,10 +27,15 @@
  <meta property="article:published_time" content="2026-10-16">
  <meta property="article:modified_time" content="2026-10-23">
  <meta property="article:section" content="导航避障">
- <!--/meta--><title>G2 的碰撞球：有距离，为什么还停住？ · WangN2</title><meta name="description" content="旋转观察 G2 的22个碰撞球，对比底盘额外膨胀16cm与5cm，理解碰撞包络、二维地图和物理间隙的区别。"><link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/g2/collision.css"></head>
+ <!--/meta--><title>G2 的碰撞球：有距离，为什么还停住？ · WangN2</title><meta name="description" content="旋转观察 G2 的22个碰撞球，对比底盘额外膨胀16cm与5cm，理解碰撞包络、二维地图和物理间隙的区别。"><link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/g2/collision.css"><link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
+</head>
 <body><a class="skip" href="#collision-explorer">跳转到碰撞球模型</a>
-<header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%AF%BC%E8%88%AA%E4%B8%8E%E8%A7%84%E5%88%92">导航与规划</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 02 / 导航避障 · 交互观察</p><h1>G2 的碰撞球：<br>有距离，为什么还停住？</h1>
  <p class="lede">机器人看起来还没碰到障碍物，导航却停住了。它检查的可能不是外壳本身，而是一层更大的几何包络。转动下面的模型，看看这些球如何包住底盘、双臂与头身。</p>
   <div class="article-meta"><span><time datetime="2026-10-16">2026-10-16</time></span><span>约 3 分钟</span><span>导航避障</span><a class="series-link" href="../series/">全系列 ›</a></div>
@@ -73,12 +78,11 @@
  <p>通用概念可参考 <a href="https://docs.nav2.org/jazzy/configuration_and_development/configuration_guide/core_servers/costmap_2d/costmap_plugins/inflation/">Nav2 的 Inflation Layer 说明</a>。具体机器人采用哪套检查路径，仍要以实际配置和运行数据为准。</p>
  <p class="callout"><strong>这是静态几何观察，不是在线碰撞仿真。</strong>本页不加载实时点云或地图，不计算可通行路径，也不连接机器人。5 cm 为对比候选值，不是已验收的安全配置。坐标原点与真实地面高度不能未经标定直接等同。</p>
  <p>继续探索：<a href="./kinematics.html">从关节角到末端运动：正运动学与雅可比</a>。碰撞球快照与已有运动学实验室使用不同的数据来源，页面没有将两者自动配准。</p>
- <a class="primary-link back" href="../index.html#notes">回到笔记列表 →</a>
+ <a class="primary-link back" href="../series/">回到笔记列表 →</a>
  <p class="references">相关笔记：<a href="./costmap.html">代价地图</a>（二维通行性那一层） · <a href="./kinematics.html">从关节角到末端运动</a> · <a href="./swerve-base.html">全向底盘</a>（底盘轮廓与转向）</p>
-  <nav class="note-nav" aria-label="笔记导航">
-   <a class="prev" href="./kinematics.html"><span>← 上一篇</span><strong>从关节角到末端运动：正运动学与雅可比</strong></a>
-   <a class="next" href="./apriltag.html"><span>下一篇 →</span><strong>AprilTag 视觉定位详解</strong></a>
-  </nav>
+  <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./swerve-base.html"><small>相关阅读</small>全向底盘：四个舵轮怎么同时听话</a><a href="./costmap.html"><small>相关阅读</small>代价地图：把「不能去」变成「尽量别去」</a></nav>
+<!-- navigation:end -->
  </article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
 <script src="../assets/g2/collision-model.cjs"></script><script src="../assets/g2/collision-viewer.js"></script>
 </body></html>

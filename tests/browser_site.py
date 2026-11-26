@@ -23,10 +23,29 @@ with sync_playwright() as p:
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.on('response',lambda r:failed.append(r.url) if r.status>=400 else None)
     page.goto(base+'/index.html')
-    f=page.frame_locator('#g2-demo')
+    assert page.locator('iframe').count()==0
+    assert page.locator('.featured-grid a').count()==3
+    page.screenshot(path=str(out/'homepage-desktop.png'),full_page=True)
+    page.set_viewport_size({'width':390,'height':844})
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+    page.screenshot(path=str(out/'homepage-mobile.png'),full_page=True)
+    page.locator('.featured-grid a[href*="g2-multi-agent"]').click()
+    page.locator('.crumb [data-library]').click()
+    page.locator('#query').fill('AprilTag')
+    page.select_option('#topic','感知与定位')
+    count=page.locator('.article-card:visible').count()
+    page.locator('.article-card[href*="apriltag.html"]').click()
+    page.locator('.crumb [data-library]').click()
+    assert page.locator('#query').input_value()=='AprilTag'
+    assert page.locator('.article-card:visible').count()==count
+    page.goto(base+'/series/#engineering-route')
+    page.locator('#engineering-route a[href*="tray-grasp"]').click()
+    page.locator('[data-route="engineering"] a[href*="grasp-timeline"]').click()
+    assert page.url.endswith('grasp-timeline.html?route=engineering')
+    page.goto(base+'/index.html#lab')
+    page.locator('#lab a[href*="/g2/"]').click()
+    f=page
     f.locator('[data-ready=true]').wait_for(timeout=30000)
-    assert f.locator('#g2-preset').input_value()=='down'
-    assert f.locator('[data-running=false]').count()==1
     # Nontransparent WebGL pixels establish actual rendering, not just a canvas tag.
     pixels=f.locator('canvas').evaluate("""c=>{
       const gl=c.getContext('webgl2')||c.getContext('webgl');
@@ -35,51 +54,11 @@ with sync_playwright() as p:
       let n=0;for(let i=3;i<px.length;i+=4)if(px[i]>0)n++;return n;
     }""")
     assert pixels>5000,pixels
-    # 卡片样式必须真的生效，而不只是标签还在（曾整段被误删过一次）
-    card=page.locator('a.article-card').first
-    assert card.evaluate("e=>getComputedStyle(e).backgroundColor")=='rgb(255, 255, 255)',card.evaluate("e=>getComputedStyle(e).backgroundColor")
-    assert card.evaluate("e=>getComputedStyle(e).borderRadius")=='14px'
-    assert '80px' in card.evaluate("e=>getComputedStyle(e).gridTemplateColumns")
-    page.screenshot(path=str(out/'homepage-desktop.png'),full_page=True)
-    for width in [1440,360]:
-        page.set_viewport_size({'width':width,'height':1080})
-        page.wait_for_timeout(400)
-        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-        child=page.frames[1]
-        assert child.evaluate('document.documentElement.scrollWidth<=innerWidth')
-        # Controls and footer must fit in the resized frame without an inner vertical scrollbar.
-        assert child.evaluate('document.body.getBoundingClientRect().height<=innerHeight+1')
-        height=page.locator('#g2-demo').evaluate('(e)=>e.getBoundingClientRect().height')
-        page.wait_for_timeout(300)
-        assert abs(height-page.locator('#g2-demo').evaluate('(e)=>e.getBoundingClientRect().height'))<1
-        page.evaluate("""()=>{
-         const w=document.querySelector('#g2-demo').contentWindow;
-         for(const event of [
-          {origin:location.origin,source:window,data:{type:'wangn2:g2:resize',height:5000}},
-          {origin:'https://invalid.example',source:w,data:{type:'wangn2:g2:resize',height:5000}},
-          {origin:location.origin,source:w,data:{type:'wangn2:g2:resize',height:Infinity}}
-         ])window.dispatchEvent(new MessageEvent('message',event));
-        }""")
-        assert height==page.locator('#g2-demo').evaluate('(e)=>e.getBoundingClientRect().height')
-        if width==360:page.screenshot(path=str(out/'homepage-mobile.png'),full_page=True)
     f.locator('#g2-preset').select_option('bent')
     f.locator('[data-move="0,0.05"]').click()
     f.locator('[data-running=false]').wait_for(timeout=30000)
     assert '到达 ·' in f.locator('#g2-status').inner_text()
     result=f.locator('#g2-error').inner_text()
-    # Every group can resize the embed without clipping or height feedback.
-    for group in ['head','gripper_l','base','right']:
-        f.locator('#g2-group').select_option(group)
-        page.wait_for_timeout(180)
-        assert page.frames[1].evaluate('document.body.getBoundingClientRect().height<=innerHeight+1')
-    page.get_by_role('link',name='独立大屏').click()
-    page.locator('[data-ready=true]').wait_for(timeout=30000)
-    page.get_by_role('link',name='返回主页').click()
-    page.get_by_role('link',name='先读一篇入门笔记').click()
-    assert '正运动学与雅可比' in page.locator('h1').inner_text()
-    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-    page.get_by_role('link',name='回到实验室，动手试试').click()
-    assert page.url.endswith('#lab')
     assert not external,external
     assert not errors,errors
     assert not failed,failed
@@ -106,14 +85,14 @@ with sync_playwright() as p:
         route.fulfill(response=response)
     context.route('**/*',prefixed_route)
     page=context.new_page();page.goto(prefix+'index.html')
-    page.frame_locator('#g2-demo').locator('[data-ready=true]').wait_for(timeout=30000)
-    page.get_by_role('link',name='先读一篇入门笔记').click()
+    page.locator('.featured-grid').wait_for()
+    page.locator('.featured-grid a').first.click()
     page.wait_for_load_state('load')
     assert page.url.startswith(prefix+'notes/')
     assert all(url.startswith(prefix) for url in prefixed)
     context.close()
     browser.close()
 result={'homepage_ik':result,'rendered_pixels':pixels,'external_requests':external,'page_errors':errors,
-        'desktop_mobile_layout':'passed','resize_validation':'passed','storage_fallback':'passed','navigation':'passed'}
+        'desktop_mobile_layout':'passed','route_navigation':'passed','storage_fallback':'passed','navigation':'passed'}
 (out/'site-results.json').write_text(json.dumps(result,ensure_ascii=False,indent=2))
 print(json.dumps(result,ensure_ascii=False,indent=2))

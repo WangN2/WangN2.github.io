@@ -1,0 +1,378 @@
+{
+  "featured": [
+    "kinematics",
+    "tray-grasp",
+    "g2-multi-agent"
+  ],
+  "categories": {
+    "basics": "基础篇",
+    "models": "模型篇",
+    "applications": "应用篇"
+  },
+  "topics": [
+    "运动与控制",
+    "感知与定位",
+    "导航与规划",
+    "具身模型",
+    "工程与协作"
+  ],
+  "routes": {
+    "engineering": {
+      "label": "工程入门",
+      "steps": [
+        "kinematics",
+        "apriltag",
+        "hand-eye",
+        "tray-grasp",
+        "grasp-timeline"
+      ]
+    },
+    "model": {
+      "label": "模型进阶",
+      "steps": [
+        "kinematics",
+        "grasp-timeline",
+        "lingbot-vla2"
+      ]
+    }
+  },
+  "notes": [
+    {
+      "slug": "kinematics",
+      "title": "从关节角到末端运动：正运动学与雅可比",
+      "summary": "为什么转动一个关节，夹爪会沿弧线移动？雅可比又是怎么把「微小转角」换算成「末端位移」的。",
+      "date": "2026-10-09",
+      "minutes": 5,
+      "category": "basics",
+      "topics": [
+        "运动与控制"
+      ]
+    },
+    {
+      "slug": "swerve-base",
+      "title": "全向底盘：四个舵轮怎么同时听话",
+      "summary": "逆运动学只有三行，难的是等价角、180° 反转和转向限位——环环相扣的工程细节。",
+      "date": "2026-10-23",
+      "minutes": 6,
+      "category": "basics",
+      "topics": [
+        "运动与控制",
+        "导航与规划"
+      ]
+    },
+    {
+      "slug": "apriltag",
+      "title": "AprilTag 视觉定位详解",
+      "summary": "从 tag36h11 编码、汉明纠错到 PnP 六自由度位姿：一张图怎么变成一个位置和朝向。",
+      "date": "2026-10-16",
+      "minutes": 6,
+      "category": "basics",
+      "topics": [
+        "感知与定位"
+      ]
+    },
+    {
+      "slug": "hand-eye",
+      "title": "手眼标定：把「相机看到的」搬进机器人坐标系",
+      "summary": "AX = XB 不是在背公式，是「两条路径必须到同一个地方」。错了 2 cm，末端就偏，而且时准时不准。",
+      "date": "2026-10-23",
+      "minutes": 5,
+      "category": "basics",
+      "topics": [
+        "感知与定位"
+      ]
+    },
+    {
+      "slug": "collision-envelope",
+      "title": "G2 的碰撞球：有距离，为什么还停住？",
+      "summary": "机器人检查的不是外壳，是更大的几何包络。22 个球、底盘膨胀 16 cm 与 5 cm 的差别。",
+      "date": "2026-10-16",
+      "minutes": 3,
+      "category": "basics",
+      "topics": [
+        "导航与规划"
+      ]
+    },
+    {
+      "slug": "costmap",
+      "title": "代价地图：把「不能去」变成「尽量别去」",
+      "summary": "占用栅格只说有没有障碍。给它一层代价，规划器才知道该离墙多远——但膨胀半径不是安全余量。",
+      "date": "2026-10-23",
+      "minutes": 5,
+      "category": "basics",
+      "topics": [
+        "导航与规划"
+      ]
+    },
+    {
+      "slug": "nvjpeg",
+      "title": "nvJPEG 基础原理",
+      "summary": "JPEG 解码里有一半天生串行。它没有让那一半变快，而是让两半同时进行——附三条资源的时间线。",
+      "date": "2026-10-29",
+      "minutes": 6,
+      "category": "basics",
+      "topics": [
+        "感知与定位"
+      ]
+    },
+    {
+      "slug": "optimizer-muon",
+      "title": "优化器与 Muon",
+      "summary": "分清更新矩阵的奇异值与损失曲率，再看 Newton–Schulz 如何做近似正交化，以及学习率为什么不能直接照搬。",
+      "date": "2026-10-29",
+      "minutes": 7,
+      "category": "basics",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "cuda",
+      "title": "CUDA 与算子",
+      "summary": "GPU 快的不是每个核，是同时有几千份活在飞。五张图，加一个典型算子的完整拆解。",
+      "date": "2026-10-31",
+      "minutes": 12,
+      "category": "basics",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "calibration",
+      "title": "机器人标定：内参、外参、手眼与时间",
+      "summary": "从内参、安装外参到时间对齐：交互理解退化，按流程采集，用独立验证区分稳定与准确。",
+      "date": "2026-11-01",
+      "minutes": 13,
+      "category": "basics",
+      "topics": [
+        "感知与定位"
+      ]
+    },
+    {
+      "slug": "cem",
+      "title": "CEM 与 Diffusion：采样优化和分布生成",
+      "summary": "一个只管找极值，一个只管学分布。从一段 CEM 代码讲到两者怎么接进同一条规划链。",
+      "date": "2026-11-01",
+      "minutes": 6,
+      "category": "basics",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "data-formats",
+      "title": "机器人数据格式全景",
+      "summary": "分清本体、场景、运行记录和训练数据集，理解 URDF、USD、rosbag2 与 LeRobot 在数据闭环里的位置。",
+      "date": "2026-11-08",
+      "minutes": 9,
+      "category": "basics",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "cam-calibration",
+      "title": "相机标定：四个参数各管什么",
+      "summary": "标定不是让重投影误差变小，是让参数对得上物理世界。附一个可拖的投影沙盘。",
+      "date": "2026-11-08",
+      "minutes": 9,
+      "category": "basics",
+      "topics": [
+        "感知与定位"
+      ]
+    },
+    {
+      "slug": "fk-ik-g2-left-arm",
+      "title": "从 G2 左臂的 7 个关节，一步一步算到 TCP",
+      "summary": "用真实 URDF 常量，从关节角连乘到末端位姿，再反过来只凭位姿求回关节角。",
+      "date": "2026-11-19",
+      "minutes": 6,
+      "category": "basics",
+      "topics": [
+        "运动与控制"
+      ]
+    },
+    {
+      "slug": "sam-visp-visual-servo",
+      "title": "SAM、ViSP 与视觉伺服：从像素掩码到机器人对准",
+      "summary": "拆解分割、CAD 位姿初始化、移动边缘跟踪与 PBVS 闭环，用彩图和可手算示例理解每一步的输入、算法与边界。",
+      "date": "2026-11-21",
+      "minutes": 15,
+      "category": "basics",
+      "topics": [
+        "运动与控制",
+        "感知与定位"
+      ]
+    },
+    {
+      "slug": "lingbot-vla2",
+      "title": "LingBot-VLA 2.0：从看懂指令到连续动作",
+      "summary": "9 分 22 秒中文动画，串起注意力、MoE、Flow Matching、时空蒸馏与机器人闭环执行。",
+      "date": "2026-10-27",
+      "minutes": 6,
+      "category": "models",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "vla-g2-deploy",
+      "title": "把大模型放在闭环外面",
+      "summary": "控制环要低延迟、错误可逆、能拿到本体感受，恰好是大模型最弱的三条。真正值钱的位置在环外。环外的四个工位，与一个必须设防的自证陷阱。",
+      "date": "2026-10-28",
+      "minutes": 13,
+      "category": "models",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "genie4-vs-astra",
+      "title": "Genie 4 与 Astra",
+      "summary": "一个是造世界的，一个是在世界里动手的。把两者公开的效果证据摆在一起，看清各自被验证到了什么程度。",
+      "date": "2026-10-29",
+      "minutes": 5,
+      "category": "models",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "ensemble",
+      "title": "集成与 MoE：两种「多个网络」",
+      "summary": "同样是把多个子网络并用，集成为的是知道「我没把握」，MoE 为的是用同样的电费装更多知识。",
+      "date": "2026-11-02",
+      "minutes": 7,
+      "category": "models",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "training-stack",
+      "title": "训练系统：七层栈与四本账",
+      "summary": "训练系统的瓶颈只有四种：算力、显存、带宽、时间。所有「优化」都是先判断哪一本账失衡，再动手。",
+      "date": "2026-11-03",
+      "minutes": 10,
+      "category": "models",
+      "topics": [
+        "具身模型",
+        "工程与协作"
+      ]
+    },
+    {
+      "slug": "harnessvln",
+      "title": "HarnessVLN：给冻结大模型接上证据闭环",
+      "summary": "从证据闭环看具身导航的系统竞争：运行时、记忆、工具、执行反馈与独立验收。附原创动图与行业趋势分析。",
+      "date": "2026-11-08",
+      "minutes": 11,
+      "category": "models",
+      "topics": [
+        "导航与规划",
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "tray-grasp",
+      "title": "料盘抓取：离线示教、在线重算与大模型协作",
+      "summary": "盘挪了位置为什么不用重教？只跟随 5 个自由度、锁住滚转，以及大模型该站在哪一格。",
+      "date": "2026-10-23",
+      "minutes": 17,
+      "category": "applications",
+      "topics": [
+        "运动与控制",
+        "感知与定位"
+      ]
+    },
+    {
+      "slug": "grasp-timeline",
+      "title": "一次完整抓取：从看到到夹住",
+      "summary": "把感知、运动与执行串成八步时序：每步吃什么、产出什么、门限在哪、失败怎么归类。",
+      "date": "2026-10-23",
+      "minutes": 4,
+      "category": "applications",
+      "topics": [
+        "运动与控制",
+        "工程与协作"
+      ]
+    },
+    {
+      "slug": "train-5k",
+      "title": "把 VLA 装进 G2：一次 0/30 的排障",
+      "summary": "三十回合全败，其中二十三个是被控制层的限位检查杀掉的。修好尺子之后，0/30 才变成一个可信的数字。",
+      "date": "2026-10-30",
+      "minutes": 6,
+      "category": "applications",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "astra-robot-admission",
+      "title": "当 AI Agent 遇到真机：Astra 的权限、准入与调试困境",
+      "summary": "384 处检查、两条不同的执行路径，以及为什么识别风险不等于解决问题。一次 G2 PickTool 真机调试复盘。",
+      "date": "2026-11-02",
+      "minutes": 7,
+      "category": "applications",
+      "topics": [
+        "工程与协作"
+      ]
+    },
+    {
+      "slug": "embodied-data",
+      "title": "具身数据：来源、供应商与市场",
+      "summary": "一边喊缺数据，一边报价跌到 20 元一小时。五条采集路线、三层供应链，以及定价权正在往哪走。",
+      "date": "2026-11-07",
+      "minutes": 7,
+      "category": "applications",
+      "topics": [
+        "具身模型"
+      ]
+    },
+    {
+      "slug": "astra-g2-autonomous-navigation",
+      "title": "Astra × G2：自主建图与语义导航",
+      "summary": "Frontier、SLAM、Nav2、语义地图、分权执行与故障恢复。",
+      "date": "2026-11-09",
+      "minutes": 7,
+      "category": "applications",
+      "topics": [
+        "导航与规划",
+        "工程与协作"
+      ]
+    },
+    {
+      "slug": "localization-gpu",
+      "title": "AprilTag 的 GPU 加速实施方案",
+      "summary": "把检测放上 GPU 之后，CPU 省了一半，延迟只降一成。这个差值本身就是答案。",
+      "date": "2026-11-17",
+      "minutes": 15,
+      "category": "applications",
+      "topics": [
+        "感知与定位"
+      ]
+    },
+    {
+      "slug": "harness-engineering",
+      "title": "Harness 工程：把纪律写进环境",
+      "summary": "OpenAI 五个月、一百万行、零手写代码。六条做法里五条能搬到机器人，一条必须砍掉。",
+      "date": "2026-11-20",
+      "minutes": 6,
+      "category": "applications",
+      "topics": [
+        "工程与协作"
+      ]
+    },
+    {
+      "slug": "g2-multi-agent",
+      "title": "多Agent协作在G2开发中的应用",
+      "summary": "以工装板目标点选择为例，看 G2 团队怎样用任务卡绑定聊天和工作树，让定位、导航、上料的交接与验收有据可查。",
+      "date": "2026-11-25",
+      "minutes": 7,
+      "category": "applications",
+      "topics": [
+        "工程与协作"
+      ]
+    }
+  ]
+}

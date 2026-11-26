@@ -24,9 +24,14 @@
  <meta name="description" content="以工装板目标点选择为例，看 G2 团队怎样用任务卡绑定聊天和工作树，让定位、导航、上料的交接与验收有据可查。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/g2-project-guide.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%B7%A5%E7%A8%8B%E4%B8%8E%E5%8D%8F%E4%BD%9C">工程与协作</a></nav>
+<!-- breadcrumb:end -->
 <p class="eyebrow">NOTE 30 / 应用篇 · 机器人研发协作</p>
 <h1>多Agent协作在G2开发中的应用</h1>
 <p class="lede">“根据工装板选目标点”听起来是一张导航卡。真正开工时，导航要问定位拿哪一版板模型，还要问上料怎样判断车已停稳。三个 Agent 都回了消息，项目负责人仍有一个问题：这项功能到底推进到了哪一步？</p>
@@ -90,7 +95,9 @@
 <div><span class="kicker">下游 / 导航</span><h3>验证后回执</h3><p>导航可先用样例准备目标点测试。拿到指定版本后，检查选点和朝向，用结果确认兼容；有偏差则写清复现条件并标记阻塞。</p></div>
 <div><span class="kicker">项目助理 / 负责人</span><h3>解决优先级冲突</h3><p>项目助理核对两卡是否修改同一资产，跟进回执与复测窗口。若仅有一个实机时段，整理先测哪张卡、对交付的影响和建议，由负责人决定。</p></div></div>
 <p class="note"><strong>汇报时看四项：</strong>当前在做什么、哪些结果能复核、还在等谁或什么条件、下一步由谁推进。读者可从卡片找到任务聊天、实际检出和证据。</p></section></div>
-<nav class="note-nav" aria-label="笔记导航"><a class="prev" href="./sam-visp-visual-servo.html"><span>← 上一篇</span><strong>SAM、ViSP 与视觉伺服</strong></a><a class="home" href="../series/"><span>系列索引</span><strong>学习地图 · 全部笔记</strong></a></nav>
+<!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./grasp-timeline.html"><small>相关阅读</small>一次完整抓取：从看到到夹住</a><a href="./astra-robot-admission.html"><small>相关阅读</small>当 AI Agent 遇到真机：Astra 的权限、准入与调试困境</a></nav>
+<!-- navigation:end -->
 </article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
 
 </body></html>

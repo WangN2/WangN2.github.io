@@ -31,9 +31,14 @@
  <meta name="description" content="舵轮逆运动学只有三行公式，真正难的是等价角、180° 反转和转向限位。附可拖动的四轮俯视实验。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/swerve/swerve.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E8%BF%90%E5%8A%A8%E4%B8%8E%E6%8E%A7%E5%88%B6">运动与控制</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 06 / 移动底盘 · 运动学</p>
  <h1>全向底盘：<br>四个舵轮怎么同时听话</h1>
  <p class="lede">舵轮的逆运动学只有三行公式。真正让它在实机上跑起来的，是另外三件事：每个角都有一堆等价写法、轮子可以反着转、以及转向机构有硬限位。</p>
@@ -137,10 +142,9 @@
 
  <p class="references">相关笔记：<a href="./kinematics.html">从关节角到末端运动</a>（同样的局部线性化思路） · <a href="./collision-envelope.html">G2 的碰撞球</a>（底盘轮廓与安全包络）</p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./tray-grasp.html"><span>← 上一篇</span><strong>料盘抓取：离线示教、在线重算与大模型协作</strong></a>
-  <a class="next" href="./costmap.html"><span>下一篇 →</span><strong>代价地图：把「不能去」变成「尽量别去」</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./kinematics.html"><small>相关阅读</small>从关节角到末端运动：正运动学与雅可比</a><a href="./collision-envelope.html"><small>相关阅读</small>G2 的碰撞球：有距离，为什么还停住？</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/swerve/swerve.js"></script>

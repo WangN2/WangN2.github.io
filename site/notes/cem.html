@@ -31,9 +31,14 @@
  <meta name="description" content="CEM 不关心动作长什么样，只关心哪条轨迹分数高。Diffusion 反过来。两者不是替代关系，是分工关系。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/cem/cem.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E5%85%B7%E8%BA%AB%E6%A8%A1%E5%9E%8B">具身模型</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 17 / 规划与生成 · 优化器</p>
  <h1>CEM 与 Diffusion</h1>
  <p class="lede">CEM 不关心动作长什么样，只关心哪条轨迹分数高；Diffusion 反过来。这不是替代关系，是分工关系。</p>
@@ -187,10 +192,9 @@
 
  <p class="references">相关笔记：<a href="./lingbot-vla2.html">LingBot-VLA 2.0 原理</a>（flow matching 怎么生成动作） · <a href="./vla-g2-deploy.html">把大模型放在闭环外面</a>（模型与闭环的分工） · <a href="./grasp-timeline.html">一次完整抓取</a>（规划落到执行时的时序）</p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./calibration.html"><span>← 上一篇</span><strong>机器人标定：内参、外参、手眼与时间</strong></a>
-  <a class="next" href="./astra-robot-admission.html"><span>下一篇 →</span><strong>当 AI Agent 遇到真机：Astra 的权限、准入与调试困境</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./optimizer-muon.html"><small>相关阅读</small>优化器与 Muon</a><a href="./cuda.html"><small>相关阅读</small>CUDA 与算子</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/cem/cem.js"></script>

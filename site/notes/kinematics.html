@@ -27,9 +27,14 @@
  <meta property="article:published_time" content="2026-10-09">
  <meta property="article:modified_time" content="2026-10-23">
  <meta property="article:section" content="运动学入门">
- <!--/meta--><title>从关节角到末端运动：正运动学与雅可比 · WangN2</title><meta name="description" content="配合 G2 交互模型，从零理解关节角、正运动学、雅可比与位置逆解。"><link rel="stylesheet" href="../assets/site.css"></head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+ <!--/meta--><title>从关节角到末端运动：正运动学与雅可比 · WangN2</title><meta name="description" content="配合 G2 交互模型，从零理解关节角、正运动学、雅可比与位置逆解。"><link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
+</head>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E8%BF%90%E5%8A%A8%E4%B8%8E%E6%8E%A7%E5%88%B6">运动与控制</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 01 / 运动学入门</p><h1>从关节角到末端运动：<br>正运动学与雅可比</h1>
  <p class="lede">想象你伸手拿杯子：你想的是「手往前一点」，而机器人需要知道「每个关节应该转多少」。这篇笔记把两者之间的桥梁拆开讲清楚。</p>
   <div class="article-meta"><span><time datetime="2026-10-09">2026-10-09</time></span><span>约 5 分钟</span><span>运动学入门</span><a class="series-link" href="../series/">全系列 ›</a></div>
@@ -75,8 +80,9 @@
  <p class="callout">模型依据 AgiBot / AgiBot World 的 GenieSimAssets，经网格简化与运动学导出。模型及改编数据采用 CC BY-NC-SA 4.0。详见<a href="../licenses/attribution.html">来源与许可</a>。</p>
  <a class="primary-link back" href="../index.html#lab">回到实验室，动手试试 →</a>
  <p class="references">相关笔记：<a href="./collision-envelope.html">G2 的碰撞球</a>（几何包络那一层） · <a href="./hand-eye.html">手眼标定</a>（正运动学是它的 A 段） · <a href="./tray-grasp.html">料盘抓取</a>（末端目标怎么变成关节角）</p>
-  <nav class="note-nav" aria-label="笔记导航">
-   <a class="home" href="../index.html#notes"><span>系列索引</span><strong>全部技术笔记</strong></a>
-   <a class="next" href="./collision-envelope.html"><span>下一篇 →</span><strong>G2 的碰撞球：有距离，为什么还停住？</strong></a>
-  </nav>
+  <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./swerve-base.html"><small>相关阅读</small>全向底盘：四个舵轮怎么同时听话</a><a href="./fk-ik-g2-left-arm.html"><small>相关阅读</small>从 G2 左臂的 7 个关节，一步一步算到 TCP</a></nav>
+<nav class="note-nav" hidden data-route="engineering" aria-label="工程入门"><a href="../series/#engineering-route">工程入门 · 第 1/5 篇</a><a href="./apriltag.html?route=engineering"><small>下一篇</small>AprilTag 视觉定位详解</a></nav>
+<nav class="note-nav" hidden data-route="model" aria-label="模型进阶"><a href="../series/#model-route">模型进阶 · 第 1/3 篇</a><a href="./grasp-timeline.html?route=model"><small>下一篇</small>一次完整抓取：从看到到夹住</a></nav>
+<!-- navigation:end -->
  </article></main><footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer></body></html>

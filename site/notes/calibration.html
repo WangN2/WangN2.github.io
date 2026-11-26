@@ -31,9 +31,14 @@
  <meta name="description" content="从内参、安装外参、手眼到时间对齐：用交互理解退化，用采集流程建立基线，用独立验证区分稳定与准确。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/calib/calib.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E6%84%9F%E7%9F%A5%E4%B8%8E%E5%AE%9A%E4%BD%8D">感知与定位</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 16 / 标定 · 系统方法</p>
  <h1>机器人标定</h1>
  <p class="lede">让像素、坐标系与时间对应起来。一次可复用的标定，应交付参数、适用条件，以及独立验证的证据。</p>
@@ -184,10 +189,9 @@
 
  <p class="references">相关笔记：<a href="./hand-eye.html">手眼标定：把「相机看到的」搬进机器人坐标系</a>（AX=XB 的推导） · <a href="./apriltag.html">AprilTag 视觉定位详解</a>（标签怎么变成位姿） · <a href="./train-5k.html">把 VLA 装进 G2</a>（一个真实的排障记录）</p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./cuda.html"><span>← 上一篇</span><strong>CUDA 与算子</strong></a>
-  <a class="next" href="./cem.html"><span>下一篇 →</span><strong>CEM 与 Diffusion：采样优化和分布生成</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./apriltag.html"><small>相关阅读</small>AprilTag 视觉定位详解</a><a href="./hand-eye.html"><small>相关阅读</small>手眼标定：把「相机看到的」搬进机器人坐标系</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/calib/core.cjs"></script>

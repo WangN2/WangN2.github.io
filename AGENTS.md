@@ -38,7 +38,7 @@ npm run check:public  # 脱敏扫描
 
 ## 数字写在多处的，交给测试
 
-分类计数（「N 篇基础」、筛选胶囊）同时存在于 `site/index.html` 与 `site/series/index.html`，加起来四处。人一定会漏——`tests/categories.test.cjs` 里那条测试逐文件比对实际卡片数，别删。
+笔记清单和路线维护在 content/notes.json。运行 npm run build 生成首页精选、笔记库和文章导航。分类与计数仍由 tests/categories.test.cjs 核对。
 
 ## 部署
 

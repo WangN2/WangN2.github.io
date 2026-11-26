@@ -22,7 +22,7 @@ with sync_playwright() as p:
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.on('response',lambda r: failed.append(r.url) if r.status>=400 else None)
     page.goto(base+'/index.html#notes')
-    page.locator('a.guide-teaser').click()
+    page.locator('#guide').click()
     host=page.locator('.guide-lab[data-ready=true]');host.wait_for()
 
     # 默认权重必须复现来源仓库的排序与分数

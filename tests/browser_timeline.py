@@ -19,8 +19,8 @@ with sync_playwright() as p:
     page=context.new_page()
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.on('response',lambda r: failed.append(r.url) if r.status>=400 else None)
-    page.goto(base+'/index.html#notes')
-    page.locator('a.article-card[href="./notes/grasp-timeline.html"]').click()
+    page.goto(base+'/series/')
+    page.locator('a.article-card[href="../notes/grasp-timeline.html"]').click()
     page.locator('.tl-lab[data-ready=true]').wait_for()
 
     steps=page.locator('.tl-steps button')

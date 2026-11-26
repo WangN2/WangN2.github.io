@@ -31,9 +31,14 @@
  <meta name="description" content="AX = XB 不是一条要背的公式，而是「两条路径必须到同一个地方」。附可拖动的路径一致性实验。">
  <link rel="stylesheet" href="../assets/site.css">
  <link rel="stylesheet" href="../assets/handeye/handeye.css">
+<link rel="stylesheet" href="../assets/reading.css">
+<script defer src="../assets/reading.js"></script>
 </head>
-<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../index.html#notes">笔记</a></nav></header>
+<body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="../series/">笔记</a></nav></header>
 <main class="wrap"><article class="article">
+<!-- breadcrumb:start -->
+<nav class="crumb" aria-label="当前位置"><a href="../series/" data-library>笔记库</a> › <a href="../series/?topic=%E6%84%9F%E7%9F%A5%E4%B8%8E%E5%AE%9A%E4%BD%8D">感知与定位</a></nav>
+<!-- breadcrumb:end -->
  <p class="eyebrow">NOTE 04 / 视觉标定 · 外参</p>
  <h1>手眼标定：<br>把「相机看到的」<br>搬进机器人坐标系</h1>
  <p class="lede">标签给你「标签相对相机」，运动学给你「末端相对基座」。这两个数都很准，但拼不到一起——中间缺一个数：相机到底装在机器人的哪个位置。</p>
@@ -142,10 +147,10 @@
 
  <p class="references">相关笔记：<a href="./apriltag.html">AprilTag 视觉定位详解</a>（B 段从哪来） · <a href="./tray-grasp.html">料盘抓取</a>（外参用在哪） · <a href="./kinematics.html">从关节角到末端运动</a>（A 段从哪来）</p>
 
- <nav class="note-nav" aria-label="笔记导航">
-  <a class="prev" href="./apriltag.html"><span>← 上一篇</span><strong>AprilTag 视觉定位详解</strong></a>
-  <a class="next" href="./tray-grasp.html"><span>下一篇 →</span><strong>料盘抓取：离线示教、在线重算与大模型协作</strong></a>
- </nav>
+ <!-- navigation:start -->
+<nav class="note-nav" aria-label="笔记导航"><a href="../series/" data-library>返回笔记库</a><a href="./apriltag.html"><small>相关阅读</small>AprilTag 视觉定位详解</a><a href="./nvjpeg.html"><small>相关阅读</small>nvJPEG 基础原理</a></nav>
+<nav class="note-nav" hidden data-route="engineering" aria-label="工程入门"><a href="../series/#engineering-route">工程入门 · 第 3/5 篇</a><a href="./apriltag.html?route=engineering"><small>上一篇</small>AprilTag 视觉定位详解</a><a href="./tray-grasp.html?route=engineering"><small>下一篇</small>料盘抓取：离线示教、在线重算与大模型协作</a></nav>
+<!-- navigation:end -->
  </article></main>
  <footer class="site-footer wrap"><span>WangN2 · 机器人技术笔记</span><a href="../index.html">返回主页</a></footer>
  <script src="../assets/handeye/handeye.js"></script>
