@@ -34,9 +34,21 @@ const sections = Object.entries(categories).map(([id, label]) => {
   const group = notes.filter(note => note.category === id);
   return `<section class="note-category" data-category="${id}" id="${id}"><h2>${label} · ${group.length} 篇</h2>\n${group.map(note => card(note, '..', 'h3')).join('\n')}\n</section>`;
 });
-render('site/series/index.html', 'inventory', `<div class="library-controls" hidden><label>搜索笔记<input id="query" type="search" placeholder="标题、关键词，如 AprilTag"></label>${select('topic','主题',topics.map(t=>[t,t]))}${select('category','类别',Object.entries(categories))}<output aria-live="polite"></output></div>
+const collectionCopy = {
+  basics: ['FOUNDATIONS', '理解机器人如何运动与感知'],
+  models: ['MODELS', '探索学习、推理与行动'],
+  applications: ['IN PRACTICE', '把方法带到真实场景']
+};
+const collections = Object.entries(categories).map(([id, label]) => {
+  const count = notes.filter(note => note.category === id).length;
+  const [name, description] = collectionCopy[id];
+  return `<div class="collection" data-collection="${id}"><span class="collection-label">${name}</span><button type="button" class="collection-orb" data-open-category="${id}" aria-expanded="false" aria-controls="${id}"><strong>${label}</strong><span>${count} 篇笔记</span></button><p>${description}</p></div>`;
+}).join('');
+render('site/series/index.html', 'inventory', `<div class="collections" aria-label="探索笔记分类" hidden>${collections}</div>
+<p class="collection-help" hidden>悬停探索 · 点击固定展开 · 再次点击取消固定</p>
+<div class="library-controls" hidden><label>搜索笔记<input id="query" type="search" placeholder="标题、关键词，如 AprilTag"></label>${select('topic','主题',topics.map(t=>[t,t]))}${select('category','类别',Object.entries(categories))}<output aria-live="polite"></output></div>
 <details id="chain" class="routes"><summary>按路线读 · 工程入门与模型进阶</summary>${routeLists.join('\n')}</details>
-<h2 id="all">全部笔记</h2>${sections.join('\n')}`);
+<div class="library-heading"><h2 id="all">全部笔记</h2><button type="button" class="show-all" hidden>查看全部</button></div>${sections.join('\n')}`);
 
 for (const note of notes) {
   const files = ['site/notes/' + note.slug + '.html'];

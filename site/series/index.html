@@ -30,6 +30,7 @@
  <link rel="stylesheet" href="../assets/series/series.css">
 <link rel="stylesheet" href="../assets/reading.css">
 <script defer src="../assets/reading.js"></script>
+<link rel="stylesheet" href="../assets/series/collections.css">
 </head>
 <body><header class="site-header wrap"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">W.</span><span>WangN2<span class="brand-sub">机器人技术笔记</span></span></a><nav aria-label="主导航"><a href="../index.html#lab">实验室</a><a href="../guide/">选型</a><a href="./">笔记库</a></nav></header>
 <main class="wrap series">
@@ -37,10 +38,12 @@
  <h1>机器人技术笔记库</h1>
  <p class="lede">从一个关节的转动，到一次完整的抓取，再到学习型具身智能。15 篇基础、6 篇模型、9 篇应用，按主题找到适合自己的起点。</p>
 <!-- inventory:start -->
+<div class="collections" aria-label="探索笔记分类" hidden><div class="collection" data-collection="basics"><span class="collection-label">FOUNDATIONS</span><button type="button" class="collection-orb" data-open-category="basics" aria-expanded="false" aria-controls="basics"><strong>基础篇</strong><span>15 篇笔记</span></button><p>理解机器人如何运动与感知</p></div><div class="collection" data-collection="models"><span class="collection-label">MODELS</span><button type="button" class="collection-orb" data-open-category="models" aria-expanded="false" aria-controls="models"><strong>模型篇</strong><span>6 篇笔记</span></button><p>探索学习、推理与行动</p></div><div class="collection" data-collection="applications"><span class="collection-label">IN PRACTICE</span><button type="button" class="collection-orb" data-open-category="applications" aria-expanded="false" aria-controls="applications"><strong>应用篇</strong><span>9 篇笔记</span></button><p>把方法带到真实场景</p></div></div>
+<p class="collection-help" hidden>悬停探索 · 点击固定展开 · 再次点击取消固定</p>
 <div class="library-controls" hidden><label>搜索笔记<input id="query" type="search" placeholder="标题、关键词，如 AprilTag"></label><label>主题<select id="topic"><option value="">全部</option><option value="运动与控制">运动与控制</option><option value="感知与定位">感知与定位</option><option value="导航与规划">导航与规划</option><option value="具身模型">具身模型</option><option value="工程与协作">工程与协作</option></select></label><label>类别<select id="category"><option value="">全部</option><option value="basics">基础篇</option><option value="models">模型篇</option><option value="applications">应用篇</option></select></label><output aria-live="polite"></output></div>
 <details id="chain" class="routes"><summary>按路线读 · 工程入门与模型进阶</summary><div><h3>工程入门 · 5 篇</h3><nav id="engineering-route" aria-label="工程入门阅读路线"><a href="../notes/kinematics.html?route=engineering">从关节角到末端运动：正运动学与雅可比</a> → <a href="../notes/apriltag.html?route=engineering">AprilTag 视觉定位详解</a> → <a href="../notes/hand-eye.html?route=engineering">手眼标定：把「相机看到的」搬进机器人坐标系</a> → <a href="../notes/tray-grasp.html?route=engineering">料盘抓取：离线示教、在线重算与大模型协作</a> → <a href="../notes/grasp-timeline.html?route=engineering">一次完整抓取：从看到到夹住</a></nav></div>
 <div><h3>模型进阶 · 3 篇</h3><nav id="model-route" aria-label="模型进阶阅读路线"><a href="../notes/kinematics.html?route=model">从关节角到末端运动：正运动学与雅可比</a> → <a href="../notes/grasp-timeline.html?route=model">一次完整抓取：从看到到夹住</a> → <a href="../notes/lingbot-vla2.html?route=model">LingBot-VLA 2.0：从看懂指令到连续动作</a></nav></div></details>
-<h2 id="all">全部笔记</h2><section class="note-category" data-category="basics" id="basics"><h2>基础篇 · 15 篇</h2>
+<div class="library-heading"><h2 id="all">全部笔记</h2><button type="button" class="show-all" hidden>查看全部</button></div><section class="note-category" data-category="basics" id="basics"><h2>基础篇 · 15 篇</h2>
 <a class="article-card" href="../notes/kinematics.html"><div data-topics="运动与控制"><p class="eyebrow">运动与控制</p><h3>从关节角到末端运动：正运动学与雅可比</h3><p class="summary">为什么转动一个关节，夹爪会沿弧线移动？雅可比又是怎么把「微小转角」换算成「末端位移」的。</p><small><time datetime="2026-10-09">2026-10-09</time> · 约 5 分钟</small></div></a>
 <a class="article-card" href="../notes/swerve-base.html"><div data-topics="运动与控制 导航与规划"><p class="eyebrow">运动与控制 · 导航与规划</p><h3>全向底盘：四个舵轮怎么同时听话</h3><p class="summary">逆运动学只有三行，难的是等价角、180° 反转和转向限位——环环相扣的工程细节。</p><small><time datetime="2026-10-23">2026-10-23</time> · 约 6 分钟</small></div></a>
 <a class="article-card" href="../notes/apriltag.html"><div data-topics="感知与定位"><p class="eyebrow">感知与定位</p><h3>AprilTag 视觉定位详解</h3><p class="summary">从 tag36h11 编码、汉明纠错到 PnP 六自由度位姿：一张图怎么变成一个位置和朝向。</p><small><time datetime="2026-10-16">2026-10-16</time> · 约 6 分钟</small></div></a>

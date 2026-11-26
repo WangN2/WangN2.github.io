@@ -4,6 +4,26 @@
   if (controls) {
     const fields = [...controls.querySelectorAll('input, select')];
     const groups = [...document.querySelectorAll('[data-category]')];
+    const orbs = [...document.querySelectorAll('[data-open-category]')];
+    const collectionPanel = document.querySelector('.collections');
+    const showAll = document.querySelector('.show-all');
+    let pinned = false;
+    const syncCollections = () => {
+      for (const orb of orbs) {
+        const selected = orb.dataset.openCategory === fields[2].value;
+        orb.setAttribute('aria-expanded', String(selected));
+        orb.setAttribute('aria-pressed', String(selected && pinned));
+      }
+      if (showAll) showAll.hidden = !fields.some(field => field.value);
+    };
+    const updateURL = () => {
+      const url = new URL(location.href);
+      for (const field of fields) {
+        if (field.value) url.searchParams.set(field.id, field.value);
+        else url.searchParams.delete(field.id);
+      }
+      history.replaceState(history.state, '', url);
+    };
     function filter() {
       const query = fields[0].value.trim().toLowerCase();
       const topic = fields[1].value, category = fields[2].value;
@@ -19,6 +39,7 @@
         group.hidden = !count;
         visible += count;
       }
+      syncCollections();
       controls.querySelector('output').textContent = visible ? visible + ' 篇' : '没有匹配的笔记，请调整搜索或筛选条件。';
     }
     for (const field of fields) {
@@ -28,8 +49,43 @@
         if (field.value) url.searchParams.set(field.id, field.value);
         else url.searchParams.delete(field.id);
         history.replaceState(history.state, '', url);
+        if (field.id === 'category') pinned = Boolean(field.value);
         filter();
       });
+    }
+    if (collectionPanel) {
+      pinned = Boolean(fields[2].value);
+      collectionPanel.hidden = false;
+      document.querySelector('.collection-help').hidden = false;
+      const choose = (id) => { fields[2].value = id; updateURL(); filter(); };
+      for (const orb of orbs) {
+        orb.addEventListener('pointerenter', event => {
+          if (event.pointerType === 'mouse' && !pinned) choose(orb.dataset.openCategory);
+        });
+        orb.addEventListener('click', () => {
+          pinned = !(pinned && fields[2].value === orb.dataset.openCategory);
+          choose(orb.dataset.openCategory);
+        });
+      }
+      showAll.addEventListener('click', () => {
+        pinned = false;
+        fields.forEach(field => { field.value = ''; });
+        choose('');
+      });
+      collectionPanel.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { pinned = false; choose(''); }
+      });
+      function revealCategory() {
+        const id = location.hash.slice(1);
+        if (groups.some(group => group.id === id)) {
+          pinned = true;
+          fields.forEach(field => { field.value = ''; });
+          choose(id);
+          document.getElementById(id).scrollIntoView();
+        }
+      }
+      revealCategory();
+      window.addEventListener('hashchange', revealCategory);
     }
     controls.hidden = false;
     filter();
